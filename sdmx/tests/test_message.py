@@ -5,7 +5,7 @@ from .data import specimen
 
 EXPECTED = {
     # Structure messages
-    'IPI-2010-A21-structure.xml': """<pandasdmx.StructureMessage>
+    'IPI-2010-A21-structure.xml': """<sdmx.StructureMessage>
   <Header>
     id: 'categorisation_1450864290565'
     prepared: '2015-12-23T09:51:30.565Z'
@@ -18,7 +18,7 @@ EXPECTED = {
   DataStructureDefinition (1): IPI-2010-A21""",
 
     # This message shows the summarization feature: the DFD list is truncated
-    'dataflow.xml': """<pandasdmx.StructureMessage>
+    'dataflow.xml': """<sdmx.StructureMessage>
   <Header>
     id: 'dataflow_ENQ-CONJ-TRES-IND-PERSP_1450865196042'
     prepared: '2015-12-23T10:06:36.042Z'
@@ -27,7 +27,7 @@ EXPECTED = {
   DataflowDefinition (663): ACT-TRIM-ANC BPM6-CCAPITAL BPM6-CFINANCIER ...""",
 
     # Data message
-    'sg-xs.xml': """<pandasdmx.DataMessage>
+    'sg-xs.xml': """<sdmx.DataMessage>
   <Header>
     id: 'Generic'
     prepared: '2010-01-04T16:21:49+01:00'
@@ -37,7 +37,7 @@ EXPECTED = {
   observation_dimension: <Dimension: CURRENCY>""",
 
     # This message has two DataSets:
-    'action-delete.json': """<pandasdmx.DataMessage>
+    'action-delete.json': """<sdmx.DataMessage>
   <Header>
     id: '62b5f19d-f1c9-495d-8446-a3661ed24753'
     prepared: '2012-11-29T08:40:26Z'

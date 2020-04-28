@@ -1,10 +1,10 @@
 """Experimental DataSet class using pandas for internal storage.
 
 Currently:
-- pandasdmx.model.DataSet stores a collection of Observation instances, and
-  allows retrieving these directly, via their SeriesKey, or via a GroupKey,
-  with or without DataAttributes attached at various levels.
-- pandasdmx.writer converts these to pd.Series and pd.DataFrame objects.
+- sdmx.model.DataSet stores a collection of Observation instances, and allows
+  retrieving these directly, via their SeriesKey, or via a GroupKey, with or
+  without DataAttributes attached at various levels.
+- sdmx.writer converts these to pd.Series and pd.DataFrame objects.
 
 This module contains an alternate, incomplete/experimental implementation, in
 which Observation values, DataAttributes, and series- and group-associations
@@ -61,7 +61,7 @@ class DataSet(AnnotableArtefact):
             # Store the row
             obs_dict[obs.key.order().get_values()] = row
 
-        # Convert to pd.DataFrame. Note similarity to pandasdmx.writer
+        # Convert to pd.DataFrame. Note similarity to sdmx.writer
         self._data = pd.DataFrame.from_dict(obs_dict, orient='index')
 
         if len(obs_dict):
@@ -69,7 +69,7 @@ class DataSet(AnnotableArtefact):
 
     @property
     def obs(self):
-        # In pandasdmx.model.DataSet, .obs is typed as List[Observation].
+        # In model.DataSet, .obs is typed as List[Observation].
         # Here, the Observations are generated on request.
         for key, data in self._data.iterrows():
             yield self._make_obs(key, data)

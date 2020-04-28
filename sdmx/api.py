@@ -1,7 +1,7 @@
 """Network requests API.
 
 This module defines :class:`.Request`, which forms the high-level API of
-:mod:`pandasdmx`. Requesting data and metadata from an SDMX server requires a
+:mod:`sdmx`. Requesting data and metadata from an SDMX server requires a
 understanding of this API and a basic understanding of the SDMX web service
 guidelines.
 """
@@ -25,7 +25,7 @@ class Request:
 
     Parameters
     ----------
-    source : str or :class:`pandasdmx.source.Source`
+    source : str or source.Source
         Identifier of a data source. If a string, must be one of the known
         sources in :meth:`list_sources`.
     log_level : int
@@ -33,7 +33,7 @@ class Request:
         :ref:`standard logging levels <py:levels>`.
     **session_opts
         Additional keyword arguments are passed to
-        :class:`pandasdmx.remote.Session`.
+        :class:`.Session`.
 
     """
     cache = {}
@@ -90,7 +90,7 @@ class Request:
         self.session.timeout = value
 
     def series_keys(self, flow_id, use_cache=True):
-        """Return all :class:`pandasdmx.model.SeriesKey` for *flow_id*.
+        """Return all :class:`.SeriesKey` for *flow_id*.
 
         Returns
         -------
@@ -253,10 +253,10 @@ class Request:
            :class:`Resource`) and, optionally, ID of the item(s). If the
            `resource_id` is not given, all items of the given type are
            retrieved.
-        2. a `resource` object, i.e. a :class:`MaintainableArtefact
-           <pandasdmx.model.MaintainableArtefact>`: `resource_type` and
-           `resource_id` are determined by the object's class and :attr:`id
-           <pandasdmx.model.IdentifiableArtefact.id>` attribute, respectively.
+        2. a `resource` object, i.e. a :class:`.MaintainableArtefact`:
+           `resource_type` and `resource_id` are determined by the object's
+           class and :attr:`id <.IdentifiableArtefact.id>` attribute,
+           respectively.
 
         Data is retrieved with `resource_type='data'`. In this case, the
         optional keyword argument `key` can be used to constrain the data that
@@ -272,15 +272,13 @@ class Request:
            requires knowledge of the dimension order in the target data
            `resource_id`; in the example, dimension 'GEO' is the fifth of five
            dimensions: ``'.'.join(['', '', '', '', 'EL+ES+IE'])``.
-           :meth:`CubeRegion.to_query_string
-           <pandasdmx.model.CubeRegion.to_query_string>` can also be used to
-           create properly formatted strings.
+           :meth:`.CubeRegion.to_query_string` can also be used to create
+           properly formatted strings.
 
         For formats 1 and 2, but not 3, the `key` argument is validated against
-        the relevant :class:`DataStructureDefinition
-        <pandasdmx.model.DataStructureDefinition>`, either given with the `dsd`
-        keyword argument, or retrieved from the web service before the main
-        query.
+        the relevant :class:`.DataStructureDefinition`, either given with the
+        `dsd` keyword argument, or retrieved from the web service before the
+        main query.
 
         For the optional `param` keyword argument, some useful parameters are:
 
@@ -448,8 +446,8 @@ class Request:
 
         For the Dataflow *flow_id*, return all series keys matching *key*.
         preview_data() uses a feature supported by some data providers that
-        returns :class:`SeriesKeys <pandasdmx.model.SeriesKey>` without the
-        corresponding :class:`Observations <pandasdmx.model.Observation>`.
+        returns :class:`SeriesKeys <.SeriesKey>` without the corresponding
+        :class:`Observations <.Observation>`.
 
         To count the number of series::
 
@@ -472,7 +470,7 @@ class Request:
 
         Returns
         -------
-        list of :class:`SeriesKey <pandasdmx.model.SeriesKey>`
+        list of :class:`.SeriesKey`
         """
         # Retrieve the series keys
         all_keys = self.series_keys(flow_id)

@@ -21,7 +21,7 @@ from sdmx.reader import BaseReader
 
 
 class Reader(BaseReader):
-    """Read SDMXJSON 2.1 and expose it as instances from pandasdmx.model."""
+    """Read SDMXJSON 2.1 and expose it as instances from :mod:`sdmx.model`."""
     def read_message(self, source):
         # Initialize message instance
         msg = DataMessage()

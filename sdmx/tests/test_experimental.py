@@ -1,6 +1,6 @@
 """Tests for experimental code using pandas objects for internal storage.
 
-See pandasdmx.experimental for more information.
+See sdmx.experimental for more information.
 """
 from sdmx.experimental import DataSet as PandasDataSet
 from sdmx.model import (

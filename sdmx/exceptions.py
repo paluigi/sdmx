@@ -2,7 +2,7 @@ from requests import HTTPError  # noqa: F401
 
 
 class ParseError(Exception):
-    """:class:`pandasdmx.reader.Reader` is unable to parse a message."""
+    """:class:`~.reader.Reader` is unable to parse a message."""
     pass
 
 
@@ -11,7 +11,7 @@ class XMLParseError(ParseError):
 
     Parameters
     ----------
-    reader : pandasdmx.reader.sdmxml.Reader
+    reader : sdmxml.Reader
     elem : lxml.etree.Element
     """
     def __init__(self, reader, elem, message=None):

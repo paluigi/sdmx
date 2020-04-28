@@ -225,7 +225,7 @@ class Reparse(Exception):
 # - _parse(elem) uses the XML tag name of elem, plus METHOD, to find a method
 #    like Reader.parse_X().
 # - parse_X(elem) is called. These methods perform similar tasks such as:
-#   - Create an instance of a pandasdmx.model class,
+#   - Create an instance of a sdmx.model class,
 #   - Recursively:
 #     - call _parse() on the children of elem,
 #     - call _named(), which also creates an instance of a NameableArtefact,
@@ -237,7 +237,7 @@ class Reparse(Exception):
 #   - Return the parsed model object to be used further up the recursive stack.
 #
 class Reader(BaseReader):
-    """Read SDMX-ML 2.1 and expose it as instances from :mod:`pandasdmx.model`.
+    """Read SDMX-ML 2.1 and expose it as instances from :mod:`sdmx.model`.
 
     The implementation is recursive, and depends on:
 
@@ -255,7 +255,7 @@ class Reader(BaseReader):
     # Tag parsers may examine the stack to determine context for parsing.
     _stack = []
 
-    # Map of (class name, id) → pandasdmx.model object.
+    # Map of (class name, id) → sdmx.model object.
     # Only IdentifiableArtefacts should be stored. See _maintained().
     _index = {}
 
@@ -361,11 +361,10 @@ class Reader(BaseReader):
         return msg
 
     def _parse(self, elem, unwrap=True):
-        """Recursively parse the XML *elem* and return pandasdmx.model objects.
+        """Recursively parse the XML *elem* and return sdmx.model objects.
 
         Methods like 'Reader.parse_attribute()' are called for XML elements
-        with tag names like '<ns:Attribute>'; each emits pandasdmx.model
-        objects.
+        with tag names like '<ns:Attribute>'; each emits sdmx.model objects.
 
         If *unwrap* is True (the default), then single-entry lists are returned
         as bare objects.

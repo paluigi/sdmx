@@ -98,7 +98,7 @@ class Message(BaseModel):
     def __repr__(self):
         """String representation."""
         lines = [
-            f'<pandasdmx.{self.__class__.__name__}>',
+            f'<sdmx.{self.__class__.__name__}>',
             repr(self.header).replace('\n', '\n  '),
         ]
         lines.extend(_summarize(self, ['footer', 'response']))

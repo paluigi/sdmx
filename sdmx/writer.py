@@ -71,13 +71,12 @@ def write_list(obj, *args, **kwargs):
     For the following *obj*, :meth:`write_list` returns :class:`pandas.Series`
     instead of a :class:`list`:
 
-    - a list of :class:`Observation <pandasdmx.model.Observation>`:
-      the Observations are written using :meth:`write_dataset`.
-    - a list with only 1 :class:`DataSet <pandasdmx.model.DataSet>` (e.g. the
-       :attr:`data <pandasdmx.message.DataMessage.data>` attribute of
-       :class:`DataMessage <pandasdmx.message.DataMessage>`): the Series for
-       the single element is returned.
-    - a list of :class:`SeriesKey`: the key values (but no data) are returned.
+    - a list of :class:`.Observation`: the Observations are written using
+      :meth:`write_dataset`.
+    - a list with only 1 :class:`.DataSet` (e.g. the
+       :attr:`~.DataMessage.data>` attribute of :class:`.DataMessage`): the
+       Series for the single element is returned.
+    - a list of :class:`.SeriesKey`: the key values (but no data) are returned.
     """
     if isinstance(obj[0], Observation):
         return write_dataset(obj, *args, **kwargs)

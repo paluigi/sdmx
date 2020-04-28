@@ -94,6 +94,7 @@ SDMX-JSON
          write_structuremessage
 
 .. autodata:: DEFAULT_RTYPE
+   :noindex:
 
 .. todo::
    Support selection of language for conversion of

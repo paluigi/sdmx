@@ -1,4 +1,4 @@
-# TODO tidy these tests to use fixtures/methods from pandasdmx.tests
+# TODO tidy these tests to use fixtures/methods from sdmx.tests
 from collections import OrderedDict
 
 import sdmx

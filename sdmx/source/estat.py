@@ -16,7 +16,7 @@ class Source(BaseSource):
     made available as a ZIP file.
 
     To configure :meth:`finish_message`, pass its `get_footer_url` argument to
-    :meth:`pandasdmx.api.Request.get`.
+    :meth:`.Request.get`.
 
     .. versionadded:: 0.2.1
 
@@ -79,7 +79,7 @@ class Source(BaseSource):
         contained XML file.
 
         """
-        
+
         if response.headers['content-type'] != 'application/octet-stream':
             return response, content
 

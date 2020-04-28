@@ -29,22 +29,15 @@ class Resource(str, Enum):
     """Enumeration of SDMX REST API endpoints.
 
     ====================== ================================================
-    :class:`Enum` member   :mod:`pandasdmx.model` class
+    :class:`Enum` member   :mod:`sdmx.model` class
     ====================== ================================================
-    ``categoryscheme``     :class:`CategoryScheme \
-                                   <pandasdmx.model.CategoryScheme>`
-    ``codelist``           :class:`Codelist \
-                                   <pandasdmx.model.Codelist>`
-    ``conceptscheme``      :class:`ConceptScheme \
-                                   <pandasdmx.model.ConceptScheme>`
-    ``data``               :class:`DataSet \
-                                   <pandasdmx.model.DataSet>`
-    ``dataflow``           :class:`DataflowDefinition \
-                                   <pandasdmx.model.DataflowDefinition>`
-    ``datastructure``      :class:`DataStructureDefinition \
-                                   <pandasdmx.model.DataStructureDefinition>`
-    ``provisionagreement`` :class:`ProvisionAgreement \
-                                   <pandasdmx.model.ProvisionAgreement>`
+    ``categoryscheme``     :class:`.CategoryScheme`
+    ``codelist``           :class:`.Codelist`
+    ``conceptscheme``      :class:`.ConceptScheme`
+    ``data``               :class:`.DataSet`
+    ``dataflow``           :class:`.DataflowDefinition`
+    ``datastructure``      :class:`.DataStructureDefinition`
+    ``provisionagreement`` :class:`.ProvisionAgreement`
     ====================== ================================================
     """
 
@@ -99,8 +92,8 @@ class BaseModel(pydantic.BaseModel):
     1. https://github.com/samuelcolvin/pydantic/issues/524
 
        - "Multiple RecursionErrors with self-referencing models"
-       - In e.g. pandasdmx.model.Item, having both .parent and .child
-         references leads to infinite recursion during validation.
+       - In e.g. :class:`.Item`, having both .parent and .child references
+         leads to infinite recursion during validation.
        - Fix: override BaseModel.__setattr__.
        - New value 'limited' for Config.validate_assignment: no sibling
          field values are passed to Field.validate().

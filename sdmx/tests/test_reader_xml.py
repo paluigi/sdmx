@@ -79,8 +79,8 @@ E = Element
 # Each entry is a tuple with 2 elements:
 # 1. an instance of lxml.etree.Element to be parsed.
 # 2. Either:
-#   - A pandasdmx.model object, in which case the parsed element must match
-#     the object.
+#   - A sdmx.model object, in which case the parsed element must match the
+#     object.
 #   - A string, in which case parsing the element is expected to fail, raising
 #     an exception matching the string.
 ELEMENTS = [

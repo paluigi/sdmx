@@ -44,16 +44,15 @@ class Source(BaseModel):
 
     headers: Dict[str, Any] = {}
 
-    #: :class:`pandasdmx.util.DataContentType` indicating the type of data
-    #: returned by the source.
+    #: :class:`.DataContentType` indicating the type of data returned by the
+    #: source.
     data_content_type: DataContentType = DataContentType.XML
 
-    #: Mapping from :class:`Resource <pandasdmx.util.Resource>` to
-    #: :class:`bool` indicating support for SDMX REST API features. Two
-    #: additional keys are valid:
+    #: Mapping from :class:`~sdmx.Resource` to :class:`bool` indicating support
+    #: for SDMX REST API features. Two additional keys are valid:
     #:
     #: - ``'preview'=True`` if the source supports ``?detail=serieskeysonly``.
-    #:   See :meth:`preview_data <pandasdmx.Request.preview_data>`.
+    #:   See :meth:`.preview_data`.
     #: - ``'structure-specific data'=True`` if the source can return structure-
     #:   specific data messages.
     supports: Dict[Union[str, Resource], bool] = {Resource.data: True}
@@ -74,39 +73,35 @@ class Source(BaseModel):
     def handle_response(self, response, content):
         """Handle response content of unknown type.
 
-        This hook is called by :meth:`pandasdmx.Request.get` *only* when
+        This hook is called by :meth:`.Request.get` *only* when
         the `content` cannot be parsed as XML or JSON.
 
-        See :meth:`ESTAT <pandasdmx.source.estat.Source.handle_response>` and
-        :meth:`SGR <pandasdmx.source.sgr.Source.handle_response>` for example
-        implementations.
+        See :meth:`.estat.Source.handle_response` and
+        :meth:`.sgr.Source.handle_response` for example implementations.
         """
         return response, content
 
     def finish_message(self, message, request, **kwargs):
         """Postprocess retrieved message.
 
-        This hook is called by :meth:`pandasdmx.Request.get` after a
-        :class:`pandasdmx.message.Message` object has been successfully
-        parsed from the query response.
+        This hook is called by :meth:`.Request.get` after a :class:`.Message`
+        object has been successfully parsed from the query response.
 
-        See :meth:`ESTAT <pandasdmx.source.estat.Source.finish_message>` for an
-        example implementation.
+        See :meth:`.estat.Source.finish_message` for an example implementation.
         """
         return message
 
     def modify_request_args(self, kwargs):
         """Modify arguments used to build query URL.
 
-        This hook is called by :meth:`pandasdmx.Request.get` to modify the
-        keyword arguments before the query URL is built.
+        This hook is called by :meth:`.Request.get` to modify the keyword
+        arguments before the query URL is built.
 
         The default implementation handles requests for 'structure-specific
         data' by adding an HTTP 'Accepts:' header when a 'dsd' is supplied as
         one of the `kwargs`.
 
-        See :meth:`SGR <pandasdmx.source.sgr.Source.modify_request_args>` for
-        an example override.
+        See :meth:`.sgr.Source.modify_request_args` for an example override.
 
         Returns
         -------
