@@ -1,26 +1,22 @@
-pandaSDMX: Statistical Data and Metadata eXchange
-=================================================
+sdmx: Statistical data and metadata exchange
+********************************************
 
-.. image:: https://travis-ci.com/dr-leo/pandaSDMX.svg?branch=master
-   :target: https://travis-ci.com/dr-leo/pandaSDMX
-.. image:: https://codecov.io/gh/dr-leo/pandaSDMX/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/dr-leo/pandaSDMX
+.. image:: https://travis-ci.com/khaeru/sdmx.svg?branch=master
+   :target: https://travis-ci.com/khaeru/sdmx
+.. image:: https://codecov.io/gh/khaeru/sdmx/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/khaeru/sdmx
 .. image:: https://readthedocs.org/projects/pandasdmx/badge/?version=latest
    :target: https://pandasdmx.readthedocs.io/en/latest
    :alt: Documentation Status
 .. image:: https://img.shields.io/pypi/v/pandaSDMX.svg
    :target: https://pypi.org/project/pandaSDMX
 
-`Source code @ Github <https://github.com/dr-leo/pandasdmx/>`_ —
-`Authors <AUTHORS>`_
+`Source code @ Github <https://github.com/khaeru/sdmx/>`_ —
+`Authors <https://github.com/khaeru/sdmx/graphs/contributors>`_
 
-**pandaSDMX** is an `Apache 2.0-licensed <LICENSE>`_ Python package that
-implements `SDMX <http://www.sdmx.org>`_ 2.1 (`ISO 17369:2013
-<https://www.iso.org/standard/52500.html>`_), a format for exchange of
-**statistical data and metadata** used by national statistical agencies,
-central banks, and international organisations.
+`sdmx` is an `Apache 2.0-licensed <LICENSE>`_ Python package that implements `SDMX <http://www.sdmx.org>`_ 2.1 (`ISO 17369:2013 <https://www.iso.org/standard/52500.html>`_), a format for exchange of **statistical data and metadata** used by national statistical agencies, central banks, and international organisations.
 
-**pandaSDMX** can be used to:
+`sdmx` can be used to:
 
 - explore the data available from `data providers
   <https://pandasdmx.readthedocs.io/en/latest/sources.html>`_
@@ -49,7 +45,7 @@ https://pandasdmx.readthedocs.io/en/v0.9 for the 0.9 release.
 License
 -------
 
-Copyright 2014–2020, `pandaSDMX developers <AUTHORS>`_
+Copyright 2014–2020, `SDMX Python developers <https://github.com/khaeru/sdmx/graphs/contributors>`_
 
 Licensed under the Apache License, Version 2.0 (the “License”); you may not use
 these files except in compliance with the License. You may obtain a copy of the
@@ -67,12 +63,8 @@ specific language governing permissions and limitations under the License.
 History
 -------
 
-pandaSDMX originally started as a fork of pysdmx_. Even if pandaSDMX would not
-have been possible without the inspiring work done for that project, the author
-decided to rewrite it from scratch, so pandaSDMX became an independent project.
-Many people from all over the world have generously contributed code and
-feedback.
+`sdmx` is a fork of pandaSDMX_; in turn a fork of pysdmx_.
+Many people from all over the world have generously contributed code and feedback.
 
-pandaSDMX also contains sample data and metadata from the SDMX user guide.
-
+.. _pandaSDMX: https://github.com/dr-leo/pandaSDMX
 .. _pysdmx: https://github.com/widukind/pysdmx

@@ -41,7 +41,7 @@ script: >
   -ra
   --verbose
   --remote-data
-  --cov pandasdmx --cov-report term-missing
+  --cov sdmx --cov-report term-missing
 
 after_success:
 - coverage combine
