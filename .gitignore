@@ -15,6 +15,7 @@ doc/cache.sqlite
 doc/_build
 prof/
 htmlcov
+ref
 
 # Editors
 .vscode/settings.json
