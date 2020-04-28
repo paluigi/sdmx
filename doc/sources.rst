@@ -1,4 +1,4 @@
-.. currentmodule:: pandasdmx
+.. currentmodule:: sdmx
 
 Data sources
 ============
@@ -15,12 +15,12 @@ data *providers*. Or, an agency might operate a data source that only contains
 information they provide themselves; in this case, the source and provider are
 identical.
 
-pandaSDMX identifies each data source using a string such as ``'ABS'``, and has
+:mod:`sdmx` identifies each data source using a string such as ``'ABS'``, and has
 built-in support for a number of data sources. Use :meth:`list_sources` to list
 these. Read the following sections, or the file ``sources.json`` in the
 package source code, for more details.
 
-pandaSDMX also supports adding other data sources; see :meth:`add_source` and :class:`~.source.Source`.
+:mod:`sdmx` also supports adding other data sources; see :meth:`add_source` and :class:`~.source.Source`.
 
 .. contents::
    :local:
@@ -38,7 +38,7 @@ A key difference is between sources offering SDMX-ML and SDMX-JSON APIs.
 SDMX-JSON APIs do not support metadata, or structure queries; only data queries.
 
 .. note:: For JSON APIs, start by browsing the source's website to retrieve the dataflow you're interested in. Then try to fine-tune a planned data request by providing a valid key (= selection of series from the dataset).
-   Because structure metadata is unavailable, :mod:`pandaSDMX` cannot automatically validate keys.
+   Because structure metadata is unavailable, :mod:`sdmx` cannot automatically validate keys.
 
 In order to anticipate and handle these differences:
 
@@ -58,10 +58,10 @@ In order to anticipate and handle these differences:
         },
       ]
 
-   pandaSDMX will raise :class:`NotImplementedError` on an attempt to query the
+   :mod:`sdmx` will raise :class:`NotImplementedError` on an attempt to query the
    "datastructure" API endpoint of either of these data sources.
 
-2. :mod:`pandasdmx.source` includes adapters (subclasses of
+2. :mod:`sdmx.source` includes adapters (subclasses of
    :class:`~.source.Source`) with hooks used when querying sources and
    interpreting their HTTP responses.
    These are documented below: ABS_, ESTAT_, and SGR_.
@@ -75,7 +75,7 @@ In order to anticipate and handle these differences:
 SDMX-JSON —
 `Website <http://www.abs.gov.au/>`__
 
-.. autoclass:: pandasdmx.source.abs.Source
+.. autoclass:: sdmx.source.abs.Source
    :members:
 
 
@@ -93,7 +93,7 @@ SDMX-ML —
   timeout exceptions.
 - Does not return DSDs for dataflow requests with the ``references='all'`` query parameter.
 
-.. autoclass:: pandasdmx.source.estat.Source
+.. autoclass:: sdmx.source.estat.Source
    :members:
 
 
@@ -114,7 +114,7 @@ SDMX-ML —
 SDMX-ML —
 `Website <www.ilo.org/ilostat/>`__
 
-- :class:`pandasdmx.source.ilo.Source` handles some particularities of the ILO
+- :class:`sdmx.source.ilo.Source` handles some particularities of the ILO
   web service. Others that are not handled:
 
   - Data flow IDs take on the role of a filter. E.g., there are dataflows for
@@ -122,12 +122,12 @@ SDMX-ML —
     indicators.
   - The service returns 413 Payload Too Large errors for some queries, with
     messages like: "Too many results, please specify codelist ID". Test for
-    :class:`pandasdmx.exceptions.HTTPError`
+    :class:`sdmx.exceptions.HTTPError`
     (= :class:`requests.exceptions.HTTPError`) and/or specify a ``resource_id``.
 
 - It is highly recommended to read the `API guide <http://www.ilo.org/ilostat/content/conn/ILOSTATContentServer/path/Contribution%20Folders/statistics/web_pages/static_pages/technical_page/ilostat_appl/SDMX_User_Guide.pdf>`_.
 
-.. autoclass:: pandasdmx.source.ilo.Source
+.. autoclass:: sdmx.source.ilo.Source
    :members:
 
 
@@ -202,7 +202,7 @@ SDMX-JSON —
 SDMX-ML —
 `Website <https://registry.sdmx.org/ws/rest>`__
 
-.. autoclass:: pandasdmx.source.sgr.Source
+.. autoclass:: sdmx.source.sgr.Source
    :members:
 
 

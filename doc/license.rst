@@ -1,9 +1,7 @@
 License
 =======
 
-Copyright 2014–2020, pandaSDMX developers:
-
-.. include:: ../AUTHORS
+Copyright 2014–2020, `SDMX Python developers <https://github.com/khaeru/sdmx/graphs/contributors>`_.
 
 Licensed under the Apache License, Version 2.0 (the “License”); you may not use
 these files except in compliance with the License. You may obtain a copy of the

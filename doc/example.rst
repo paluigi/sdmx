@@ -4,7 +4,7 @@ Ten-line usage example
 Suppose we want to analyze annual unemployment data for some European countries.
 All we need to know in advance is the data provider: Eurostat.
 
-pandaSDMX makes it easy to search the directory of dataflows, and the complete structural metadata about the datasets available through the selected dataflow.
+:mod:`sdmx` makes it easy to search the directory of dataflows, and the complete structural metadata about the datasets available through the selected dataflow.
 (This example skips these steps; see :doc:`the walkthrough <walkthrough>`.)
 
 The data we want is in a *data flow* with the identifier ``une_rt_a``.
@@ -13,7 +13,7 @@ The DSD, in turn, contains or references all the metadata describing data sets a
 
 .. ipython:: python
 
-    import pandasdmx as sdmx
+    import sdmx
     estat = sdmx.Request('ESTAT')
 
 Download the metadata and expose:
@@ -46,6 +46,7 @@ We also use a query *parameter*, 'startPeriod', to limit the scope of the data r
 We use the built-in :func:`.to_pandas` function to convert it to a :class:`pandas.Series`, then select on the ``AGE`` dimension:
 
 .. ipython:: python
+   :okexcept:
 
     data = (sdmx.to_pandas(resp)
                 .xs('Y15-74', level='AGE', drop_level=False))
@@ -54,6 +55,7 @@ We can now explore the data set as expressed in a familiar pandas object.
 First, show dimension names:
 
 .. ipython:: python
+   :okexcept:
 
     data.index.names
 
@@ -61,11 +63,13 @@ First, show dimension names:
 …and corresponding key values along these dimensions:
 
 .. ipython:: python
+   :okexcept:
 
     data.index.levels
 
 Select some data of interest: show aggregate unemployment rates across ages ('Y15-74' on the ``AGE`` dimension) and sexes ('T' on the ``SEX`` dimension), expressed as a percentage of active population ('PC_ACT' on the ``UNIT`` dimension):
 
 .. ipython:: python
+   :okexcept:
 
     data.loc[('A', 'Y15-74', 'PC_ACT', 'T')]

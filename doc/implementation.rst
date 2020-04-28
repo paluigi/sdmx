@@ -1,9 +1,9 @@
 Implementation notes
 ********************
 
-:mod:`pandasdmx.model` implements the SDMX version 2.1.
+:mod:`sdmx.model` implements the SDMX version 2.1.
 (:term:`What is an 'information model'? <information model>`)
-This page gives brief explanations of **how pandaSDMX implements the standards**, focusing on additional features, conveniences, or interpretations/naming choices that are not strictly detemined by the standards.
+This page gives brief explanations of **how :mod:`sdmx` implements the standards**, focusing on additional features, conveniences, or interpretations/naming choices that are not strictly detemined by the standards.
 
 Although this page is organized to correspond to the standards, it **does not recapitulate them** (:ref:`as stated <not-the-standard>`)—nor does it set out to teach all their details.
 For those purposes, see :doc:`resources`; or the :doc:`walkthrough`, which includes some incidental explanations.
@@ -51,7 +51,7 @@ For example, every :class:`.Code` is a ``NameableArtefact``; [1]_ this means it 
   If so, it might have a :attr:`structure_url <.MaintainableArtefact.structure_url>`, where the maintainer provides more information about the object.
 
 
-The API reference for :mod:`pandasdmx.model` shows the parent classes for each class, to describe whether they are versionable, nameable, identifiable, and/or maintainable.
+The API reference for :mod:`sdmx.model` shows the parent classes for each class, to describe whether they are versionable, nameable, identifiable, and/or maintainable.
 
 Because SDMX is used worldwide, an :class:`.InternationalString` type is used in
 the IM—for instance, the `name` of a Nameable object is an
@@ -89,9 +89,9 @@ Data
      - Observations are each associated with one SeriesKey and, optionally, referred to by one or more GroupKeys.
 
      One can choose to think of a SeriesKey *and* the associated Observations, collectively, as a 'data series'.
-     But, in order to avoid confusion with the IM, :mod:`pandaSDMX` does not provide 'Series' or 'Group' objects.
+     But, in order to avoid confusion with the IM, :mod:`sdmx` does not provide 'Series' or 'Group' objects.
 
-   :mod:`pandaSDMX` provides:
+   :mod:`sdmx` provides:
 
    - the :attr:`.DataSet.series` and :attr:`.DataSet.group` mappings from SeriesKey or GroupKey (respectively) to lists of Observations.
    - :attr:`.DataSet.obs`, which is a list of *all* observations in the DataSet.
@@ -175,7 +175,7 @@ Constraints
 
    Currently, :meth:`.ContentConstraint.to_query_string`, used by :meth:`.Request.get` to validate keys based on a data flow definition, only uses :attr:`.data_content_region`, if any.
    :attr:`.data_content_keys` are ignored.
-   None of the data sources supported by :mod:`pandaSDMX` appears to use this latter form.
+   None of the data sources supported by :mod:`sdmx` appears to use this latter form.
 
 
 .. _formats:
@@ -193,7 +193,7 @@ SDMX-ML
     Reference: https://sdmx.org/?page_id=5008
 
     - An SDMX-ML document contains exactly one Message.
-      See :mod:`pandaSDMX.message` for the different types of Messages and their component parts.
+      See :mod:`sdmx.message` for the different types of Messages and their component parts.
     - See :mod:`.reader.sdmxml`.
 
 SDMX-JSON
@@ -214,12 +214,12 @@ SDMX-CSV
 
     Reference: https://github.com/sdmx-twg/sdmx-csv
 
-    pandaSDMX **does not** currently support SDMX-CSV.
+    :mod:`sdmx` **does not** currently support SDMX-CSV.
 
-pandaSDMX:
+:mod:`sdmx`:
 
 - reads all kinds of SDMX-ML and SDMX-JSON messages.
-- contains, in the `tests/data/ <https://github.com/dr-leo/pandaSDMX/tree/master/tests/data>`_ source directory, specimens of messages in both data formats.
+- contains, in the `tests/data/ <https://github.com/khaeru/sdmx/tree/master/tests/data>`_ source directory, specimens of messages in both data formats.
   These are used by the test suite to check that the code functions as intended, but can also be viewed to understand the data formats.
 
 
@@ -232,22 +232,22 @@ The SDMX standards describe both `RESTful <https://en.wikipedia.org/wiki/Represe
 See :doc:`resources` for the SDMG Technical Working Group's specification of the REST API.
 The Eurostat and ECB help materials provide descriptions and examples of HTTP using URLs, parameters and headers to construct queries.
 
-:mod:`pandaSDMX` supports:
+:mod:`sdmx` supports:
 
 - REST web services, i.e. not SOAP services;
 - Data retrieved in SDMX version 2.1 :ref:`formats <formats>`.
-  Some existing services offer a parameter to select SDMX 2.1 *or* 2.0 format; :mod:`pandaSDMX` does not support the latter.
-  Other services *only* provide SDMX 2.0-formatted data; these cannot be used with :mod:`pandaSDMX`.
+  Some existing services offer a parameter to select SDMX 2.1 *or* 2.0 format; :mod:`sdmx` does not support the latter.
+  Other services *only* provide SDMX 2.0-formatted data; these cannot be used with :mod:`sdmx`.
 
 :class:`.Request` constructs valid URLs and automatically add some parameter and header values.
 These can be overridden; see :meth:`.Request.get`.
 In some cases, Request will make an additional query to fetch metadata and validate a query.
 
-:class:`.pandasdmx.Source` and its subclasses handle idiosyncrasies of the web services operated by different agencies, such as:
+:class:`.sdmx.Source` and its subclasses handle idiosyncrasies of the web services operated by different agencies, such as:
 
 - parameters or headers that are not supported, or must take very specific, non-standard values, or
 - unusual ways of returning data.
 
-For data sources that support it, :mod:`pandaSDMX` automatically adds the HTTP header ``Accept: application/vnd.sdmx.structurespecificdata+xml;`` when the `dsd` argument is provided to :meth:`.Request.get`.
+For data sources that support it, :mod:`sdmx` automatically adds the HTTP header ``Accept: application/vnd.sdmx.structurespecificdata+xml;`` when the `dsd` argument is provided to :meth:`.Request.get`.
 
 See :doc:`sources` and the source code for the details for each data source.

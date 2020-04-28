@@ -4,7 +4,7 @@ Installation
 Required dependencies
 ---------------------
 
-pandaSDMX is a pure `Python <https://python.org>`_ package requiring Python 3.7 or higher, which can be installed:
+:mod:`sdmx` is a pure `Python <https://python.org>`_ package requiring Python 3.7 or higher, which can be installed:
 
 - from `the Python website <https://www.python.org/downloads/>`_, or
 - using a scientific Python distribution that includes other packages useful
@@ -14,7 +14,7 @@ pandaSDMX is a pure `Python <https://python.org>`_ package requiring Python 3.7 
   others listed on `the Python wiki
   <https://wiki.python.org/moin/PythonDistributions>`_.
 
-pandaSDMX also depends on:
+:mod:`sdmx` also depends on:
 
 - `pandas <http://pandas.pydata.org>`_ for data structures,
 - `pydantic <https://pydantic-docs.helpmanual.io>`_ to implement the IM,
@@ -36,15 +36,15 @@ Instructions
 ------------
 
 0. (optional) If using Anaconda, use ``source activate [ENV]`` to activate the
-   environment in which to install pandaSDMX.
+   environment in which to install :mod:`sdmx`.
 1. From the command line, issue::
 
-    $ pip install pandasdmx
+    $ pip install sdmx
 
    To also install optional dependencies, use commands like::
 
-    $ pip install pandasdmx[cache]             # just requests-cache
-    $ pip install pandasdmx[cache,docs,tests]  # all extras
+    $ pip install sdmx[cache]             # just requests-cache
+    $ pip install sdmx[cache,docs,tests]  # all extras
 
 From source
 ~~~~~~~~~~~
@@ -52,10 +52,10 @@ From source
 1. Download the latest code:
 
    - `from PyPI <https://pypi.org/project/pandaSDMX/#files>`_,
-   - `from Github <https://github.com/dr-leo/pandaSDMX>`_ as a zip archive, or
+   - `from Github <https://github.com/khaeru/sdmx>`_ as a zip archive, or
    - by cloning the Github respository::
 
-     $ git clone git@github.com:dr-leo/pandaSDMX.git
+     $ git clone git@github.com:khaeru/sdmx.git
 
 2. In the package directory, issue::
 
@@ -71,7 +71,7 @@ From source
     $ pip install --editable .[cache,docs,tests]  # all extras
 
 
-.. note:: The pip ``--editable`` flag is recommended for development, so that changes to your code are reflected the next time :mod:`pandaSDMX` is imported.
+.. note:: The pip ``--editable`` flag is recommended for development, so that changes to your code are reflected the next time :mod:`sdmx` is imported.
 
 Running tests
 -------------

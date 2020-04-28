@@ -6,22 +6,22 @@ What's new?
 v1.0.0 (2020-??-??, unreleased)
 -------------------------------
 
-- :mod:`pandasdmx.model` is reimplemented.
+- :mod:`sdmx.model` is reimplemented.
 
   - Python typing_ and pydantic_ are used to force tight compliance with the
     SDMX Information Model (IM). Users familiar with the IM can use
-    :mod:`pandaSDMX` without the need to understand implementation-specific
+    :mod:`sdmx` without the need to understand implementation-specific
     details.
-  - IM classes are no longer tied to :mod:`pandasdmx.reader` instances and can
+  - IM classes are no longer tied to :mod:`sdmx.reader` instances and can
     be created and manipulated outside of a read operation.
 
-- :mod:`pandasdmx.api` and :mod:`pandasdmx.remote` are reimplemented to (1)
+- :mod:`sdmx.api` and :mod:`sdmx.remote` are reimplemented to (1)
   match the semantics of the requests_ package and (2) be much thinner.
 - Data sources are modularized in :class:`~.source.Source`.
 
   - Idiosyncrasies of particular data sources (e.g. ESTAT's process for large
     requests) are handled by source-specific subclasses. As a result,
-    :mod:`pandasdmx.api` is leaner.
+    :mod:`sdmx.api` is leaner.
 
 - Testing coverage is significantly expanded.
 

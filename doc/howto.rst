@@ -8,19 +8,19 @@ How to…
 Access other SDMX data sources
 ------------------------------
 
-:mod:`pandaSDMX` ships with a file, `sources.json`, that includes information about the capabilities of many :doc:`data sources <sources>`.
+:mod:`sdmx` ships with a file, `sources.json`, that includes information about the capabilities of many :doc:`data sources <sources>`.
 However, any data source that generates SDMX 2.1 messages is supported.
 There are multiple ways to access these:
 
-1. Create a :class:`pandasdmx.Request` without a named data source, then call the :meth:`~.Request.get` method using the `url` argument::
+1. Create a :class:`sdmx.Request` without a named data source, then call the :meth:`~.Request.get` method using the `url` argument::
 
-    import pandasdmx as sdmx
+    import sdmx
     req = sdmx.Request()
     req.get(url='https://sdmx.example.org/path/to/webservice', ...)
 
-2. Call :meth:`~pandasdmx.source.add_source` with a JSON snippet describing the data provider.
+2. Call :meth:`~sdmx.source.add_source` with a JSON snippet describing the data provider.
 
-3. Create a subclass of :class:`~pandasdmx.source.Source`, providing attribute values and optional implementations of hooks.
+3. Create a subclass of :class:`~sdmx.source.Source`, providing attribute values and optional implementations of hooks.
 
 
 .. _howto-logging:
@@ -28,7 +28,7 @@ There are multiple ways to access these:
 View log messages
 -----------------
 
-See the description of :obj:`pandasdmx.logger`.
+See the description of :obj:`sdmx.logger`.
 
 
 .. _howto-references:
@@ -50,8 +50,8 @@ the response will include:
 - any content-constraints which reference the dataflow or the DSD.
 
 It is much more efficient to request many objects in a single request.
-Thus, pandaSDMX provides default values for ``references`` in common queries.
-For instance, when a single dataflow is requested by specifying its ID, pandaSDMX sets ``references`` to 'all'.
+Thus, :mod:`sdmx` provides default values for ``references`` in common queries.
+For instance, when a single dataflow is requested by specifying its ID, :mod:`sdmx` sets ``references`` to 'all'.
 On the other hand, when the dataflow ID is wildcarded, it is more practical not to request all referenced objects alongside as the response would likely be excessively large, and the user is deemed to be interested in the bird's eye perspective (list of dataflows) prior to focusing on a particular dataflow and its descendents and ancestors.
 The default value for the ``references`` parameter can be overridden.
 
@@ -75,7 +75,7 @@ To search the list of dataflows by category, we request the category scheme from
 
 .. ipython:: python
 
-    import pandasdmx as sdmx
+    import sdmx
     ecb = sdmx.Request('ecb')
     cat_response = ecb.categoryscheme()
 
@@ -99,8 +99,8 @@ Select data frame layouts returned by :func:`.to_pandas`
 One is the `datetime` argument; see :ref:`datetime`.
 The other is the `rtype` argument.
 
-To select the same behaviour as pandaSDMX 0.9, give `rtype` = 'compat'.
-This value is the default in pandaSDMX 1.0, but may change in a future version.
+To select the same behaviour as pandSDMX 0.9, give `rtype` = 'compat'.
+This value is the default in :mod:`sdmx` 1.0, but may change in a future version.
 With 'compat', the returned layout varies with the concept of “dimension at the observation level,” as follows:
 
 .. list-table::
@@ -125,7 +125,7 @@ With 'compat', the returned layout varies with the concept of “dimension at th
 
 Limitations:
 
-- pandaSDMX can only obey `rtype` = 'compat' when reading or converting an entire :class:`.DataMessage`; not a :class:`.DataSet`.
+- :mod:`sdmx` can only obey `rtype` = 'compat' when reading or converting an entire :class:`.DataMessage`; not a :class:`.DataSet`.
   While the concept of “dimension at observation level” is *mentioned* in the IM in relation to data sets, it is not formally included as an attribute of any class, or with any default value.
   (For instance, it is not included in the :class:`.DimensionDescriptor` of a :class:`.DataStructureDefinition`.)
   It can *only* be determined from the header of a SDMX-ML or -JSON data message.
@@ -147,14 +147,14 @@ Convert SDMX data to other formats
 ----------------------------------
 
 Pandas supports output to `many popular file formats <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
-Call these methods on the objects returned by :meth:`~pandasdmx.to_pandas`.
+Call these methods on the objects returned by :meth:`~sdmx.to_pandas`.
 For instance::
 
     msg = sdmx.read_sdmx('data.xml')
     sdmx.to_pandas(msg).to_excel('data.xlsx')
 
 
-pandaSDMX can also be used with `odo <https://github.com/blaze/odo>`_ by registering methods for discovery and conversion::
+pandaSDMX 0.9 could be used with `odo <https://github.com/blaze/odo>`_ by registering methods for discovery and conversion::
 
     import odo
     from odo.utils import keywords
@@ -182,8 +182,8 @@ pandaSDMX can also be used with `odo <https://github.com/blaze/odo>`_ by registe
 
 .. deprecated:: 1.0
 
-   odo `appears unmaintained <https://github.com/blaze/odo/issues/619>`_ since about 2016, so pandaSDMX no longer provides built-in registration.
+   odo `appears unmaintained <https://github.com/blaze/odo/issues/619>`_ since about 2016, so :mod:`sdmx` no longer provides built-in registration.
 
 .. versionadded:: 0.4
 
-   :meth:`pandasdmx.odo_register` was added, providing automatic registration.
+   :meth:`sdmx.odo_register` was added, providing automatic registration.

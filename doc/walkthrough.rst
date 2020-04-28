@@ -1,7 +1,7 @@
 Walkthrough
 ***********
 
-This page walks through an example pandaSDMX workflow, providing explanations of some SDMX concepts along the way.
+This page walks through an example :mod:`sdmx` workflow, providing explanations of some SDMX concepts along the way.
 See also :doc:`resources`, :doc:`HOWTOs <howto>` for miscellaneous tasks, and follow links to the :doc:`glossary` where some terms are explained.
 
 .. contents::
@@ -13,18 +13,18 @@ SDMX workflow
 =============
 
 Working with statistical data often includes some or all of the following steps.
-:mod:`pandaSDMX` builds on SDMX features to make the steps straightforward:
+:mod:`sdmx` builds on SDMX features to make the steps straightforward:
 
 1. Choose a data provider.
-      :mod:`pandaSDMX` provides a built-in list of :doc:`sources`.
+      :mod:`sdmx` provides a built-in list of :doc:`sources`.
 2. Investigate *what data is available*.
-      Using :mod:`pandaSDMX`, download the catalogue of data flows available from the data provider and select a data flow for further inspection.
+      Using :mod:`sdmx`, download the catalogue of data flows available from the data provider and select a data flow for further inspection.
 3. Understand *what form* the data comes in.
-      Using :mod:`pandaSDMX`, download structure and metadata on the selected data flow and the data it contains, including the data structure definition, concepts, codelists and content constraints.
+      Using :mod:`sdmx`, download structure and metadata on the selected data flow and the data it contains, including the data structure definition, concepts, codelists and content constraints.
 4. Decide *what data is required*.
-      Using :mod:`pandaSDMX`, analyze the structural metadata, by directly inspecting objects or converting them to :mod:`pandas` types.
+      Using :mod:`sdmx`, analyze the structural metadata, by directly inspecting objects or converting them to :mod:`pandas` types.
 5. Download the actual data.
-      Using :mod:`pandaSDMX`, specify the needed portions of the data from the data flow by constructing a selection ('key') of series and a period/time range.
+      Using :mod:`sdmx`, specify the needed portions of the data from the data flow by constructing a selection ('key') of series and a period/time range.
       Then, retrieve the data using :meth:`Request.get`.
 6. Analyze or manipulate the data.
       Convert to :mod:`pandas` types using :func:`pandasmdx.to_pandas` and use the result in further Python code and scripts.
@@ -33,11 +33,11 @@ Working with statistical data often includes some or all of the following steps.
 Choose and connect to an SDMX web service
 =========================================
 
-First, we instantiate a :class:`.pandasdmx.Request` object, using the string ID of a :doc:`data source <sources>` recognized by :mod:`pandaSDMX`:
+First, we instantiate a :class:`.sdmx.Request` object, using the string ID of a :doc:`data source <sources>` recognized by :mod:`sdmx`:
 
 .. ipython:: python
 
-    import pandasdmx as sdmx
+    import sdmx
     ecb = sdmx.Request('ECB')
 
 The object ``ecb`` is now ready to make multiple data and metadata queries to the European Central Bank's web service.
@@ -46,7 +46,7 @@ To send requests to multiple web services, we could instantiate multiple :class:
 Configure the HTTP connection
 -----------------------------
 
-:mod:`pandaSDMX` builds on the widely-used :mod:`requests` Python HTTP library.
+:mod:`sdmx` builds on the widely-used :mod:`requests` Python HTTP library.
 To pre-configure all queries made by a :class:`.Request`, we can pass any of the keyword arguments recognized by :func:`requests.request`.
 For example, a proxy server can be specified:
 
@@ -103,12 +103,12 @@ Suppose we are looking for time-series on exchange rates, and we know that the E
    When using SDMX web services, a request for data from a data flow with a certain ID will yield one or more data sets with observations that match the query parameters.
 
 We *could* search the Internet for the dataflow ID or browse the ECB's website.
-However, we can also use :mod:`pandaSDMX` to retrieve metadata and get a complete overview of the dataflows the ECB provides.
+However, we can also use :mod:`sdmx` to retrieve metadata and get a complete overview of the dataflows the ECB provides.
 
 Get information about the source's data flows
 ---------------------------------------------
 
-We use :mod:`pandaSDMX` to download the definitions for all data flows available from our chosen source.
+We use :mod:`sdmx` to download the definitions for all data flows available from our chosen source.
 We could call :meth:`.Request.get` with ``[resource_type=]'dataflow'`` as the first argument, but can also use a shorter alias:
 
 .. ipython:: python
@@ -146,7 +146,7 @@ We could inspect these each individually using :attr:`.StructureMessage.dataflow
 Convert metadata to :class:`pandas.Series`
 ------------------------------------------
 
-However, an easier way is to use :func:`.pandasdmx.to_pandas` to convert some of the information to a :class:`pandas.Series`:
+However, an easier way is to use :func:`.sdmx.to_pandas` to convert some of the information to a :class:`pandas.Series`:
 
 .. ipython:: python
 
@@ -154,7 +154,7 @@ However, an easier way is to use :func:`.pandasdmx.to_pandas` to convert some of
     dataflows.head()
     len(dataflows)
 
-:func:`.to_pandas` accepts most instances and Python collections of :mod:`pandasdmx.model` objects, and we can use keyword arguments to control how each of these is handled.
+:func:`.to_pandas` accepts most instances and Python collections of :mod:`sdmx.model` objects, and we can use keyword arguments to control how each of these is handled.
 See the method documentation for details.
 
 As we are interested in exchange rate data, let's use built-in Pandas methods to find an appropriate data flow:
@@ -173,7 +173,7 @@ Extract the metadata related to a data flow
 
 We will download the data flow definition with the ID 'EXR' from the European Central Bank.
 This data flow definition is already contained in the ``flow_msg`` we retrieved with the last query, but without the data structure or any related metadata.
-Now we will pass the data flow ID 'EXR', which prompts :mod:`pandaSDMX` to set the ``references`` query parameter to 'all'.
+Now we will pass the data flow ID 'EXR', which prompts :mod:`sdmx` to set the ``references`` query parameter to 'all'.
 The ECB SDMX service responds by returning all metadata related to the dataflow:
 
 .. ipython:: python
@@ -317,15 +317,15 @@ Structure-specific data
       <Obs CURRENCY_DENOM="EUR" OBS_VALUE="0.82363" OBS_STATUS="A" />
 
    This can result in much smaller messages.
-   However, because this format does not distinguish dimensions and attributes, it cannot be properly parsed by :mod:`pandaSDMX` without separately obtaining the data structure definition.
+   However, because this format does not distinguish dimensions and attributes, it cannot be properly parsed by :mod:`sdmx` without separately obtaining the data structure definition.
 
-:mod:`pandaSDMX` adds appropriate HTTP headers for retrieving structure-specific data (see :ref:`implementation notes <web-service>`).
+:mod:`sdmx` adds appropriate HTTP headers for retrieving structure-specific data (see :ref:`implementation notes <web-service>`).
 In general, to minimize queries and message size:
 
 1. First query for the DSD associated with a data flow.
 2. When requesting data, pass the obtained object as the `dsd=` argument to :meth:`.Request.get` or :meth:`.Request.data`.
 
-This allows :mod:`pandaSDMX` to retrieve structure-specific data whenever possible.
+This allows :mod:`sdmx` to retrieve structure-specific data whenever possible.
 It can also avoid an additional request when validating data query keys (below).
 
 Construct a selection `key` for a query
@@ -339,9 +339,9 @@ The SDMX REST API offers two ways to narrow a data request:
 
 - specify a **key**, i.e. values for 1 or more dimensions to be matched by returned Observations and SeriesKeys.
   The key is included as part of the URL constructed for the query.
-  Using :mod:`pandaSDMX`, a key is specified by the `key=` argument to :mod:`.Request.get`.
+  Using :mod:`sdmx`, a key is specified by the `key=` argument to :mod:`.Request.get`.
 - limit the time period, using the HTTP parameters 'startPeriod' and 'endPeriod'.
-  Using :mod:`pandaSDMX`, these are specified using the `params=` argument to :mod:`.Request.get`.
+  Using :mod:`sdmx`, these are specified using the `params=` argument to :mod:`.Request.get`.
 
 From the ECB's dataflow on exchange rates, we specify the ``CURRENCY`` dimension to contain either of the codes 'USD' or 'JPY'.
 The documentation for :meth:`.Request.get` describes the multiple forms of the `key` argument and the validation applied.
@@ -359,7 +359,7 @@ We also set a start period to exclude older data:
     params = dict(startPeriod='2016')
 
 Another way to validate a key against valid codes are series-key-only datasets, i.e. a dataset with all possible series keys where no series contains any observation.
-pandaSDMX supports this validation method as well.
+:mod:`sdmx` supports this validation method as well.
 However, it is disabled by default.
 Pass ``series_keys=True`` to the Request method to validate a given key against a series-keys only dataset rather than the DSD.
 
@@ -490,8 +490,8 @@ If given, the response from the web service is written to the specified file, *a
 
 .. ipython:: python
 
-    # Use an example ('specimen') file from the pandaSDMX test suite
-    from pandasdmx.tests.data import specimen
+    # Use an example ('specimen') file from the test suite
+    from sdmx.tests.data import specimen
     # …with time-series exchange rate data from the EU Central Bank
     with specimen('ECB_EXR/ng-ts.xml') as f:
         sdmx.read_sdmx(f)
@@ -504,10 +504,10 @@ Handle errors
 in the successful queries above, the status code is ``200``.
 The SDMX web services guidelines explain the meaning of other codes.
 In addition, if the SDMX server has encountered an error, it may return a Message with a footer containing explanatory notes.
-:mod:`pandaSDMX` exposes footer content as :attr:`.Message.footer` and :attr:`.Footer.text`.
+:mod:`sdmx` exposes footer content as :attr:`.Message.footer` and :attr:`.Footer.text`.
 
 .. note::
 
-   :mod:`pandaSDMX` raises only HTTP errors with status code between 400 and 499.
+   :mod:`sdmx` raises only HTTP errors with status code between 400 and 499.
    Codes >= 500 do not raise an error as the SDMX web services guidelines define special meanings to those codes.
    The caller must therefore raise an error if needed.

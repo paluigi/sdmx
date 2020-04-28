@@ -9,7 +9,7 @@ See also the :doc:`implementation`.
 
 Top-level methods and classes
 -----------------------------
-.. automodule:: pandasdmx
+.. automodule:: sdmx
    :members:
    :exclude-members: logger
 
@@ -30,7 +30,7 @@ Top-level methods and classes
 
 ``message``: SDMX messages
 --------------------------
-.. automodule:: pandasdmx.message
+.. automodule:: sdmx.message
    :members:
    :undoc-members:
    :show-inheritance:
@@ -38,7 +38,7 @@ Top-level methods and classes
 ``model``: SDMX Information Model
 ---------------------------------
 
-.. automodule:: pandasdmx.model
+.. automodule:: sdmx.model
    :members:
    :undoc-members:
    :show-inheritance:
@@ -48,20 +48,20 @@ Top-level methods and classes
 
 SDMX-ML
 :::::::
-.. currentmodule:: pandasdmx.reader.sdmxml
+.. currentmodule:: sdmx.reader.sdmxml
 
-pandaSDMX supports the several types of SDMX-ML messages.
+:mod:`sdmx` supports the several types of SDMX-ML messages.
 
-.. autoclass:: pandasdmx.reader.sdmxml.Reader
+.. autoclass:: sdmx.reader.sdmxml.Reader
     :members:
     :undoc-members:
 
 SDMX-JSON
 :::::::::
 
-.. currentmodule:: pandasdmx.reader.sdmxjson
+.. currentmodule:: sdmx.reader.sdmxjson
 
-.. autoclass:: pandasdmx.reader.sdmxjson.Reader
+.. autoclass:: sdmx.reader.sdmxjson.Reader
     :members:
     :undoc-members:
 
@@ -70,15 +70,15 @@ SDMX-JSON
 ------------------------------------------
 .. versionchanged:: 1.0
 
-   :meth:`pandasdmx.to_pandas` (via :meth:`write <pandasdmx.writer.write>`)
+   :meth:`sdmx.to_pandas` (via :meth:`write <sdmx.writer.write>`)
    handles all types of objects, replacing the earlier, separate
    ``data2pandas`` and ``structure2pd`` writers.
 
-.. automodule:: pandasdmx.writer
+.. automodule:: sdmx.writer
    :members:
    :exclude-members: write
 
-   .. automethod:: pandasdmx.writer.write
+   .. automethod:: sdmx.writer.write
 
       .. autosummary::
          write_component
@@ -97,32 +97,32 @@ SDMX-JSON
 
 .. todo::
    Support selection of language for conversion of
-   :class:`InternationalString <pandasdmx.model.InternationalString>`.
+   :class:`InternationalString <sdmx.model.InternationalString>`.
 
 
 ``remote``: Access SDMX REST web services
 -----------------------------------------
-.. autoclass:: pandasdmx.remote.Session
-.. autoclass:: pandasdmx.remote.ResponseIO
+.. autoclass:: sdmx.remote.Session
+.. autoclass:: sdmx.remote.ResponseIO
 
 
 ``source``: Features of SDMX data sources
 -----------------------------------------
 
-This module defines :class:`Source <pandasdmx.source.Source>` and some utility functions.
-For built-in subclasses of Source used to provide pandaSDMX's built-in support
+This module defines :class:`Source <sdmx.source.Source>` and some utility functions.
+For built-in subclasses of Source used to provide :mod:`sdmx`'s built-in support
 for certain data sources, see :doc:`sources`.
 
-.. autoclass:: pandasdmx.source.Source
+.. autoclass:: sdmx.source.Source
    :members:
 
-.. automodule:: pandasdmx.source
+.. automodule:: sdmx.source
    :members: add_source, list_sources, load_package_sources
 
 
 ``util``: Utilities
 -------------------
-.. automodule:: pandasdmx.util
+.. automodule:: sdmx.util
    :members:
    :undoc-members:
    :show-inheritance:

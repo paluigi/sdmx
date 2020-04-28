@@ -1,18 +1,18 @@
 Development roadmap
 ===================
 
-This page describes some possible future enhancements to pandaSDMX.
-For current development priorities, see the list of `GitHub milestones <https://github.com/dr-leo/pandaSDMX/milestones>`_ and issues/PRs targeted to each.
+This page describes some possible future enhancements to :mod:`sdmx`.
+For current development priorities, see the list of `GitHub milestones <https://github.com/khaeru/sdmx/milestones>`_ and issues/PRs targeted to each.
 Contributions are welcome!
 
 Using pd.DataFrame for internal storage
 ----------------------------------------
 
-pandaSDMX handles :class:`Observations <pandasdmx.model.Observation>` as individual object instances.
+:mod:`sdmx` handles :class:`Observations <sdmx.model.Observation>` as individual object instances.
 An alternative is to use :mod:`pandas` or other data structures internally.
 See:
 
-- pandasdmx/experimental.py for a partial mock-up of such code, and
+- sdmx/experimental.py for a partial mock-up of such code, and
 - tests/test_experimental.py for tests.
 
 Choosing either the current or experimental DataSet as a default should be based on detailed performance (memory and time) evaluation under a variety of use-cases.
@@ -38,7 +38,7 @@ There are some ways this performance could be improved:
   - Observation association with GroupKeys is determined by comparing the Observation key with the GroupKey.
     In order to have a complete list of all Observations associated with a GroupKey, at least the dimension of each Observation would need to be parsed immediately.
 
-  - In pandasdmx.sdmxml.reader, references are determined to be internal or external by checking against an _index of already-parsed objects.
+  - In sdmx.sdmxml.reader, references are determined to be internal or external by checking against an _index of already-parsed objects.
     This index would need to represent existing-but-not-parsed objects.
 
 - Parallelize parsing, e.g. at the level of Series or other mostly-separate collections of objects.
@@ -46,7 +46,7 @@ There are some ways this performance could be improved:
 SDMX features & miscellaneous
 -----------------------------
 
-- pandasdmx.api.Request._resources only contains a small subset of: https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1 (see "NOT SUPPORTED OPERATIONS"); provide the rest.
+- sdmx.api.Request._resources only contains a small subset of: https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1 (see "NOT SUPPORTED OPERATIONS"); provide the rest.
 
 - Get a set of API keys for testing UNESCO and encrypt them for use in CI: https://docs.travis-ci.com/user/encryption-keys/
 
@@ -54,7 +54,7 @@ SDMX features & miscellaneous
 
 - Use the `XML Schema <https://en.wikipedia.org/wiki/XML_Schema_(W3C)>`_ definitions of SDMX-ML to validate messages and snippets.
 
-- Check for functionality of pysdmx_ (direct ancestor of pandaSDMX) and sdmx.py_ (distinct); ensure pandaSDMX offers a superset of these features.
+- Check for functionality of pysdmx_ (direct ancestor of :mod:`sdmx`) and sdmx.py_ (distinct); ensure :mod:`sdmx` offers a superset of these features.
 
 - SOAP APIs. Currently only REST APIs are supported.
   This would allow access to, e.g., a broader set of :ref:`IMF` data.

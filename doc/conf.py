@@ -4,16 +4,16 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import pandasdmx
+import sdmx
 
 # -- Project information -----------------------------------------------------
 
-project = 'pandaSDMX'
-copyright = '2014–2020 pandaSDMX developers'
+project = 'sdmx'
+copyright = '2014–2020 SDMX Python developers'
 # The major project version, used as the replacement for |version|.
-version = pandasdmx.__version__[:3]
+version = sdmx.__version__[:3]
 # The full project version, used as the replacement for |release|.
-release = pandasdmx.__version__
+release = sdmx.__version__
 
 
 # -- General configuration ------------------------------------------------
