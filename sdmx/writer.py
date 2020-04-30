@@ -30,7 +30,7 @@ from sdmx.util import DictLike
 
 #: Default return type for :func:`write_dataset` and similar methods. Either
 #: 'compat' or 'rows'. See the ref:`HOWTO <howto-rtype>`.
-DEFAULT_RTYPE = 'compat'
+DEFAULT_RTYPE = 'rows'
 
 
 # Class → common write_*() methods

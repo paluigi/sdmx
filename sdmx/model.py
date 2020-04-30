@@ -1379,7 +1379,7 @@ class GroupKey(Key):
 
 
 class SeriesKey(Key):
-    #: :mod:`pandaSDMX` extension not in the IM.
+    #: :mod:`sdmx` extension not in the IM.
     group_keys: Set[GroupKey] = set()
 
     @property
@@ -1409,7 +1409,7 @@ class Observation(BaseModel):
     value: Union[Any, Code] = None
     #:
     value_for: PrimaryMeasure = None
-    #: :mod:`pandaSDMX` extension not in the IM.
+    #: :mod:`sdmx` extension not in the IM.
     group_keys: Set[GroupKey] = set()
 
     @property
@@ -1454,10 +1454,10 @@ class DataSet(AnnotableArtefact):
     obs: List[Observation] = []
 
     #: Map of series key → list of observations.
-    #: :mod:`pandaSDMX` extension not in the IM.
+    #: :mod:`sdmx` extension not in the IM.
     series: DictLike[SeriesKey, List[Observation]] = DictLike()
     #: Map of group key → list of observations.
-    #: :mod:`pandaSDMX` extension not in the IM.
+    #: :mod:`sdmx` extension not in the IM.
     group: DictLike[GroupKey, List[Observation]] = DictLike()
 
     def _add_group_refs(self, target):

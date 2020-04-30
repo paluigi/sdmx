@@ -54,8 +54,6 @@ SDMX features & miscellaneous
 
 - Use the `XML Schema <https://en.wikipedia.org/wiki/XML_Schema_(W3C)>`_ definitions of SDMX-ML to validate messages and snippets.
 
-- Check for functionality of pysdmx_ (direct ancestor of :mod:`sdmx`) and sdmx.py_ (distinct); ensure :mod:`sdmx` offers a superset of these features.
-
 - SOAP APIs. Currently only REST APIs are supported.
   This would allow access to, e.g., a broader set of :ref:`IMF` data.
 
@@ -77,5 +75,3 @@ Inline TODOs
 .. todolist::
 
 .. _pytest-profiling: https://pypi.org/project/pytest-profiling/
-.. _pysdmx: https://github.com/srault95/pysdmx
-.. _sdmx.py: https://github.com/mwilliamson/sdmx.py

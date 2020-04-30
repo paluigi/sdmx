@@ -35,6 +35,8 @@ Top-level methods and classes
    :undoc-members:
    :show-inheritance:
 
+.. _api-model:
+
 ``model``: SDMX Information Model
 ---------------------------------
 

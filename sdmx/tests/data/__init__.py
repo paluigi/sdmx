@@ -1,4 +1,4 @@
-"""Specimens and other data for pandaSDMX tests.
+"""Specimens and other data for tests.
 
 This directory contains files with SDMX data and structure messages, in both
 SDMX-ML ('.xml') and JSON ('.json') formats.

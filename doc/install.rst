@@ -1,8 +1,8 @@
 Installation
-============
+************
 
-Required dependencies
----------------------
+Dependencies
+============
 
 :mod:`sdmx` is a pure `Python <https://python.org>`_ package requiring Python 3.7 or higher, which can be installed:
 
@@ -33,25 +33,25 @@ Optional dependencies for extra features
   `requests-mock <https://requests-mock.readthedocs.io>`_.
 
 Instructions
-------------
+============
 
 0. (optional) If using Anaconda, use ``source activate [ENV]`` to activate the
    environment in which to install :mod:`sdmx`.
 1. From the command line, issue::
 
-    $ pip install sdmx
+    $ pip install sdmx1
 
    To also install optional dependencies, use commands like::
 
-    $ pip install sdmx[cache]             # just requests-cache
-    $ pip install sdmx[cache,docs,tests]  # all extras
+    $ pip install sdmx1[cache]             # just requests-cache
+    $ pip install sdmx1[cache,docs,tests]  # all extras
 
 From source
-~~~~~~~~~~~
+-----------
 
 1. Download the latest code:
 
-   - `from PyPI <https://pypi.org/project/pandaSDMX/#files>`_,
+   - `from PyPI <https://pypi.org/project/sdmx1/#files>`_,
    - `from Github <https://github.com/khaeru/sdmx>`_ as a zip archive, or
    - by cloning the Github respository::
 
@@ -74,7 +74,7 @@ From source
 .. note:: The pip ``--editable`` flag is recommended for development, so that changes to your code are reflected the next time :mod:`sdmx` is imported.
 
 Running tests
--------------
+=============
 
 Install from source, including the ``tests`` optional dependencies.
 Then, in the package directory, issue::

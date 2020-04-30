@@ -5,11 +5,11 @@ sdmx: Statistical data and metadata exchange
    :target: https://travis-ci.com/khaeru/sdmx
 .. image:: https://codecov.io/gh/khaeru/sdmx/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/khaeru/sdmx
-.. image:: https://readthedocs.org/projects/pandasdmx/badge/?version=latest
-   :target: https://pandasdmx.readthedocs.io/en/latest
+.. image:: https://readthedocs.org/projects/sdmx1/badge/?version=latest
+   :target: https://sdmx1.readthedocs.io/en/latest
    :alt: Documentation Status
-.. image:: https://img.shields.io/pypi/v/pandaSDMX.svg
-   :target: https://pypi.org/project/pandaSDMX
+.. image:: https://img.shields.io/pypi/v/sdmx1.svg
+   :target: https://pypi.org/project/sdmx1
 
 `Source code @ Github <https://github.com/khaeru/sdmx/>`_ —
 `Authors <https://github.com/khaeru/sdmx/graphs/contributors>`_
@@ -18,19 +18,14 @@ sdmx: Statistical data and metadata exchange
 
 `sdmx` can be used to:
 
-- explore the data available from `data providers
-  <https://pandasdmx.readthedocs.io/en/latest/sources.html>`_
-  such as the World Bank, International Monetary Fund, Eurostat, OECD, and United Nations;
+- explore the data available from `data providers <https://sdmx1.rtfd.io/en/latest/sources.html>`_ such as the World Bank, International Monetary Fund, Eurostat, OECD, and United Nations;
 - parse data and metadata in SDMX-ML (XML) or SDMX-JSON formats—either:
 
   - from local files, or
   - retrieved from SDMX web services, with query validation and caching;
 
-- convert data and metadata into `pandas <https://pandas.pydata.org>`_ objects,
-  for use with the analysis, plotting, and other tools in the Python data
-  science ecosystem;
-- apply the `SDMX Information Model
-  <https://pandasdmx.readthedocs.io/en/latest/im.html>`_ to your own data;
+- convert data and metadata into `pandas <https://pandas.pydata.org>`_ objects, for use with the analysis, plotting, and other tools in the Python data science ecosystem;
+- apply the `SDMX Information Model <https://sdmx1.rtfd.io/en/latest/api.rst#api-model>`_ to your own data;
 
 …and much more.
 
@@ -38,8 +33,7 @@ sdmx: Statistical data and metadata exchange
 Documentation
 -------------
 
-See https://pandasdmx.readthedocs.io/en/latest for the latest docs, or
-https://pandasdmx.readthedocs.io/en/v0.9 for the 0.9 release.
+See https://sdmx1.readthedocs.io/en/latest/ for the latest docs per the ``master`` branch, or https://sdmx1.readthedocs.io/en/stable/ for the most recent release.
 
 
 License

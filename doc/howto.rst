@@ -99,8 +99,12 @@ Select data frame layouts returned by :func:`.to_pandas`
 One is the `datetime` argument; see :ref:`datetime`.
 The other is the `rtype` argument.
 
-To select the same behaviour as pandSDMX 0.9, give `rtype` = 'compat'.
-This value is the default in :mod:`sdmx` 1.0, but may change in a future version.
+To select the same behaviour as pandSDMX 0.9, give `rtype` = 'compat', or set :data:`.DEFAULT_RTYPE` to 'compat':
+
+.. ipython:: python
+
+   sdmx.writer.DEFAULT_RYPE = 'compat'
+
 With 'compat', the returned layout varies with the concept of “dimension at the observation level,” as follows:
 
 .. list-table::
@@ -132,13 +136,7 @@ Limitations:
 - Except for :data:`.AllDimensions`, each row and column of the returned data frame contains multiple observations, so attributes cannot be included without ambiguity about which observation(s) have the attribute.
   In these cases, attributes are omitted; use `rtype` = 'rows' to retrieve them.
 
-With the argument `rtype` = 'rows', or by setting :data:`.DEFAULT_RTYPE` to 'rows':
-
-.. ipython:: python
-
-   sdmx.writer.DEFAULT_RYPE = 'rows'
-
-…data are *always* returned with one row per observation.
+With the argument `rtype` = 'rows' (the default), data are *always* returned with one row per observation.
 
 
 .. _howto-convert:

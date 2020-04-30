@@ -4,8 +4,8 @@
 :doc:`information model <implementation>`, but in the
 :ref:`SDMX-ML standard <formats>`.
 
-pandaSDMX also uses :class:`DataMessage` to encapsulate SDMX-JSON data returned
-by data sources.
+:mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data
+returned by data sources.
 """
 from typing import (
     List,
@@ -23,7 +23,6 @@ from sdmx.model import (
     DataSet,
     DataflowDefinition,
     DataStructureDefinition,
-    Dimension,
     DimensionComponent,
     InternationalString,
     Item,
