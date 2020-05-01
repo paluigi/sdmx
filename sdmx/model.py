@@ -36,6 +36,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Set,
     Union,
@@ -550,7 +551,7 @@ class Component(IdentifiableArtefact):
 class ComponentList(IdentifiableArtefact):
     #:
     components: List[Component] = []
-
+    #:
     auto_order = 1
 
     # Convenience access to the components
@@ -558,8 +559,20 @@ class ComponentList(IdentifiableArtefact):
         """Append *value* to :attr:`components`."""
         self.components.append(value)
 
-    def get(self, id, cls=None, **kwargs):
+    def get(self, id):
+        """Return the component with the given *id*."""
+        # Search for an existing Component
+        for c in self.components:
+            if c.id == id:
+                return c
+        raise KeyError(id)
+
+    def getdefault(self, id, cls=None, **kwargs):
         """Return or create the component with the given *id*.
+
+        If the component is automatically created, its :attr:`.Dimension.order`
+        attribute is set to the value of :attr:`auto_order`, which is then
+        incremented.
 
         Parameters
         ----------
@@ -572,15 +585,11 @@ class ComponentList(IdentifiableArtefact):
             subclass if :attr:`.components` is overridden in a subclass of
             ComponentList.
         """
-        # TODO use an index to speed up
-        # TODO don't return missing items or add an option to avoid this
-
-        # Search for an existing Component
-        for c in self.components:
-            if c.id == id:
-                return c
-
-        # No match
+        try:
+            return self.get(id)
+        except KeyError:
+            # No match
+            pass
 
         # Create a new object of a class:
         # 1. Given by the cls argument,
@@ -1005,7 +1014,7 @@ AttributeRelationship.update_forward_refs()
 
 @validate_dictlike('group_dimensions')
 class DataStructureDefinition(Structure, ConstrainableArtefact):
-    """Defines a data structure. Referred to as “DSD”."""
+    """SDMX-IM DataStructureDefintion (‘DSD’)."""
     #: A :class:`AttributeDescriptor` that describes the attributes of the
     #: data structure.
     attributes: AttributeDescriptor = AttributeDescriptor()
@@ -1014,18 +1023,11 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     dimensions: DimensionDescriptor = DimensionDescriptor()
     #: A :class:`.MeasureDescriptor`.
     measures: MeasureDescriptor = None
-    #: A :class:`.GroupDimensionDescriptor`.
+    #: Mapping from  :attr:`.GroupDimensionDescriptor.id` to
+    #: :class:`.GroupDimensionDescriptor`.
     group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
 
     # Convenience methods
-    def attribute(self, id, **kwargs):
-        """Call :meth:`ComponentList.get` on :attr:`attributes`."""
-        return self.attributes.get(id, **kwargs)
-
-    def dimension(self, id, **kwargs):
-        """Call :meth:`ComponentList.get` on :attr:`dimensions`."""
-        return self.dimensions.get(id, **kwargs)
-
     def make_constraint(self, key):
         """Return a constraint for *key*.
 
@@ -1104,6 +1106,86 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
                 dd[i].local_representation.enumerated.append(
                     Code(id=kv.value))
         return cls(dimensions=dd)
+
+    def make_key(self, key_cls, values: Mapping, extend=False, group_id=None):
+        """Make a :class:`.Key` or subclass.
+
+        Parameters
+        ----------
+        key_cls : Key or SeriesKey or GroupKey
+            Class of Key to create.
+        values : dict
+            Used to construct :attr:`.Key.values`.
+        extend : bool, optional
+            If :obj:`True`, make_key will not return :class:`KeyError` on
+            mission dimensions. Instead :attr:`dimensions` (`key_cls` is
+            Key or SeriesKey) or :attr:`group_dimensions` (`key_cls` is
+            GroupKey) will be extended by creating new Dimension objects.
+        group_id : str, optional
+            When `key_cls` is :class`.GroupKey`, the ID of the
+            :class:`.GroupDimensionDescriptor` that structures the key.
+
+        Returns
+        -------
+        Key
+            An instance of `key_cls`.
+
+        Raises
+        ------
+        KeyError
+            If any of the keys of `values` is not a Dimension or Attribute in
+            the DSD.
+        """
+        # Methods
+        get_method = 'getdefault' if extend else 'get'
+        attr = getattr(self.attributes, get_method)
+
+        if key_cls is GroupKey:
+            try:
+                gdd = self.group_dimensions[group_id]
+            except KeyError:
+                # No GroupDimensionDescriptor with this ID
+                if not extend:
+                    # Cannot create
+                    raise
+
+                # Create the GDD
+                gdd = GroupDimensionDescriptor(id=group_id)
+                self.group_dimensions[gdd.id] = gdd
+
+            dim = getattr(gdd, get_method)
+            args = dict(id=group_id, described_by=gdd)
+        else:
+            dim = getattr(self.dimensions, get_method)
+            args = dict(described_by=self.dimensions)
+
+        key = key_cls(**args)
+
+        # Convert keyword arguments to either KeyValue or AttributeValue
+        keyvalues = []
+        for order, (id, value) in enumerate(values.items()):
+            args = dict(id=id, value=value)
+
+            if id in self.attributes:
+                # Reference a DataAttribute from the AttributeDescriptor
+                da = attr(id)
+                # Store the attribute value, referencing
+                key.attrib[da.id] = AttributeValue(**args, value_for=da)
+                continue
+
+            # Reference a Dimension from the DimensionDescriptor
+            args['value_for'] = dim(id)
+
+            # Retrieve the order
+            order = args['value_for'].order
+
+            # Store a KeyValue, to be sorted later
+            keyvalues.append((order, KeyValue(**args)))
+
+        # Sort the values according to *order*
+        key.values.update({kv.id: kv for _, kv in sorted(keyvalues)})
+
+        return key
 
 
 class DataflowDefinition(StructureUsage, ConstrainableArtefact):
@@ -1224,51 +1306,29 @@ class Key(BaseModel):
     #: Individual KeyValues that describe the key.
     values: DictLike[str, KeyValue] = DictLike()
 
-    def __init__(self, arg=None, **kwargs):
-        super().__init__()
+    def __init__(self, arg: Mapping = None, **kwargs):
+        # DimensionDescriptor
+        dd = kwargs.pop('described_by', None)
+
+        super().__init__(described_by=dd)
+
         if arg:
             if len(kwargs):
                 raise ValueError("Key() accepts either a single argument, or "
                                  "keyword arguments; not both.")
             kwargs.update(arg)
 
-        # DSD argument
-        dsd = kwargs.pop('dsd', None)
-
-        # DimensionDescriptor
-        dd = kwargs.pop('described_by', None)
-
-        if dsd:
-            if not dd:
-                dd = dsd.dimensions
-
-            # DD must appear in the DSD if both are supplied
-            if (dd is not dsd.dimensions and
-                    dd not in dsd.group_dimensions.values()):
-                raise ValueError(f'described_by={dd} is not a [Group]'
-                                 f'DimensionDescriptor of dsd={dsd}')
-
-            try:
-                self.described_by = dd
-            except Exception:
-                dd = None
-
-        # Convert keyword arguments to either KeyValue or AttributeValue
+        # Convert keyword arguments to KeyValue
         values = []
         for order, (id, value) in enumerate(kwargs.items()):
             args = dict(id=id, value=value)
-
-            if dsd and id in dsd.attributes:
-                # Reference a DataAttribute from the AttributeDescriptor
-                da = dsd.attributes.get(id)
-                # Store the attribute value
-                self.attrib[da.id] = AttributeValue(**args, value_for=da)
-                continue
-
-            if dd:
-                # Reference a Dimension from the DimensionDescriptor
+            try:
                 args['value_for'] = dd.get(id)
-                # Retrieve the order
+            except AttributeError:
+                # No DimensionDescriptor
+                pass
+            else:
+                # Use the existing Dimension's order attribute
                 order = args['value_for'].order
 
             # Store a KeyValue, to be sorted later
@@ -1375,7 +1435,13 @@ class GroupKey(Key):
     #:
     id: str = None
     #:
-    described_by: GroupDimensionDescriptor = None
+    described_by: Optional[GroupDimensionDescriptor] = None
+
+    def __init__(self, arg: Mapping = None, **kwargs):
+        # Remove the 'id' keyword argument
+        id = kwargs.pop('id', None)
+        super().__init__(arg, **kwargs)
+        self.id = id
 
 
 class SeriesKey(Key):

@@ -40,10 +40,10 @@ def test_datastructuredefinition():
     dsd = DataStructureDefinition()
 
     # Convenience methods
-    da = dsd.attribute(id='foo')
+    da = dsd.attributes.getdefault(id='foo')
     assert isinstance(da, DataAttribute)
 
-    d = dsd.dimension(id='baz', order=-1)
+    d = dsd.dimensions.getdefault(id='baz', order=-1)
     assert isinstance(d, Dimension)
 
     # from_keys()
