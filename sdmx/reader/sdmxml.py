@@ -371,7 +371,7 @@ class Reader(BaseReader):
             log.warning('sdmxml.Reader got no dsd=... argument for '
                         f'{self._stack[0]}')
             return True
-        else:
+        else:  # pragma: no cover
             return False
 
     def _parse(self, elem, unwrap=True):
@@ -833,7 +833,7 @@ class Reader(BaseReader):
             try:
                 result = dsd.make_key(GroupKey, args, group_id=group_id)
             except KeyError:
-                if not self._check_ss_without_dsd():
+                if not self._check_ss_without_dsd():  # pragma: no cover
                     raise
 
                 log.warning('Create new GroupDimensionDescriptor with id='
@@ -904,7 +904,7 @@ class Reader(BaseReader):
             try:
                 key = dsd.make_key(Key, attr)
             except KeyError as exc:
-                if not self._check_ss_without_dsd():
+                if not self._check_ss_without_dsd():  # pragma: no cover
                     raise
 
                 log.warning(f'Create Dimension(s) with ids [{exc.args[0]}, …]')
@@ -937,7 +937,7 @@ class Reader(BaseReader):
             try:
                 series_key = dsd.make_key(SeriesKey, elem.attrib)
             except KeyError as exc:
-                if not self._check_ss_without_dsd():
+                if not self._check_ss_without_dsd():  # pragma: no cover
                     raise
 
                 log.warning(f'Create Dimension(s) with ids [{exc.args[0]}, …]')
