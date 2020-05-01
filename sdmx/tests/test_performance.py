@@ -18,8 +18,8 @@ def test_refcount():
     # to the same object
     dsd = DataStructureDefinition()
 
-    da3 = dsd.attribute('foo')
-    da4 = dsd.attribute('foo')
+    da3 = dsd.attributes.getdefault('foo')
+    da4 = dsd.attributes.getdefault('foo')
 
     assert id(da3) == id(da4)
     assert da3 is da4

@@ -45,8 +45,10 @@ class Reader(BaseReader):
         for level_name, level in structure['dimensions'].items():
             for elem in level:
                 # Create the Dimension
-                d = msg.structure.dimension(id=elem['id'],
-                                            order=elem.get('keyPosition', -1))
+                d = msg.structure.dimensions.getdefault(
+                    id=elem['id'],
+                    order=elem.get('keyPosition', -1),
+                )
 
                 # Record the level it appears at
                 self._dim_level[d] = level_name
@@ -78,7 +80,7 @@ class Reader(BaseReader):
         for level_name, level in structure['attributes'].items():
             for attr in level:
                 # Create a DataAttribute in the DSD
-                a = msg.structure.attribute(
+                a = msg.structure.attributes.getdefault(
                     id=attr['id'],
                     concept_identity=Concept(name=attr['name']),
                     )

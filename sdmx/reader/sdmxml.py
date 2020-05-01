@@ -6,6 +6,7 @@ from inspect import isclass
 from itertools import chain
 import logging
 import re
+from typing import Any, Dict, Tuple
 
 from lxml import etree
 from lxml.etree import QName, XPath
@@ -257,10 +258,10 @@ class Reader(BaseReader):
 
     # Map of (class name, id) → sdmx.model object.
     # Only IdentifiableArtefacts should be stored. See _maintained().
-    _index = {}
+    _index: Dict[Tuple[str, str], Any] = {}
 
     # Similar to _index, but specific to the current scope.
-    _current = {}
+    _current: Dict[Tuple[Any, str], Any] = {}
 
     def read_message(self, source, dsd=None):
         # Root XML element
@@ -284,6 +285,9 @@ class Reader(BaseReader):
                 log.warning('Ambiguous: dsd= argument for non-structure-'
                             'specific message')
             self._index[('DataStructureDefinition', dsd.id)] = dsd
+            # Special index entry; None indicates the value passed as an
+            # argument
+            self._index[('DataStructureDefinition', None)] = dsd
 
         # Parse the tree
         values = self._parse(root)
@@ -359,6 +363,16 @@ class Reader(BaseReader):
 
         assert len(values) == 0, values
         return msg
+
+    def _check_ss_without_dsd(self):
+        """Warn and return :obj:`True` if parsing SS data without a DSD."""
+        if ('StructureSpecific' in self._stack[0] and
+                ('DimensionDescriptor', None) not in self._index):
+            log.warning('sdmxml.Reader got no dsd=... argument for '
+                        f'{self._stack[0]}')
+            return True
+        else:  # pragma: no cover
+            return False
 
     def _parse(self, elem, unwrap=True):
         """Recursively parse the XML *elem* and return sdmx.model objects.
@@ -683,7 +697,7 @@ class Reader(BaseReader):
 
         ad = self._get_current(AttributeDescriptor)
         for e in elem.iterchildren():
-            da = ad.get(e.attrib['id'])
+            da = ad.getdefault(e.attrib['id'])
             av = AttributeValue(value=e.attrib['value'], value_for=da)
             result[da.id] = av
         return result
@@ -740,7 +754,7 @@ class Reader(BaseReader):
                     # {,StructureSpecific}TimeSeriesData message → the
                     # dimension at observation level is a TimeDimension
                     args['cls'] = TimeDimension
-                self._obs_dim = dsd.dimensions.get(**args)
+                self._obs_dim = dsd.dimensions.getdefault(**args)
 
         # Maybe return the DFD; see .initialize()
         return [Header(**values)] + extra
@@ -809,21 +823,23 @@ class Reader(BaseReader):
 
             result = gdd
         else:
-            # no namespace → GroupKey in a StructureSpecificData message
+            # no namespace → GroupKey
             dsd = self._get_current(DataStructureDefinition)
 
             # Pop the 'type' attribute
             args = copy(elem.attrib)
             group_id = args.pop(qname('xsi', 'type')).split(':')[-1]
-            try:
-                gdd = self._current[(GroupDimensionDescriptor, group_id)]
-            except KeyError:
-                # DSD not supplied when parsing a StructureSpecificMessage
-                pass
-            else:
-                args['described_by'] = gdd
 
-            result = GroupKey(**args, dsd=dsd)
+            try:
+                result = dsd.make_key(GroupKey, args, group_id=group_id)
+            except KeyError:
+                if not self._check_ss_without_dsd():  # pragma: no cover
+                    raise
+
+                log.warning('Create new GroupDimensionDescriptor with id='
+                            f'{group_id}')
+                result = dsd.make_key(GroupKey, args, group_id=group_id,
+                                      extend=True)
 
         assert len(values) == 0
         return result
@@ -841,17 +857,21 @@ class Reader(BaseReader):
             kv = {e.attrib['id']: e.attrib['value'] for e in
                   elem.iterchildren()}
 
-            return cls(**kv, dsd=self._get_current(DataStructureDefinition))
+            dsd = self._get_current(DataStructureDefinition)
+            return dsd.make_key(cls, kv, extend=True)
         else:
             # <str:DataKeySet> and <str:CubeRegion>: the value(s) are specified
             # with a <com:Value>...</com:Value> element.
-            kvs = {}
+            dd = self._get_cc_dsd().dimensions
+            kv = {}
             for e in elem.iterchildren():
-                c = self._get_cc_dsd().dimensions.get(e.attrib['id'])
-                kvs[c] = ComponentValue(value_for=c,
-                                        value=self._parse(e)['value'])
+                c = dd.getdefault(e.attrib['id'])
+                kv[c] = ComponentValue(
+                    value_for=c,
+                    value=self._parse(e)['value'],
+                )
             return cls(included=elem.attrib.get('isIncluded', True),
-                       key_value=kvs)
+                       key_value=kv)
 
     def parse_obs(self, elem):
         values = self._parse(elem)
@@ -868,7 +888,7 @@ class Reader(BaseReader):
             dim = self._obs_dim.id
             if len(od) == 2:
                 assert od['id'] == dim, (values, dim)
-            key = Key(**{dim: od['value']}, dsd=dsd)
+            key = dsd.make_key(Key, {dim: od['value']})
 
         if len(values):
             value = values.pop('obsvalue', None)
@@ -881,7 +901,14 @@ class Reader(BaseReader):
             value = attr.pop('OBS_VALUE', None)
 
             # Use the DSD to separate dimensions and attributes
-            key = Key(**attr, dsd=dsd)
+            try:
+                key = dsd.make_key(Key, attr)
+            except KeyError as exc:
+                if not self._check_ss_without_dsd():  # pragma: no cover
+                    raise
+
+                log.warning(f'Create Dimension(s) with ids [{exc.args[0]}, …]')
+                key = dsd.make_key(Key, attr, extend=True)
 
             # Remove attributes from the Key to be attached to the Observation
             aa.update(key.attrib)
@@ -906,7 +933,16 @@ class Reader(BaseReader):
         except KeyError:
             # StructureSpecificData message
             dsd = self._get_current(DataStructureDefinition)
-            series_key = SeriesKey(**elem.attrib, dsd=dsd)
+
+            try:
+                series_key = dsd.make_key(SeriesKey, elem.attrib)
+            except KeyError as exc:
+                if not self._check_ss_without_dsd():  # pragma: no cover
+                    raise
+
+                log.warning(f'Create Dimension(s) with ids [{exc.args[0]}, …]')
+                series_key = dsd.make_key(SeriesKey, elem.attrib, extend=True)
+
         obs_list = wrap(values.pop('obs', []))
         for o in obs_list:
             o.series_key = series_key
@@ -1272,16 +1308,21 @@ class Reader(BaseReader):
 
         try:
             # Navigate from the current ContentConstraint to a
-            # ConstrainableArtefact. If this is a DataFlow, it has a DSD.
-            dsd = self._get_cc_dsd()
+            # ConstrainableArtefact. If this is a DataFlow, it has a DSD, which
+            # has an Attribute- or DimensionDescriptor
+            cl = getattr(self._get_cc_dsd(), kind[0])
         except AttributeError:
             # Failed because the ContentConstraint is attached to something,
             # e.g. DataProvider, that does not provide an association to a DSD.
             # Try to get a Component from the current scope with matching ID.
             component = self._get_current(cls=kind[1], id=elem.attrib['id'])
         else:
-            # Get the Component from the correct list according to the kind
-            component = getattr(dsd, kind[0]).get(elem.attrib['id'])
+            try:
+                # Get the Component
+                component = cl.get(elem.attrib['id'])
+            except KeyError:
+                log.warning(f"{cl} has no {kind[1].__name__} with ID "
+                            f"{elem.attrib['id']}; XML element ignored")
 
         return MemberSelection(values=values, values_for=component)
 
