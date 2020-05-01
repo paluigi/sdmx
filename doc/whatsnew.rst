@@ -3,10 +3,10 @@
 What's new?
 ***********
 
-:mod:`sdmx` v1.0.0 (2020-05-??, unreleased)
-===========================================
+:mod:`sdmx` v1.0.0 (2020-05-01)
+===============================
 
-- Project forked and renamed to :mod:`sdmx` ( module) / ``sdmx1`` (on PyPI, due to an older, unmaintained package with the same name).
+- Project forked and renamed to :mod:`sdmx` (module) / ``sdmx1`` (on PyPI, due to an older, unmaintained package with the same name).
 - :mod:`sdmx.model` is reimplemented.
 
   - Python typing_ and pydantic_ are used to force tight compliance with the SDMX Information Model (IM).
