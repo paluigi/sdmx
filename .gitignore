@@ -1,9 +1,9 @@
-*.py[cod]
 __pycache__
-
+.eggs
 *.cache
 *.egg-info
 *.pdf
+*.py[cod]
 
 # Development and build files
 .coverage
