@@ -6,7 +6,7 @@ __pycache__
 *.py[cod]
 
 # Development and build files
-.coverage
+.coverage*
 .pytest_cache
 build
 coverage.xml
