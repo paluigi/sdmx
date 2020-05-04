@@ -1621,3 +1621,32 @@ class ProvisionAgreement(MaintainableArtefact, ConstrainableArtefact):
     structure_usage: StructureUsage = None
     #:
     data_provider: DataProvider = None
+
+
+#: The SDMX-IM defines 'packages'; these are used in URNs.
+PACKAGE = dict()
+
+_PACKAGE_CLASS = {
+    'base': {Agency, AgencyScheme, DataProvider},
+    'categoryscheme': {Category, Categorisation, CategoryScheme},
+    'codelist': {Code, Codelist},
+    'conceptscheme': {Concept, ConceptScheme},
+    'datastructure': {DataflowDefinition, DataStructureDefinition},
+    'registry': {ContentConstraint, ProvisionAgreement},
+    }
+
+for package, classes in _PACKAGE_CLASS.items():
+    PACKAGE.update({cls: package for cls in classes})
+
+
+def get_class(cls, package=None):
+    """Return a class object for string *cls* and *package* names."""
+    if isinstance(cls, str):
+        if cls in 'Dataflow DataStructure':
+            cls += 'Definition'
+        cls = globals()[cls]
+
+    if package and package != PACKAGE[cls]:
+        raise ValueError(f'Package {repr(package)} invalid for {cls}')
+
+    return cls

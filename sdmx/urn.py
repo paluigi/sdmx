@@ -1,6 +1,6 @@
 import re
 
-from sdmx.model import Code, Codelist
+from sdmx.model import PACKAGE
 
 
 # Regular expression for URNs
@@ -14,14 +14,10 @@ _BASE = (
     'urn:sdmx:org.sdmx.infomodel.{package}.{obj.__class__.__name__}='
     '{obj.maintainer.id}:{obj.id}({obj.version})'
 )
-_PACKAGE = {
-    Code: 'codelist',
-    Codelist: 'codelist',
-}
 
 
 def make(obj):
-    return _BASE.format(obj=obj, package=_PACKAGE[obj.__class__])
+    return _BASE.format(obj=obj, package=PACKAGE[obj.__class__])
 
 
 def match(string):
