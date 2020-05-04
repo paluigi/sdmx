@@ -108,15 +108,15 @@ class InternationalString:
               and isinstance(value[0], str)):
             # 2-tuple of str is (locale, label)
             value = {value[0]: value[1]}
+        elif isinstance(value, dict):
+            # dict; use directly
+            pass
         elif isinstance(value, IterableABC):
             # Iterable of 2-tuples
             value = {locale: label for (locale, label) in value}
         elif value is None:
             # Keyword arguments → dict, possibly empty
             value = dict(kwargs)
-        elif isinstance(value, dict):
-            # dict; use directly
-            pass
         else:
             raise ValueError(value, kwargs)
 
