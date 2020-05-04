@@ -33,17 +33,10 @@ from sdmx.model import (  # noqa: F401
     )
 
 from sdmx.reader import BaseReader
+import sdmx.urn
 
 
 log = logging.getLogger(__name__)
-
-
-# Regular expression for URNs used as references
-URN = re.compile(r'urn:sdmx:org\.sdmx\.infomodel'
-                 r'\.(?P<package>[^\.]*)'
-                 r'\.(?P<class>[^=]*)=((?P<agency>[^:]*):)?'
-                 r'(?P<id>[^\(\.]*)(\((?P<version>[\d\.]*)\))?'
-                 r'(\.(?P<item_id>.*))?')
 
 
 _TO_SNAKE_RE = re.compile('([A-Z]+)')
@@ -459,7 +452,7 @@ class Reader(BaseReader):
         regular expression.
         """
         if urn:
-            match = URN.match(urn).groupdict()
+            match = sdmx.urn.match(urn)
             cls = get_class(match['package'], match['class'])
             id = match['id']
 
@@ -1028,7 +1021,7 @@ class Reader(BaseReader):
             raise ValueError(values)
 
         # URN should refer to a Concept
-        match = URN.match(values['urn']).groupdict()
+        match = sdmx.urn.match(values['urn'])
         if match['class'] != 'Concept':
             raise ValueError(values['urn'])
 
