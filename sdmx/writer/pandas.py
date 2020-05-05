@@ -3,28 +3,19 @@ from itertools import chain
 import numpy as np
 import pandas as pd
 
-from sdmx import model
+from sdmx import message, model
 from sdmx.model import (
     DEFAULT_LOCALE,
-    AgencyScheme,
     AllDimensions,
     DataAttribute,
-    DataflowDefinition,
-    DataStructureDefinition,
     DataSet,
     Dimension,
     DimensionComponent,
-    # DimensionDescriptor,
-    CategoryScheme,
-    Codelist,
-    Component,
-    ConceptScheme,
-    ItemScheme,
-    NameableArtefact,
     Observation,
     SeriesKey,
     TimeDimension,
 )
+from sdmx.writer.base import BaseWriter
 from sdmx.util import DictLike
 
 
@@ -33,22 +24,7 @@ from sdmx.util import DictLike
 DEFAULT_RTYPE = 'rows'
 
 
-# Class → common write_*() methods
-_ALIAS = {
-    DictLike: dict,
-    AgencyScheme: ItemScheme,
-    CategoryScheme: ItemScheme,
-    ConceptScheme: ItemScheme,
-    Codelist: ItemScheme,
-    DataflowDefinition: NameableArtefact,
-    DataStructureDefinition: NameableArtefact,
-    Dimension: Component,
-    TimeDimension: Component,
-    model.GenericDataSet: DataSet,
-    model.GenericTimeSeriesDataSet: DataSet,
-    model.StructureSpecificDataSet: DataSet,
-    model.StructureSpecificTimeSeriesDataSet: DataSet,
-}
+Writer = BaseWriter('pandas')
 
 
 def write(obj, *args, **kwargs):
@@ -59,13 +35,15 @@ def write(obj, *args, **kwargs):
     individual ``write_*`` methods named for more information on their
     behaviour, including accepted *args* and *kwargs*.
     """
-    cls = obj.__class__
-    function = 'write_' + _ALIAS.get(cls, cls).__name__.lower()
-    return globals()[function](obj, *args, **kwargs)
+    return Writer.recurse(obj, *args, **kwargs)
+    # cls = obj.__class__
+    # function = 'write_' + _ALIAS.get(cls, cls).__name__.lower()
+    # return globals()[function](obj, *args, **kwargs)
 
 
 # Functions for Python containers
-def write_list(obj, *args, **kwargs):
+@Writer.register
+def _(obj: list, *args, **kwargs):
     """Convert a :class:`list` of SDMX objects.
 
     For the following *obj*, :meth:`write_list` returns :class:`pandas.Series`
@@ -88,7 +66,8 @@ def write_list(obj, *args, **kwargs):
         return [write(item, *args, **kwargs) for item in obj]
 
 
-def write_dict(obj, *args, **kwargs):
+@Writer.register
+def _(obj: dict, *args, **kwargs):
     """Convert mappings.
 
     The values of the mapping are write()'d individually. If the resulting
@@ -120,14 +99,16 @@ def write_dict(obj, *args, **kwargs):
         raise ValueError(result_type)
 
 
-def write_set(obj, *args, **kwargs):
+@Writer.register
+def _(obj: set, *args, **kwargs):
     """Convert :class:`set`."""
     result = {write(o, *args, **kwargs) for o in obj}
     return result
 
 
 # Functions for message classes
-def write_datamessage(obj, *args, rtype=None, **kwargs):
+@Writer.register
+def _(obj: message.DataMessage, *args, rtype=None, **kwargs):
     """Convert :class:`.DataMessage`.
 
     The data set(s) within the message are converted to pandas objects.
@@ -162,7 +143,8 @@ def write_datamessage(obj, *args, rtype=None, **kwargs):
         return [write(ds, *args, **kwargs) for ds in obj.data]
 
 
-def write_structuremessage(obj, include=None, **kwargs):
+@Writer.register
+def _(obj: message.StructureMessage, include=None, **kwargs):
     """Convert :class:`.StructureMessage`.
 
     Parameters
@@ -210,7 +192,8 @@ def write_structuremessage(obj, include=None, **kwargs):
 
 # Functions for model classes
 
-def write_component(obj):
+@Writer.register
+def _(obj: model.Component):
     """Convert :class:`.Component`.
 
     The :attr:`~.Concept.id` attribute of the
@@ -219,7 +202,8 @@ def write_component(obj):
     return str(obj.concept_identity.id)
 
 
-def write_contentconstraint(obj, **kwargs):
+@Writer.register
+def _(obj: model.ContentConstraint, **kwargs):
     """Convert :class:`.ContentConstraint`."""
     if len(obj.data_content_region) != 1:
         raise NotImplementedError
@@ -227,7 +211,8 @@ def write_contentconstraint(obj, **kwargs):
     return write(obj.data_content_region[0], **kwargs)
 
 
-def write_cuberegion(obj, **kwargs):
+@Writer.register
+def _(obj: model.CubeRegion, **kwargs):
     """Convert :class:`.CubeRegion`."""
     result = DictLike()
     for dim, memberselection in obj.member.items():
@@ -236,8 +221,9 @@ def write_cuberegion(obj, **kwargs):
     return result
 
 
-def write_dataset(obj, attributes='', dtype=np.float64, constraint=None,
-                  datetime=False, **kwargs):
+@Writer.register
+def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
+                  constraint=None, datetime=False, **kwargs):
     """Convert :class:`~.DataSet`.
 
     See the :ref:`walkthrough <datetime>` for examples of using the `datetime`
@@ -501,7 +487,8 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
     return df
 
 
-def write_dimensiondescriptor(obj):
+@Writer.register
+def _(obj: model.DimensionDescriptor):
     """Convert :class:`.DimensionDescriptor`.
 
     The :attr:`~.DimensionDescriptor.components` of the DimensionDescriptor
@@ -510,7 +497,8 @@ def write_dimensiondescriptor(obj):
     return write(obj.components)
 
 
-def write_itemscheme(obj, locale=DEFAULT_LOCALE):
+@Writer.register
+def _(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
     """Convert :class:`.ItemScheme`.
 
     Names from *locale* are serialized.
@@ -558,12 +546,14 @@ def write_itemscheme(obj, locale=DEFAULT_LOCALE):
     return result
 
 
-def write_membervalue(obj):
+@Writer.register
+def _(obj: model.MemberValue):
     """Convert :class:`.MemberValue`."""
     return obj.value
 
 
-def write_nameableartefact(obj):
+@Writer.register
+def _(obj: model.NameableArtefact):
     """Convert :class:`.NameableArtefact`.
 
     The :attr:`~.NameableArtefact.name` attribute of *obj* is returned.

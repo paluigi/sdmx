@@ -63,3 +63,4 @@ class BaseWriter:
         """Register *func* as a writer for a particular object type."""
         dispatcher = getattr(self, '_dispatcher')
         dispatcher.register(func)
+        return func
