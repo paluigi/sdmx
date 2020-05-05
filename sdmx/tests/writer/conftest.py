@@ -1,6 +1,6 @@
 import pytest
 from sdmx.message import StructureMessage
-from sdmx.model import Agency, Code, Codelist
+from sdmx.model import Agency, Annotation, Code, Codelist
 
 
 @pytest.fixture
@@ -25,6 +25,17 @@ def codelist():
         id='B',
         name={'en': 'Beginning of period'},
     )
+    cl.items['B1'] = Code(
+        id='B1',
+        name={'en': 'Child code of B'},
+    )
+    cl.items['B'].append_child(cl.items['B1'])
+
+    cl.items['A'].annotations.append(Annotation(
+        id='A1',
+        type='NOTE',
+        text={'en': 'Text annotation on Code A.'},
+    ))
 
     return cl
 

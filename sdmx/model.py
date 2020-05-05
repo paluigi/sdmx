@@ -141,7 +141,7 @@ class InternationalString:
         result.localizations.update(other.localizations)
         return result
 
-    def localized_default(self, locale):
+    def localized_default(self, locale=None):
         """Return the string in *locale*, or else the first defined."""
         try:
             return self.localizations[locale]
@@ -311,18 +311,23 @@ class Item(NameableArtefact):
 
         # Add this Item as a child of its parent
         parent = kwargs.get('parent', None)
-        if parent and self not in parent.child:
-            parent.child.append(self)
+        if parent:
+            parent.append_child(self)
 
         # Add this Item as a parent of its children
         for c in kwargs.get('child', []):
-            c.parent = self
+            self.append_child(c)
 
     def __contains__(self, item):
         """Recursive containment."""
         for c in self.child:
             if item == c or item in c:
                 return True
+
+    def append_child(self, other):
+        if other not in self.child:
+            self.child.append(other)
+        other.parent = self
 
     def get_child(self, id):
         """Return the child with the given *id*."""
