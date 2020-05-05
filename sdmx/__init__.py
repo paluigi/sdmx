@@ -3,7 +3,7 @@ import pkg_resources
 from sdmx.api import Request, read_sdmx, read_url
 from sdmx.source import add_source, list_sources
 from sdmx.util import Resource
-from sdmx.writer import write as to_pandas
+from sdmx.writer import to_pandas, to_xml
 import logging
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     'read_sdmx',
     'read_url',
     'to_pandas',
+    'to_xml',
     ]
 
 

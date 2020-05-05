@@ -6,8 +6,8 @@ from pytest import raises
 import sdmx
 from sdmx.model import TimeDimension
 
-from . import assert_pd_equal
-from .data import expected_data, specimen, test_files
+from sdmx.tests import assert_pd_equal
+from sdmx.tests.data import expected_data, specimen, test_files
 
 
 # file name → (exception raised, exception message, comment/reason)

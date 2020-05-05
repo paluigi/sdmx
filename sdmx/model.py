@@ -108,15 +108,15 @@ class InternationalString:
               and isinstance(value[0], str)):
             # 2-tuple of str is (locale, label)
             value = {value[0]: value[1]}
+        elif isinstance(value, dict):
+            # dict; use directly
+            pass
         elif isinstance(value, IterableABC):
             # Iterable of 2-tuples
             value = {locale: label for (locale, label) in value}
         elif value is None:
             # Keyword arguments → dict, possibly empty
             value = dict(kwargs)
-        elif isinstance(value, dict):
-            # dict; use directly
-            pass
         else:
             raise ValueError(value, kwargs)
 
@@ -141,7 +141,7 @@ class InternationalString:
         result.localizations.update(other.localizations)
         return result
 
-    def localized_default(self, locale):
+    def localized_default(self, locale=None):
         """Return the string in *locale*, or else the first defined."""
         try:
             return self.localizations[locale]
@@ -311,18 +311,23 @@ class Item(NameableArtefact):
 
         # Add this Item as a child of its parent
         parent = kwargs.get('parent', None)
-        if parent and self not in parent.child:
-            parent.child.append(self)
+        if parent:
+            parent.append_child(self)
 
         # Add this Item as a parent of its children
         for c in kwargs.get('child', []):
-            c.parent = self
+            self.append_child(c)
 
     def __contains__(self, item):
         """Recursive containment."""
         for c in self.child:
             if item == c or item in c:
                 return True
+
+    def append_child(self, other):
+        if other not in self.child:
+            self.child.append(other)
+        other.parent = self
 
     def get_child(self, id):
         """Return the child with the given *id*."""
@@ -1621,3 +1626,32 @@ class ProvisionAgreement(MaintainableArtefact, ConstrainableArtefact):
     structure_usage: StructureUsage = None
     #:
     data_provider: DataProvider = None
+
+
+#: The SDMX-IM defines 'packages'; these are used in URNs.
+PACKAGE = dict()
+
+_PACKAGE_CLASS = {
+    'base': {Agency, AgencyScheme, DataProvider},
+    'categoryscheme': {Category, Categorisation, CategoryScheme},
+    'codelist': {Code, Codelist},
+    'conceptscheme': {Concept, ConceptScheme},
+    'datastructure': {DataflowDefinition, DataStructureDefinition},
+    'registry': {ContentConstraint, ProvisionAgreement},
+    }
+
+for package, classes in _PACKAGE_CLASS.items():
+    PACKAGE.update({cls: package for cls in classes})
+
+
+def get_class(cls, package=None):
+    """Return a class object for string *cls* and *package* names."""
+    if isinstance(cls, str):
+        if cls in 'Dataflow DataStructure':
+            cls += 'Definition'
+        cls = globals()[cls]
+
+    if package and package != PACKAGE[cls]:
+        raise ValueError(f'Package {repr(package)} invalid for {cls}')
+
+    return cls

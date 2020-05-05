@@ -6,7 +6,11 @@ What's new?
 Next release (vX.Y.0)
 =====================
 
-- Test suite improvements
+- New features:
+
+  - :pull:`3`: Add :meth:`to_xml` to generate SDMX-ML for a subset of the IM.
+
+- Test suite:
 
   - :pull:`2`: Add tests of data queries for source(s): OECD
 

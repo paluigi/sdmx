@@ -12,6 +12,7 @@ from lxml import etree
 from lxml.etree import QName, XPath
 
 from sdmx.exceptions import ParseError, XMLParseError
+from sdmx.format.xml import NS, qname
 from sdmx.message import (
     DataMessage, ErrorMessage, Footer, Header, StructureMessage,
     )
@@ -32,36 +33,10 @@ from sdmx.model import (  # noqa: F401
     )
 
 from sdmx.reader import BaseReader
+import sdmx.urn
 
 
 log = logging.getLogger(__name__)
-
-
-# Regular expression for URNs used as references
-URN = re.compile(r'urn:sdmx:org\.sdmx\.infomodel'
-                 r'\.(?P<package>[^\.]*)'
-                 r'\.(?P<class>[^=]*)=((?P<agency>[^:]*):)?'
-                 r'(?P<id>[^\(\.]*)(\((?P<version>[\d\.]*)\))?'
-                 r'(\.(?P<item_id>.*))?')
-
-
-# XML namespaces
-_base_ns = 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1'
-NS = {
-    'com': f'{_base_ns}/common',
-    'data': f'{_base_ns}/data/structurespecific',
-    'str': f'{_base_ns}/structure',
-    'mes': f'{_base_ns}/message',
-    'gen': f'{_base_ns}/data/generic',
-    'footer': f'{_base_ns}/message/footer',
-    'xml': 'http://www.w3.org/XML/1998/namespace',
-    'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-    }
-
-
-def qname(ns, name):
-    """Return a fully-qualified tag *name* in namespace *ns*."""
-    return QName(NS[ns], name)
 
 
 _TO_SNAKE_RE = re.compile('([A-Z]+)')
@@ -174,30 +149,6 @@ METHOD = {
     # 'ConstraintAttachment': 'ref',
     'Enumeration': 'ref',
     }
-
-
-# Mappings from SDMX-ML 'package' to contained classes
-PACKAGE_CLASS = {
-    'base': {Agency, AgencyScheme, DataProvider},
-    'categoryscheme': {Category, Categorisation, CategoryScheme},
-    'codelist': {Code, Codelist},
-    'conceptscheme': {Concept, ConceptScheme},
-    'datastructure': {DataflowDefinition, DataStructureDefinition},
-    'registry': {ContentConstraint, ProvisionAgreement},
-    }
-
-
-def get_class(package, cls):
-    """Return a class object for string *cls* and *package* names."""
-    if isinstance(cls, str):
-        if cls in 'Dataflow DataStructure':
-            cls += 'Definition'
-        cls = getattr(sdmx.model, cls)
-
-    assert cls in PACKAGE_CLASS[package], \
-        f'Package {package!r} invalid for {cls}'
-
-    return cls
 
 
 def wrap(value):
@@ -477,8 +428,8 @@ class Reader(BaseReader):
         regular expression.
         """
         if urn:
-            match = URN.match(urn).groupdict()
-            cls = get_class(match['package'], match['class'])
+            match = sdmx.urn.match(urn)
+            cls = sdmx.model.get_class(match['class'], match['package'])
             id = match['id']
 
             # Re-add the URN to the kwargs
@@ -630,21 +581,21 @@ class Reader(BaseReader):
         # Determine the class of the ref'd object
         try:
             # 'package' and 'class' attributes give the class directly
-            cls = get_class(attr.pop('package'), attr.pop('class'))
+            cls = sdmx.model.get_class(attr.pop('class'), attr.pop('package'))
         except KeyError:
             # No 'package' and 'class' attributes
 
             if parent == 'Parent':
                 # Ref to parent of an Item in an ItemScheme; the ref'd object
                 # has the same class as the Item
-                cls = getattr(sdmx.model, self._stack[-1])
+                cls = sdmx.model.get_class(self._stack[-1])
             elif parent in ('AttachmentGroup', 'Group'):
                 cls = GroupDimensionDescriptor
             elif parent in ('Dimension', 'DimensionReference'):
                 # References to Dimensions
                 cls = [Dimension, TimeDimension]
             else:
-                cls = getattr(sdmx.model, parent)
+                cls = sdmx.model.get_class(parent)
 
         # Get or instantiate the object itself
         try:
@@ -779,7 +730,7 @@ class Reader(BaseReader):
         self._current[(DataStructureDefinition, None)] = dsd
 
         # DataSet class, e.g. GenericDataSet for root XML tag 'GenericData'
-        DataSetClass = getattr(sdmx.model, f'{self._stack[0]}Set')
+        DataSetClass = sdmx.model.get_class(f'{self._stack[0]}Set')
 
         # Create the object
         ds = DataSetClass(structured_by=dsd)
@@ -955,7 +906,7 @@ class Reader(BaseReader):
         return self._parse(elem, unwrap=False)
 
     def parse_organisation(self, elem):
-        cls = getattr(sdmx.model, QName(elem).localname)
+        cls = sdmx.model.get_class(QName(elem).localname)
         o, values = self._named(cls, elem)
         o.contact = wrap(values.pop('contact', []))
         assert len(values) == 0
@@ -1046,12 +997,12 @@ class Reader(BaseReader):
             raise ValueError(values)
 
         # URN should refer to a Concept
-        match = URN.match(values['urn']).groupdict()
+        match = sdmx.urn.match(values['urn'])
         if match['class'] != 'Concept':
             raise ValueError(values['urn'])
 
         # Look up the parent ConceptScheme
-        cls = get_class(match['package'], 'ConceptScheme')
+        cls = sdmx.model.get_class('ConceptScheme', match['package'])
         cs = self._maintained(cls=cls, id=match['id'])
 
         # Get or create the Concept within *cs*
@@ -1068,7 +1019,7 @@ class Reader(BaseReader):
         return result
 
     def parse_orgscheme(self, elem):
-        cls = getattr(sdmx.model, QName(elem).localname)
+        cls = sdmx.model.get_class(QName(elem).localname)
         os, values = self._named(cls, elem, unwrap=False)
         # Get the list of organisations. The following assumes that the
         # *values* dict has only one item. Otherwise, the returned item will be
@@ -1123,7 +1074,7 @@ class Reader(BaseReader):
             # fixed to 'DimensionDescriptor'."
             cls_name = QName(elem).localname.replace('List', 'Descriptor')
         finally:
-            ComponentListClass = getattr(sdmx.model, cls_name)
+            ComponentListClass = sdmx.model.get_class(cls_name)
 
         cl = ComponentListClass(
             components=list(chain(*self._parse(elem, unwrap=False).values())),
@@ -1141,7 +1092,7 @@ class Reader(BaseReader):
         values = self._parse(elem)
 
         # Object class: Dimension, MeasureDimension, or TimeDimension
-        DimensionClass = getattr(sdmx.model, QName(elem).localname)
+        DimensionClass = sdmx.model.get_class(QName(elem).localname)
 
         args = copy(elem.attrib)
         try:

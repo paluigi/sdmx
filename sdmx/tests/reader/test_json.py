@@ -1,7 +1,6 @@
-import sdmx
 import pytest
-
-from .data import specimen, test_files
+import sdmx
+from sdmx.tests.data import specimen, test_files
 
 
 @pytest.mark.parametrize('path', **test_files(format='json'))

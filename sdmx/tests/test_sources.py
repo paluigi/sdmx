@@ -7,10 +7,11 @@ To force the data to be retrieved over the Internet, delete this directory.
 import logging
 import os
 
+import sdmx
+from sdmx import Resource
 from sdmx.api import Request
 from sdmx.exceptions import HTTPError
 from sdmx.source import DataContentType, sources
-from sdmx.util import Resource
 import pytest
 import requests_mock
 
@@ -128,6 +129,8 @@ class DataSourceTest:
         # For debugging
         # print(cache, cache.read_text(), result, sep='\n\n')
         # assert False
+
+        sdmx.to_pandas(result)
 
         del result
 

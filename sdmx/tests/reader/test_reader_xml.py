@@ -1,12 +1,11 @@
 from lxml.etree import Element
+import pytest
 import sdmx
 from sdmx.model import (
     Facet, FacetType, FacetValueType,
     )
 from sdmx.reader.sdmxml import XMLParseError, Reader
-import pytest
-
-from .data import specimen, test_files
+from sdmx.tests.data import specimen, test_files
 
 
 # Read example data files
