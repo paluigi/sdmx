@@ -4,12 +4,12 @@ from sdmx.message import DataMessage
 
 
 def test_codelist(codelist):
-    result = sdmx.to_xml(codelist)
+    result = sdmx.to_xml(codelist, pretty_print=True)
     print(result.decode())
 
 
 def test_structuremessage(structuremessage):
-    result = sdmx.to_xml(structuremessage)
+    result = sdmx.to_xml(structuremessage, pretty_print=True)
     print(result.decode())
 
 

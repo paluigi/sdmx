@@ -15,7 +15,7 @@ __all__ = [
     'read_sdmx',
     'read_url',
     'to_pandas',
-    'to_xml'
+    'to_xml',
     ]
 
 

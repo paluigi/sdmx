@@ -30,32 +30,15 @@ Writer = BaseWriter('pandas')
 def write(obj, *args, **kwargs):
     """Convert an SDMX *obj* to :mod:`pandas` object(s).
 
-    Implements a dispatch pattern according to the type of *obj*. For instance,
-    a :class:`.DataSet` object is converted using :func:`.write_dataset`. See
-    individual ``write_*`` methods named for more information on their
-    behaviour, including accepted *args* and *kwargs*.
+    See :ref:`sdmx.writer.pandas <writer-pandas>`.
     """
     return Writer.recurse(obj, *args, **kwargs)
-    # cls = obj.__class__
-    # function = 'write_' + _ALIAS.get(cls, cls).__name__.lower()
-    # return globals()[function](obj, *args, **kwargs)
 
 
 # Functions for Python containers
 @Writer.register
 def _(obj: list, *args, **kwargs):
-    """Convert a :class:`list` of SDMX objects.
-
-    For the following *obj*, :meth:`write_list` returns :class:`pandas.Series`
-    instead of a :class:`list`:
-
-    - a list of :class:`.Observation`: the Observations are written using
-      :meth:`write_dataset`.
-    - a list with only 1 :class:`.DataSet` (e.g. the
-       :attr:`~.DataMessage.data>` attribute of :class:`.DataMessage`): the
-       Series for the single element is returned.
-    - a list of :class:`.SeriesKey`: the key values (but no data) are returned.
-    """
+    """Convert a :class:`list` of SDMX objects."""
     if isinstance(obj[0], Observation):
         return write_dataset(obj, *args, **kwargs)
     elif isinstance(obj[0], DataSet) and len(obj) == 1:
@@ -68,13 +51,7 @@ def _(obj: list, *args, **kwargs):
 
 @Writer.register
 def _(obj: dict, *args, **kwargs):
-    """Convert mappings.
-
-    The values of the mapping are write()'d individually. If the resulting
-    values are :class:`str` or :class:`pd.Series` *with indexes that share the
-    same name*, then they are converted to a pd.Series, possibly with a
-    pd.MultiIndex. Otherwise, a DictLike is returned.
-    """
+    """Convert mappings."""
     result = {k: write(v, *args, **kwargs) for k, v in obj.items()}
 
     result_type = set(type(v) for v in result.values())
@@ -108,10 +85,8 @@ def _(obj: set, *args, **kwargs):
 
 # Functions for message classes
 @Writer.register
-def _(obj: message.DataMessage, *args, rtype=None, **kwargs):
+def write_datamessage(obj: message.DataMessage, *args, rtype=None, **kwargs):
     """Convert :class:`.DataMessage`.
-
-    The data set(s) within the message are converted to pandas objects.
 
     Parameters
     ----------
@@ -144,7 +119,8 @@ def _(obj: message.DataMessage, *args, rtype=None, **kwargs):
 
 
 @Writer.register
-def _(obj: message.StructureMessage, include=None, **kwargs):
+def write_structuremessage(obj: message.StructureMessage, include=None,
+                           **kwargs):
     """Convert :class:`.StructureMessage`.
 
     Parameters
@@ -194,11 +170,7 @@ def _(obj: message.StructureMessage, include=None, **kwargs):
 
 @Writer.register
 def _(obj: model.Component):
-    """Convert :class:`.Component`.
-
-    The :attr:`~.Concept.id` attribute of the
-    :attr:`~.Component.concept_identity` is returned.
-    """
+    """Convert :class:`.Component`."""
     return str(obj.concept_identity.id)
 
 
@@ -489,19 +461,18 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
 
 @Writer.register
 def _(obj: model.DimensionDescriptor):
-    """Convert :class:`.DimensionDescriptor`.
-
-    The :attr:`~.DimensionDescriptor.components` of the DimensionDescriptor
-    are written.
-    """
+    """Convert :class:`.DimensionDescriptor`."""
     return write(obj.components)
 
 
 @Writer.register
-def _(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
+def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
     """Convert :class:`.ItemScheme`.
 
-    Names from *locale* are serialized.
+    Parameters
+    ----------
+    locale : str, optional
+        Locale for names to return.
 
     Returns
     -------
@@ -548,21 +519,15 @@ def _(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
 
 @Writer.register
 def _(obj: model.MemberValue):
-    """Convert :class:`.MemberValue`."""
     return obj.value
 
 
 @Writer.register
 def _(obj: model.NameableArtefact):
-    """Convert :class:`.NameableArtefact`.
-
-    The :attr:`~.NameableArtefact.name` attribute of *obj* is returned.
-    """
     return str(obj.name)
 
 
 def write_serieskeys(obj):
-    """Convert a list of :class:`.SeriesKey`."""
     result = []
     for sk in obj:
         result.append({dim: kv.value for dim, kv in sk.order().values.items()})

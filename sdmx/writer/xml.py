@@ -17,13 +17,22 @@ def Element(name, *args, **kwargs):
 Writer = BaseWriter('XML')
 
 
-def write(obj, *args, **kwargs):
-    pp = kwargs.pop('pretty_print', True)
-    tree = Writer.recurse(obj, *args, **kwargs)
-    return etree.tostring(
-        tree,
-        pretty_print=pp,
-    )
+def write(obj, **kwargs):
+    """Convert an SDMX *obj* to SDMX-ML.
+
+    Parameters
+    ----------
+    kwargs
+        Passed to :meth:`lxml.etree.to_string`, e.g. `pretty_print` =
+        :obj:`True`.
+
+    Raises
+    ------
+    NotImplementedError
+        If writing specific objects to SDMX-ML has not been implemented in
+        :mod:`sdmx`.
+    """
+    return etree.tostring(Writer.recurse(obj), **kwargs)
 
 
 # Utility functions
