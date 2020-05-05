@@ -53,7 +53,11 @@ def maintainable(obj):
 
 @Writer.register
 def _(obj: message.StructureMessage):
-    msg = Element('mes:StructureMessage')
+    msg = Element('mes:Structure')
+
+    # Empty header element
+    msg.append(Element('mes:Header'))
+
     structures = Element('mes:Structures')
     msg.append(structures)
 
@@ -67,15 +71,17 @@ def _(obj: message.StructureMessage):
 @Writer.register
 def _(obj: model.ItemScheme):
     elem = maintainable(obj)
-    elem.extend(Writer.recurse(i, parent_elem=elem)
-                for i in obj.items.values())
+    elem.extend(Writer.recurse(i, parent=obj) for i in obj.items.values())
     return elem
 
 
 @Writer.register
-def _(obj: model.Item, parent_elem):
+def _(obj: model.Item, parent):
     # NB this isn't correct: produces .Codelist instead of .Code
-    elem = Element(f'str:{obj.__class__.__name__}',
-                   urn=f"{parent_elem.attrib['urn']}.{obj.id}")
+    elem = Element(
+        f'str:{obj.__class__.__name__}',
+        id=obj.id,
+        urn=sdmx.urn.make(obj, parent),
+    )
     nameable(obj, elem)
     return elem

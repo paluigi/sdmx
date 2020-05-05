@@ -1,6 +1,6 @@
 import re
 
-from sdmx.model import PACKAGE
+from sdmx.model import PACKAGE, MaintainableArtefact
 
 
 # Regular expression for URNs
@@ -12,12 +12,31 @@ URN = re.compile(r'urn:sdmx:org\.sdmx\.infomodel'
 
 _BASE = (
     'urn:sdmx:org.sdmx.infomodel.{package}.{obj.__class__.__name__}='
-    '{obj.maintainer.id}:{obj.id}({obj.version})'
+    '{ma.maintainer.id}:{ma.id}({ma.version}){extra_id}'
 )
 
 
-def make(obj):
-    return _BASE.format(obj=obj, package=PACKAGE[obj.__class__])
+def make(obj, maintainable_parent=None):
+    """Create an SDMX URN for `obj`.
+
+    If `obj` is not :class:`.MaintainableArtefact`, then `maintainable_parent`
+    must be supplied in order to construct the URN.
+    """
+    if maintainable_parent:
+        ma = maintainable_parent
+        extra_id = f'.{obj.id}'
+    else:
+        ma = obj
+        extra_id = ''
+
+    assert isinstance(ma, MaintainableArtefact)
+
+    return _BASE.format(
+        package=PACKAGE[obj.__class__],
+        obj=obj,
+        ma=ma,
+        extra_id=extra_id,
+    )
 
 
 def match(string):
