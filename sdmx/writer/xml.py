@@ -1,63 +1,72 @@
 from lxml import etree
 from lxml.builder import ElementMaker
 
+from sdmx import message, model
 from sdmx.format.xml import NS, qname
-from sdmx.model import Codelist, ItemScheme
 import sdmx.urn
+from sdmx.writer.base import BaseWriter
 
 
-_ALIAS = {
-    Codelist: ItemScheme,
-}
+_element_maker = ElementMaker(nsmap=NS)
 
-E = ElementMaker(nsmap=NS)
+
+def Element(name, *args, **kwargs):
+    return _element_maker(qname(*name.split(':')), *args, **kwargs)
+
+
+Writer = BaseWriter('XML')
 
 
 def write(obj, *args, **kwargs):
-    """Convert an SDMX *obj* to XML.
-
-    Implements a dispatch pattern according to the type of *obj*. For instance,
-    a :class:`.DataSet` object is converted using :func:`.write_dataset`. See
-    individual ``write_*`` methods named for more information on their
-    behaviour, including accepted *args* and *kwargs*.
-    """
-    return etree.tostring(_write(obj, *args, **kwargs), pretty_print=True)
+    pp = kwargs.pop('pretty_print', True)
+    tree = Writer.recurse(obj, *args, **kwargs)
+    return etree.tostring(
+        tree,
+        pretty_print=pp,
+    )
 
 
-def _write(obj, *args, **kwargs):
-    """Helper for :meth:`write`; returns :class:`lxml.Element` object(s)."""
-    cls = obj.__class__
-    func_name = 'write_' + _ALIAS.get(cls, cls).__name__.lower()
-    try:
-        func = globals()[func_name]
-    except KeyError:
-        raise NotImplementedError(f'write {obj.__class__.__name__} to XML')
-    else:
-        return func(obj, *args, **kwargs)
+# Utility functions
 
-
-def write_nameableartefact(obj, elem):
+def nameable(obj, elem):
     for locale, label in obj.name.localizations.items():
-        child = E(qname('com', 'Name'), label)
+        child = Element('com:Name', label)
         child.set(qname('xml', 'lang'), locale)
         elem.append(child)
 
 
-def write_maintainableartefact(obj):
+def maintainable(obj):
     urn = sdmx.urn.make(obj)
-    elem = E(qname('str', obj.__class__.__name__), urn=urn)
-    write_nameableartefact(obj, elem)
+    elem = Element(f'str:{obj.__class__.__name__}', urn=urn)
+    nameable(obj, elem)
     return elem
 
 
-def write_itemscheme(obj):
-    elem = write_maintainableartefact(obj)
-    elem.extend(write_item(i, parent_elem=elem) for i in obj.items.values())
+@Writer.register
+def _(obj: message.StructureMessage):
+    msg = Element('mes:StructureMessage')
+    structures = Element('mes:Structures')
+    msg.append(structures)
+
+    codelists = Element('mes:Codelists')
+    structures.append(codelists)
+    codelists.extend(Writer.recurse(cl) for cl in obj.codelist.values())
+
+    return msg
+
+
+@Writer.register
+def _(obj: model.ItemScheme):
+    elem = maintainable(obj)
+    elem.extend(Writer.recurse(i, parent_elem=elem)
+                for i in obj.items.values())
     return elem
 
 
-def write_item(obj, parent_elem):
+@Writer.register
+def _(obj: model.Item, parent_elem):
     # NB this isn't correct: produces .Codelist instead of .Code
-    elem = E(qname('str', 'Code'), urn=f"{parent_elem.attrib['urn']}.{obj.id}")
-    write_nameableartefact(obj, elem)
+    elem = Element(f'str:{obj.__class__.__name__}',
+                   urn=f"{parent_elem.attrib['urn']}.{obj.id}")
+    nameable(obj, elem)
     return elem

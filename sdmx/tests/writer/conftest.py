@@ -1,9 +1,11 @@
 import pytest
+from sdmx.message import StructureMessage
 from sdmx.model import Agency, Code, Codelist
 
 
 @pytest.fixture
 def codelist():
+    """A Codelist for writer testing."""
     ECB = Agency(id='ECB')
 
     cl = Codelist(
@@ -25,3 +27,12 @@ def codelist():
     )
 
     return cl
+
+
+@pytest.fixture
+def structuremessage(codelist):
+    """A StructureMessage for writer testing."""
+    sm = StructureMessage()
+    sm.codelist[codelist.id] = codelist
+
+    return sm
