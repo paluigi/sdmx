@@ -27,12 +27,14 @@ class BaseWriter:
         ... code to write a Codelist ...
         return result
     """
+
     def __init__(self, format_name):
         # Create the single-dispatch function
         @singledispatch
         def func(obj, *args, **kwargs):
-            raise NotImplementedError(f'write {obj.__class__.__name__} to '
-                                      f'{format_name}')
+            raise NotImplementedError(
+                f"write {obj.__class__.__name__} to " f"{format_name}"
+            )
 
         self._dispatcher = func
 
@@ -45,7 +47,7 @@ class BaseWriter:
         # TODO use a cache to speed up the MRO does not need to be traversed
         #      for every object instance
 
-        dispatcher = getattr(self, '_dispatcher')
+        dispatcher = getattr(self, "_dispatcher")
         try:
             # Let the single dispatch function choose the overload
             return dispatcher(obj, *args, **kwargs)
@@ -61,6 +63,6 @@ class BaseWriter:
 
     def register(self, func):
         """Register *func* as a writer for a particular object type."""
-        dispatcher = getattr(self, '_dispatcher')
+        dispatcher = getattr(self, "_dispatcher")
         dispatcher.register(func)
         return func

@@ -7,30 +7,26 @@
 :mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data
 returned by data sources.
 """
-from typing import (
-    List,
-    Optional,
-    Text,
-    Union,
-    )
+from typing import List, Optional, Text, Union
+
+from requests import Response
 
 from sdmx.model import (
-    _AllDimensions,
     AgencyScheme,
     CategoryScheme,
     Codelist,
     ConceptScheme,
     ContentConstraint,
-    DataSet,
     DataflowDefinition,
+    DataSet,
     DataStructureDefinition,
     DimensionComponent,
     InternationalString,
     Item,
     ProvisionAgreement,
-    )
+    _AllDimensions,
+)
 from sdmx.util import BaseModel, DictLike, summarize_dictlike
-from requests import Response
 
 
 def _summarize(obj, fields):
@@ -39,7 +35,7 @@ def _summarize(obj, fields):
         attr = getattr(obj, name)
         if attr is None:
             continue
-        yield f'{name}: {attr!r}'
+        yield f"{name}: {attr!r}"
 
 
 class Header(BaseModel):
@@ -47,6 +43,7 @@ class Header(BaseModel):
 
     SDMX-JSON messages do not have headers.
     """
+
     #: (optional) Error code for the message.
     error: Optional[Text] = None
     #: Identifier for the message.
@@ -61,9 +58,9 @@ class Header(BaseModel):
 
     def __repr__(self):
         """String representation."""
-        lines = ['<Header>']
+        lines = ["<Header>"]
         lines.extend(_summarize(self, self.__fields__.keys()))
-        return '\n  '.join(lines)
+        return "\n  ".join(lines)
 
 
 class Footer(BaseModel):
@@ -71,6 +68,7 @@ class Footer(BaseModel):
 
     SDMX-JSON messages do not have footers.
     """
+
     #:
     severity: Text
     #: The body text of the Footer contains zero or more blocks of text.
@@ -98,11 +96,11 @@ class Message(BaseModel):
     def __repr__(self):
         """String representation."""
         lines = [
-            f'<sdmx.{self.__class__.__name__}>',
-            repr(self.header).replace('\n', '\n  '),
+            f"<sdmx.{self.__class__.__name__}>",
+            repr(self.header).replace("\n", "\n  "),
         ]
-        lines.extend(_summarize(self, ['footer', 'response']))
-        return '\n  '.join(lines)
+        lines.extend(_summarize(self, ["footer", "response"]))
+        return "\n  ".join(lines)
 
 
 class ErrorMessage(Message):
@@ -136,7 +134,7 @@ class StructureMessage(Message):
             if isinstance(attr, DictLike) and attr:
                 lines.append(summarize_dictlike(attr))
 
-        return '\n  '.join(lines)
+        return "\n  ".join(lines)
 
 
 class DataMessage(Message):
@@ -147,13 +145,15 @@ class DataMessage(Message):
        data set in the message, access the first element of the list:
        ``msg.data[0]``.
     """
+
     #: :class:`list` of :class:`.DataSet`.
     data: List[DataSet] = []
     #: :class:`.DataflowDefinition` that contains the data.
     dataflow: DataflowDefinition = DataflowDefinition()
     #: The "dimension at observation level".
-    observation_dimension: Optional[Union[_AllDimensions, DimensionComponent,
-                                          List[DimensionComponent]]] = None
+    observation_dimension: Optional[
+        Union[_AllDimensions, DimensionComponent, List[DimensionComponent]]
+    ] = None
 
     # Convenience access
     @property
@@ -167,7 +167,7 @@ class DataMessage(Message):
 
         # DataMessage contents
         if self.data:
-            lines.append('DataSet ({})'.format(len(self.data)))
-        lines.extend(_summarize(self, ('dataflow', 'observation_dimension')))
+            lines.append("DataSet ({})".format(len(self.data)))
+        lines.extend(_summarize(self, ("dataflow", "observation_dimension")))
 
-        return '\n  '.join(lines)
+        return "\n  ".join(lines)

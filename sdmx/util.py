@@ -1,31 +1,24 @@
 import collections
-from enum import Enum
 import typing
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    List,
-    Union,
-    Type,
-    TypeVar,
-    no_type_check,
-    )
+from enum import Enum
+from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
+
+import pydantic
+from pydantic import DictError, Extra, ValidationError
+from pydantic.class_validators import make_generic_validator
+
 try:
     from typing import OrderedDict
 except ImportError:
     # Python < 3.7.2 compatibility; see
     # https://github.com/python/cpython/commit/68b56d0
     from typing import _alias  # type: ignore
+
     OrderedDict = _alias(collections.OrderedDict, (typing._KT, typing._VT))
 
 
-import pydantic
-from pydantic import DictError, Extra, ValidationError
-from pydantic.class_validators import make_generic_validator
-
-
-KT = TypeVar('KT')
-VT = TypeVar('VT')
+KT = TypeVar("KT")
+VT = TypeVar("VT")
 
 
 class Resource(str, Enum):
@@ -47,15 +40,15 @@ class Resource(str, Enum):
     # agencyscheme = 'agencyscheme'
     # attachementconstraint = 'attachementconstraint'
     # categorisation = 'categorisation'
-    categoryscheme = 'categoryscheme'
-    codelist = 'codelist'
-    conceptscheme = 'conceptscheme'
+    categoryscheme = "categoryscheme"
+    codelist = "codelist"
+    conceptscheme = "conceptscheme"
     # contentconstraint = 'contentconstraint'
-    data = 'data'
+    data = "data"
     # dataconsumerscheme = 'dataconsumerscheme'
-    dataflow = 'dataflow'
+    dataflow = "dataflow"
     # dataproviderscheme = 'dataproviderscheme'
-    datastructure = 'datastructure'
+    datastructure = "datastructure"
     # hierarchicalcodelist = 'hierarchicalcodelist'
     # metadata = 'metadata'
     # metadataflow = 'metadataflow'
@@ -63,7 +56,7 @@ class Resource(str, Enum):
     # organisationscheme = 'organisationscheme'
     # organisationunitscheme = 'organisationunitscheme'
     # process = 'process'
-    provisionagreement = 'provisionagreement'
+    provisionagreement = "provisionagreement"
     # reportingtaxonomy = 'reportingtaxonomy'
     # schema = 'schema'
     # structure = 'structure'
@@ -72,18 +65,18 @@ class Resource(str, Enum):
     @classmethod
     def from_obj(cls, obj):
         """Return an enumeration value based on the class of *obj*."""
-        clsname = {
-            'DataStructureDefinition': 'datastructure',
-            }.get(obj.__class__.__name__, obj.__class__.__name__)
+        clsname = {"DataStructureDefinition": "datastructure"}.get(
+            obj.__class__.__name__, obj.__class__.__name__
+        )
         return cls[clsname.lower()]
 
     @classmethod
     def describe(cls):
-        return '{' + ' '.join(v.name for v in cls._member_map_.values()) + '}'
+        return "{" + " ".join(v.name for v in cls._member_map_.values()) + "}"
 
 
 if TYPE_CHECKING:
-    Model = TypeVar('Model', bound='BaseModel')
+    Model = TypeVar("Model", bound="BaseModel")
 
 
 class BaseModel(pydantic.BaseModel):
@@ -111,13 +104,14 @@ class BaseModel(pydantic.BaseModel):
          a.attr is b.attr is always False, even when set to the same reference.
        - Fix: override BaseModel.validate() without copy().
     """
+
     class Config:
-        validate_assignment = 'limited'
+        validate_assignment = "limited"
         validate_assignment_exclude: List[str] = []
 
     # Workaround for https://github.com/samuelcolvin/pydantic/issues/521
     @classmethod
-    def validate(cls: Type['Model'], value: Any) -> 'Model':
+    def validate(cls: Type["Model"], value: Any) -> "Model":
         if isinstance(value, dict):
             return cls(**value)
         elif isinstance(value, cls):
@@ -134,23 +128,26 @@ class BaseModel(pydantic.BaseModel):
     # Workaround for https://github.com/samuelcolvin/pydantic/issues/524
     @no_type_check
     def __setattr__(self, name, value):
-        if (self.__config__.extra is not Extra.allow and name not in
-                self.__fields__):
-            raise ValueError(f'"{self.__class__.__name__}" object has no field'
-                             f' "{name}"')
+        if self.__config__.extra is not Extra.allow and name not in self.__fields__:
+            raise ValueError(
+                f'"{self.__class__.__name__}" object has no field' f' "{name}"'
+            )
         elif not self.__config__.allow_mutation:
-            raise TypeError(f'"{self.__class__.__name__}" is immutable and '
-                            'does not support item assignment')
-        elif (self.__config__.validate_assignment and name not in
-              self.__config__.validate_assignment_exclude):
-            if self.__config__.validate_assignment == 'limited':
-                kw = {'include': {}}
+            raise TypeError(
+                f'"{self.__class__.__name__}" is immutable and '
+                "does not support item assignment"
+            )
+        elif (
+            self.__config__.validate_assignment
+            and name not in self.__config__.validate_assignment_exclude
+        ):
+            if self.__config__.validate_assignment == "limited":
+                kw = {"include": {}}
             else:
-                kw = {'exclude': {name}}
+                kw = {"exclude": {name}}
             known_field = self.__fields__.get(name, None)
             if known_field:
-                value, error_ = known_field.validate(value, self.dict(**kw),
-                                                     loc=name)
+                value, error_ = known_field.validate(value, self.dict(**kw), loc=name)
                 if error_:
                     raise ValidationError([error_], type(self))
         self.__dict__[name] = value
@@ -159,20 +156,21 @@ class BaseModel(pydantic.BaseModel):
 
 class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
     """Container with features of a dict & list, plus attribute access."""
+
     def __getitem__(self, key: Union[KT, int]) -> VT:
         try:
             return super().__getitem__(key)
         except KeyError:
             if isinstance(key, int):
                 return list(self.values())[key]
-            elif isinstance(key, str) and key.startswith('__'):
+            elif isinstance(key, str) and key.startswith("__"):
                 raise AttributeError
             else:
                 raise
 
     def __setitem__(self, key: KT, value: VT) -> None:
-        key = self._apply_validators('key', key)
-        value = self._apply_validators('value', value)
+        key = self._apply_validators("key", key)
+        value = self._apply_validators("value", value)
         super().__setitem__(key, value)
 
     # Access items as attributes
@@ -187,7 +185,7 @@ class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
             raise ValueError(value)
 
         result = DictLike()
-        result.__fields = {'key': field.key_field, 'value': field}
+        result.__fields = {"key": field.key_field, "value": field}
         result.update(value)
         return result
 
@@ -197,7 +195,8 @@ class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
         except AttributeError:
             return value
         result, error = field._apply_validators(
-            value, validators=field.validators, values={}, loc=(), cls=None)
+            value, validators=field.validators, values={}, loc=(), cls=None
+        )
         if error:
             raise ValidationError([error], self.__class__)
         else:
@@ -208,12 +207,12 @@ def summarize_dictlike(dl, maxwidth=72):
     """Return a string summary of the DictLike contents."""
     value_cls = dl[0].__class__.__name__
     count = len(dl)
-    keys = ' '.join(dl.keys())
-    result = f'{value_cls} ({count}): {keys}'
+    keys = " ".join(dl.keys())
+    result = f"{value_cls} ({count}): {keys}"
 
     if len(result) > maxwidth:
         # Truncate the list of keys
-        result = result[:maxwidth - 3] + '...'
+        result = result[: maxwidth - 3] + "..."
 
     return result
 

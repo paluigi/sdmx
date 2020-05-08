@@ -2,17 +2,18 @@ import re
 
 from sdmx.model import PACKAGE, MaintainableArtefact
 
-
 # Regular expression for URNs
-URN = re.compile(r'urn:sdmx:org\.sdmx\.infomodel'
-                 r'\.(?P<package>[^\.]*)'
-                 r'\.(?P<class>[^=]*)=((?P<agency>[^:]*):)?'
-                 r'(?P<id>[^\(\.]*)(\((?P<version>[\d\.]*)\))?'
-                 r'(\.(?P<item_id>.*))?')
+URN = re.compile(
+    r"urn:sdmx:org\.sdmx\.infomodel"
+    r"\.(?P<package>[^\.]*)"
+    r"\.(?P<class>[^=]*)=((?P<agency>[^:]*):)?"
+    r"(?P<id>[^\(\.]*)(\((?P<version>[\d\.]*)\))?"
+    r"(\.(?P<item_id>.*))?"
+)
 
 _BASE = (
-    'urn:sdmx:org.sdmx.infomodel.{package}.{obj.__class__.__name__}='
-    '{ma.maintainer.id}:{ma.id}({ma.version}){extra_id}'
+    "urn:sdmx:org.sdmx.infomodel.{package}.{obj.__class__.__name__}="
+    "{ma.maintainer.id}:{ma.id}({ma.version}){extra_id}"
 )
 
 
@@ -24,18 +25,15 @@ def make(obj, maintainable_parent=None):
     """
     if maintainable_parent:
         ma = maintainable_parent
-        extra_id = f'.{obj.id}'
+        extra_id = f".{obj.id}"
     else:
         ma = obj
-        extra_id = ''
+        extra_id = ""
 
     assert isinstance(ma, MaintainableArtefact)
 
     return _BASE.format(
-        package=PACKAGE[obj.__class__],
-        obj=obj,
-        ma=ma,
-        extra_id=extra_id,
+        package=PACKAGE[obj.__class__], obj=obj, ma=ma, extra_id=extra_id
     )
 
 

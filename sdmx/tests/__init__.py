@@ -17,7 +17,7 @@ def assert_pd_equal(left, right, **kwargs):
         pd.Series: pd.testing.assert_series_equal,
         pd.DataFrame: pd.testing.assert_frame_equal,
         np.ndarray: np.testing.assert_array_equal,
-        }[left.__class__]
+    }[left.__class__]
     method(left, right, **kwargs)
 
 
@@ -25,9 +25,10 @@ class MessageTest:
     path: Path = BASE_PATH
     filename: str
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture(scope="class")
     def msg(self):
         import sdmx
+
         return sdmx.read_sdmx(self.path / self.filename)
 
 
@@ -38,18 +39,18 @@ def _importorskip(modname, minversion=None):
         has = True
         if minversion is not None:
             if LooseVersion(mod.__version__) < LooseVersion(minversion):
-                raise ImportError('Minimum version not satisfied')
+                raise ImportError("Minimum version not satisfied")
     except ImportError:
         has = False
-    func = pytest.mark.skipif(not has, reason='requires {}'.format(modname))
+    func = pytest.mark.skipif(not has, reason="requires {}".format(modname))
     return has, func
 
 
 def LooseVersion(vstring):
     # When the development version is something like '0.10.9+aac7bfc', this
     # function will just discard the git commit id.
-    vstring = vstring.split('+')[0]
+    vstring = vstring.split("+")[0]
     return version.LooseVersion(vstring)
 
 
-has_requests_cache, requires_requests_cache = _importorskip('requests_cache')
+has_requests_cache, requires_requests_cache = _importorskip("requests_cache")

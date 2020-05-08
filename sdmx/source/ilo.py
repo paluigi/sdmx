@@ -2,7 +2,7 @@ from . import Source as BaseSource
 
 
 class Source(BaseSource):
-    _id = 'ILO'
+    _id = "ILO"
 
     def modify_request_args(self, kwargs):
         """Handle two limitations of ILO's REST service.
@@ -19,6 +19,6 @@ class Source(BaseSource):
         """
         super().modify_request_args(kwargs)
 
-        kwargs.setdefault('params', {})
-        kwargs['params'].setdefault('format', 'generic_2_1')
-        kwargs['params'].setdefault('references', 'none')
+        kwargs.setdefault("params", {})
+        kwargs["params"].setdefault("format", "generic_2_1")
+        kwargs["params"].setdefault("references", "none")

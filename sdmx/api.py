@@ -5,19 +5,21 @@ This module defines :class:`.Request`, which forms the high-level API of
 understanding of this API and a basic understanding of the SDMX web service
 guidelines.
 """
-from functools import partial
 import logging
+from functools import partial
 from pathlib import Path
 from typing import Dict
 from warnings import warn
 
+import requests
+
 from sdmx import remote
+
 from .message import Message
 from .model import DataStructureDefinition, MaintainableArtefact
 from .reader import get_reader_for_content_type
 from .source import NoSource, list_sources, sources
 from .util import Resource
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class Request:
         :class:`.Session`.
 
     """
+
     cache: Dict[str, Message] = {}
 
     #: :class:`.source.Source` for requests sent from the instance.
@@ -51,13 +54,14 @@ class Request:
         try:
             self.source = sources[source.upper()] if source else NoSource
         except KeyError:
-            raise ValueError('source must be None or one of: %s' %
-                             ' '.join(list_sources()))
+            raise ValueError(
+                "source must be None or one of: %s" % " ".join(list_sources())
+            )
 
         self.session = remote.Session(**session_opts)
 
         if log_level:
-            logging.getLogger('pandasdmx').setLevel(log_level)
+            logging.getLogger("pandasdmx").setLevel(log_level)
 
     def __getattr__(self, name):
         """Convenience methods."""
@@ -72,8 +76,8 @@ class Request:
             # Modify the docstring to explain the argument fixed by the
             # convenience method
             func.__doc__ = self.get.__doc__.replace(
-                '.\n',
-                f' with resource_type={repr(name)}.\n', 1)
+                ".\n", f" with resource_type={repr(name)}.\n", 1
+            )
             return func
 
     def __dir__(self):
@@ -99,11 +103,11 @@ class Request:
         list
         """
         # download an empty dataset with all available series keys
-        return self.data(flow_id, params={'detail': 'serieskeysonly'},
-                         use_cache=use_cache) \
-                   .data[0] \
-                   .series \
-                   .keys()
+        return (
+            self.data(flow_id, params={"detail": "serieskeysonly"}, use_cache=use_cache)
+            .data[0]
+            .series.keys()
+        )
 
     def _make_key(self, resource_type, resource_id, key, dsd):
         """Validate *key* if possible.
@@ -121,19 +125,21 @@ class Request:
             pass
         elif self.source.supports[Resource.datastructure]:
             # Retrieve the DataStructureDefinition
-            dsd = self.dataflow(resource_id, params=dict(references='all'),
-                                use_cache=True) \
-                      .dataflow[resource_id].structure
+            dsd = (
+                self.dataflow(
+                    resource_id, params=dict(references="all"), use_cache=True
+                )
+                .dataflow[resource_id]
+                .structure
+            )
 
             if dsd.is_external_reference:
                 # DataStructureDefinition was not retrieved with the Dataflow
                 # query; retrieve it explicitly
-                dsd = self.get(resource=dsd, use_cache=True) \
-                          .structure[dsd.id]
+                dsd = self.get(resource=dsd, use_cache=True).structure[dsd.id]
         else:
             # Construct a DSD from the keys
-            dsd = DataStructureDefinition.from_keys(
-                self.series_keys(resource_id))
+            dsd = DataStructureDefinition.from_keys(self.series_keys(resource_id))
 
         # Make a ContentConstraint from the key
         cc = dsd.make_constraint(key)
@@ -142,23 +148,24 @@ class Request:
 
     def _request_from_args(self, kwargs):
         """Validate arguments and prepare pieces for a request."""
-        parameters = kwargs.pop('params', {})
-        headers = kwargs.pop('headers', {})
+        parameters = kwargs.pop("params", {})
+        headers = kwargs.pop("headers", {})
 
         # Base URL
         url_parts = [self.source.url]
 
         # Resource arguments
-        resource = kwargs.pop('resource', None)
-        resource_type = kwargs.pop('resource_type', None)
-        resource_id = kwargs.pop('resource_id', None)
+        resource = kwargs.pop("resource", None)
+        resource_type = kwargs.pop("resource_type", None)
+        resource_id = kwargs.pop("resource_id", None)
 
         try:
             if resource_type:
                 resource_type = Resource[resource_type]
         except KeyError:
-            raise ValueError(f'resource_type ({resource_type!r}) must be in '
-                             + Resource.describe())
+            raise ValueError(
+                f"resource_type ({resource_type!r}) must be in " + Resource.describe()
+            )
 
         if resource:
             # Resource object is given
@@ -171,81 +178,90 @@ class Request:
                 resource_type = Resource.from_obj(resource)
             if resource_id:
                 assert resource_id == resource.id, (
-                    f'mismatch between resource_id={resource_id!r} and '
-                    f'resource={resource!r}')
+                    f"mismatch between resource_id={resource_id!r} and "
+                    f"resource={resource!r}"
+                )
             else:
                 resource_id = resource.id
 
-        force = kwargs.pop('force', False)
+        force = kwargs.pop("force", False)
         if not (force or self.source.supports[resource_type]):
-            raise NotImplementedError(f'{self.source.id} does not support the'
-                                      f'{resource_type!r} API endpoint; '
-                                      'override using force=True')
+            raise NotImplementedError(
+                f"{self.source.id} does not support the"
+                f"{resource_type!r} API endpoint; "
+                "override using force=True"
+            )
 
         url_parts.append(resource_type.name)
 
         # Data provider ID to use in the URL
-        provider = kwargs.pop('provider', None)
+        provider = kwargs.pop("provider", None)
         if resource_type == Resource.data:
             # Requests for data do not specific an agency in the URL
             if provider is not None:
                 warn(f"'provider' argument is redundant for {resource_type!r}")
             provider_id = None
         else:
-            provider_id = provider if provider else getattr(self.source, 'id',
-                                                            None)
+            provider_id = provider if provider else getattr(self.source, "id", None)
 
         url_parts.extend([provider_id, resource_id])
 
-        version = kwargs.pop('version', None)
+        version = kwargs.pop("version", None)
         if not version and resource_type != Resource.data:
-            url_parts.append('latest')
+            url_parts.append("latest")
 
-        key = kwargs.pop('key', None)
-        dsd = kwargs.pop('dsd', None)
-        validate = kwargs.pop('validate', True)
+        key = kwargs.pop("key", None)
+        dsd = kwargs.pop("dsd", None)
+        validate = kwargs.pop("validate", True)
 
         if len(kwargs):
-            raise ValueError(f'unrecognized arguments: {kwargs!r}')
+            raise ValueError(f"unrecognized arguments: {kwargs!r}")
 
         if validate:
             # Make the key, and retain the DSD (if any) for use in parsing
             key, dsd = self._make_key(resource_type, resource_id, key, dsd)
-            kwargs['dsd'] = dsd
+            kwargs["dsd"] = dsd
 
         url_parts.append(key)
 
         # Assemble final URL
-        url = '/'.join(filter(None, url_parts))
+        url = "/".join(filter(None, url_parts))
 
         # Parameters: set 'references' to sensible defaults
-        if 'references' not in parameters:
-            if resource_type in [Resource.dataflow, Resource.datastructure] \
-                    and resource_id:
-                parameters['references'] = 'all'
+        if "references" not in parameters:
+            if (
+                resource_type in [Resource.dataflow, Resource.datastructure]
+                and resource_id
+            ):
+                parameters["references"] = "all"
             elif resource_type == Resource.categoryscheme:
-                parameters['references'] = 'parentsandsiblings'
+                parameters["references"] = "parentsandsiblings"
 
         # Headers: use headers from source config if not given by the caller
         if not headers and self.source and resource_type:
             headers = self.source.headers.get(resource_type.name, {})
 
-        return requests.Request('get', url, params=parameters,
-                                headers=headers)
+        return requests.Request("get", url, params=parameters, headers=headers)
 
     def _request_from_url(self, kwargs):
-        url = kwargs.pop('url')
-        parameters = kwargs.pop('params', {})
-        headers = kwargs.pop('headers', {})
+        url = kwargs.pop("url")
+        parameters = kwargs.pop("params", {})
+        headers = kwargs.pop("headers", {})
 
         if len(kwargs):
-            raise ValueError(f'unrecognized arguments: {kwargs!r}')
+            raise ValueError(f"unrecognized arguments: {kwargs!r}")
 
-        return requests.Request('get', url, params=parameters,
-                                headers=headers)
+        return requests.Request("get", url, params=parameters, headers=headers)
 
-    def get(self, resource_type=None, resource_id=None, tofile=None,
-            use_cache=False, dry_run=False, **kwargs):
+    def get(
+        self,
+        resource_type=None,
+        resource_id=None,
+        tofile=None,
+        use_cache=False,
+        dry_run=False,
+        **kwargs,
+    ):
         """Retrieve SDMX data or metadata.
 
         (Meta)data is retrieved from the :attr:`source` of the current Request.
@@ -368,27 +384,24 @@ class Request:
             self.source.modify_request_args(kwargs)
 
         # Handle arguments
-        if 'url' in kwargs:
+        if "url" in kwargs:
             req = self._request_from_url(kwargs)
         else:
-            kwargs.update(dict(
-                resource_type=resource_type,
-                resource_id=resource_id,
-            ))
+            kwargs.update(dict(resource_type=resource_type, resource_id=resource_id))
             req = self._request_from_args(kwargs)
 
         req = self.session.prepare_request(req)
 
         # Now get the SDMX message via HTTP
-        logger.info('Requesting resource from %s', req.url)
-        logger.info('with headers %s' % req.headers)
+        logger.info("Requesting resource from %s", req.url)
+        logger.info("with headers %s" % req.headers)
 
         # Try to get resource from memory cache if specified
         if use_cache:
             try:
                 return self.cache[req.url]
             except KeyError:
-                logger.info('Not found in cache')
+                logger.info("Not found in cache")
                 pass
 
         if dry_run:
@@ -403,7 +416,8 @@ class Request:
             # Convert a 501 response to a Python NotImplementedError
             if e.response.status_code == 501:
                 raise NotImplementedError(
-                    '{!r} endpoint at {}'.format(resource_type, e.request.url))
+                    "{!r} endpoint at {}".format(resource_type, e.request.url)
+                )
             else:
                 raise
 
@@ -411,25 +425,27 @@ class Request:
         response_content = remote.ResponseIO(response, tee=tofile)
 
         # Select reader class
-        content_type = response.headers.get('content-type', None)
+        content_type = response.headers.get("content-type", None)
         try:
             Reader = get_reader_for_content_type(content_type)
         except ValueError:
             try:
                 response, response_content = self.source.handle_response(
-                    response, response_content)
-                content_type = response.headers.get('content-type', None)
+                    response, response_content
+                )
+                content_type = response.headers.get("content-type", None)
                 Reader = get_reader_for_content_type(content_type)
             except ValueError:
-                raise ValueError("can't determine a reader for response "
-                                 "content type: %s" % content_type)
+                raise ValueError(
+                    "can't determine a reader for response "
+                    "content type: %s" % content_type
+                )
 
         # Instantiate reader
         reader = Reader()
 
         # Parse the message, using any provided or auto-queried DSD
-        msg = reader.read_message(response_content,
-                                  dsd=kwargs.get('dsd', None))
+        msg = reader.read_message(response_content, dsd=kwargs.get("dsd", None))
 
         # Store the HTTP response with the message
         msg.response = response
@@ -507,27 +523,26 @@ def read_sdmx(filename_or_obj, format=None, **kwargs):
     import sdmx.reader.sdmxml
     import sdmx.reader.sdmxjson
 
-    readers = {
-        'XML': sdmx.reader.sdmxml.Reader,
-        'JSON': sdmx.reader.sdmxjson.Reader,
-        }
+    readers = {"XML": sdmx.reader.sdmxml.Reader, "JSON": sdmx.reader.sdmxjson.Reader}
 
     if isinstance(filename_or_obj, str):
         filename_or_obj = Path(filename_or_obj)
 
     try:
         # Use the file extension to guess the reader
-        reader = readers[filename_or_obj.suffix.lstrip('.').upper()]
+        reader = readers[filename_or_obj.suffix.lstrip(".").upper()]
 
         # Open the file
-        obj = open(filename_or_obj, 'br')
+        obj = open(filename_or_obj, "br")
     except KeyError:
         if format:
             reader = readers[format]
-            obj = open(filename_or_obj, 'br')
+            obj = open(filename_or_obj, "br")
         else:
-            msg = ("cannot identify SDMX message format from file name "
-                   f"'{filename_or_obj.name}'; use  format='...'")
+            msg = (
+                "cannot identify SDMX message format from file name "
+                f"'{filename_or_obj.name}'; use  format='...'"
+            )
             raise RuntimeError(msg)
     except AttributeError:
         # File is already open
@@ -537,10 +552,10 @@ def read_sdmx(filename_or_obj, format=None, **kwargs):
         first_line = filename_or_obj.readline().strip()
         filename_or_obj.seek(pos)
 
-        if first_line.startswith('{'):
-            reader = readers['JSON']
-        elif first_line.startswith('<'):
-            reader = readers['XML']
+        if first_line.startswith("{"):
+            reader = readers["JSON"]
+        elif first_line.startswith("<"):
+            reader = readers["XML"]
         else:
             msg = f"cannot infer SDMX message format from '{first_line[:5]}..'"
             raise RuntimeError(msg)

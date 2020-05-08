@@ -7,23 +7,23 @@ from sdmx.writer import to_pandas, to_xml
 import logging
 
 __all__ = [
-    'Request',
-    'Resource',
-    'add_source',
-    'list_sources',
-    'logger',
-    'read_sdmx',
-    'read_url',
-    'to_pandas',
-    'to_xml',
-    ]
+    "Request",
+    "Resource",
+    "add_source",
+    "list_sources",
+    "logger",
+    "read_sdmx",
+    "read_url",
+    "to_pandas",
+    "to_xml",
+]
 
 
 try:
-    __version__ = pkg_resources.get_distribution('sdmx').version
+    __version__ = pkg_resources.get_distribution("sdmx").version
 except Exception:
     # Local copy or not installed with setuptools
-    __version__ = '999'
+    __version__ = "999"
 
 
 #: Top-level logger.
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 def _init_logger():
     handler = logging.StreamHandler()
-    fmt = '{asctime} {name} - {levelname}: {message}'
-    handler.setFormatter(logging.Formatter(fmt, style='{'))
+    fmt = "{asctime} {name} - {levelname}: {message}"
+    handler.setFormatter(logging.Formatter(fmt, style="{"))
     logger.addHandler(handler)
     logger.setLevel(logging.ERROR)
 

@@ -15,6 +15,7 @@ this implementation exposes the same API as the default DataSet.
 from typing import Optional, Text
 
 import pandas as pd
+
 from sdmx.model import (
     ActionType,
     AnnotableArtefact,
@@ -23,7 +24,7 @@ from sdmx.model import (
     DataStructureDefinition,
     Key,
     Observation,
-    )
+)
 from sdmx.util import DictLike
 
 
@@ -52,17 +53,17 @@ class DataSet(AnnotableArtefact):
         obs_dict = {}
         for obs in observations:
             # DataFrame row for this Observation
-            row = {'value': obs.value}
+            row = {"value": obs.value}
 
             # Store attributes
             for attr_id, av in obs.attached_attribute.items():
-                row[('attr_obs', attr_id)] = av.value
+                row[("attr_obs", attr_id)] = av.value
 
             # Store the row
             obs_dict[obs.key.order().get_values()] = row
 
         # Convert to pd.DataFrame. Note similarity to sdmx.writer
-        self._data = pd.DataFrame.from_dict(obs_dict, orient='index')
+        self._data = pd.DataFrame.from_dict(obs_dict, orient="index")
 
         if len(obs_dict):
             self._data.index.names = obs.key.order().values.keys()
@@ -77,8 +78,7 @@ class DataSet(AnnotableArtefact):
     def _make_obs(self, key, data):
         """Create an Observation from tuple *key* and pd.Series *data."""
         # Create the Key
-        key = Key({dim: value for dim, value in
-                   zip(self._data.index.names, key)})
+        key = Key({dim: value for dim, value in zip(self._data.index.names, key)})
         attrs = {}
 
         # Handle columns of ._data
@@ -89,10 +89,9 @@ class DataSet(AnnotableArtefact):
             except ValueError:
                 # Not a tuple → the 'value' column, handled below
                 continue
-            if group == 'attr_obs':
+            if group == "attr_obs":
                 # Create a DataAttribute
                 attrs[attr_id] = AttributeValue(
-                    value_for=DataAttribute(id=attr_id),
-                    value=value)
-        return Observation(dimension=key, value=data['value'],
-                           attached_attribute=attrs)
+                    value_for=DataAttribute(id=attr_id), value=value
+                )
+        return Observation(dimension=key, value=data["value"], attached_attribute=attrs)
