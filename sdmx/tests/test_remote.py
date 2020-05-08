@@ -13,7 +13,7 @@ def test_session_without_requests_cache():  # pragma: no cover
         Session(cache_name="test")
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_session_init_cache(tmp_path):
     # Instantiate a REST object with cache
     cache_name = tmp_path / "pandasdmx_cache"

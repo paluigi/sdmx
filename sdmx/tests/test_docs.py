@@ -1,11 +1,9 @@
 """Test code appearing in the documentation.
 
-The 'remote_data' mark, from the pytest plugin 'pytest-remotedata', is used to
-mark tests that will access the Internet. In order to run these tests, a
-command-line argument must be given:
+The 'network' mark is used to mark tests that will access the Internet. In order to run
+these tests, a command-line argument must be given:
 
-$ py.test --remote-data [...]
-
+$ pytest -m network [...]
 """
 import numpy as np
 import pandas as pd
@@ -20,7 +18,7 @@ from . import assert_pd_equal
 from .data import specimen
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_doc_example():
     """Code from example.rst."""
     import sdmx
@@ -58,7 +56,7 @@ def test_doc_example():
     assert dd1.order_key(sk) == sk
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_doc_index1():
     """First code example in index.rst."""
     estat = Request("ESTAT")
@@ -99,7 +97,7 @@ def test_doc_index1():
     assert_pd_equal(s.codelist["CL_GEO"].sort_index().head(), expected)
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_doc_usage_structure():
     """Code examples in walkthrough.rst."""
     ecb = Request("ECB")
@@ -183,7 +181,7 @@ def test_doc_usage_structure():
     assert_pd_equal(cl.head(), expected)
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_doc_usage_data():
     """Code examples in usage.rst."""
     ecb = Request("ECB")

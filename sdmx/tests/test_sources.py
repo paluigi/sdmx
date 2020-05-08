@@ -124,7 +124,7 @@ class DataSourceTest:
             self.source_id, cache_name=str(self._cache_path), backend="sqlite"
         )
 
-    @pytest.mark.remote_data
+    @pytest.mark.network
     def test_endpoints(self, req, endpoint, args):
         # See pytest_generate_tests() for values of 'endpoint'
         cache = self._cache_path.with_suffix("." + endpoint)
@@ -198,7 +198,7 @@ class TestESTAT(DataSourceTest):
 
         assert len(msg.data[0].obs) == 43
 
-    @pytest.mark.remote_data
+    @pytest.mark.network
     def test_ss_data(self, req):
         """Test a request for structure-specific data.
 
@@ -244,7 +244,7 @@ class TestILO(DataSourceTest):
         "codelist": HTTPError
     }
 
-    @pytest.mark.remote_data
+    @pytest.mark.network
     def test_codelist(self, req):
         req.get(
             "codelist",
@@ -259,7 +259,7 @@ class TestILO(DataSourceTest):
 class TestINEGI(DataSourceTest):
     source_id = "INEGI"
 
-    @pytest.mark.remote_data
+    @pytest.mark.network
     def test_endpoints(self, req, endpoint, args):
         # SSL certificate verification sometimes fails for this server; works
         # in Google Chrome
@@ -274,7 +274,7 @@ class TestINSEE(DataSourceTest):
 
     tolerate_503 = True
 
-    @pytest.mark.remote_data
+    @pytest.mark.network
     def test_endpoints(self, req, endpoint, args):
         # Using the default 'INSEE' agency in the URL gives a response "La
         # syntaxe de la requête est invalide."
@@ -290,7 +290,7 @@ class TestINSEE(DataSourceTest):
 class TestISTAT(DataSourceTest):
     source_id = "ISTAT"
 
-    @pytest.mark.remote_data
+    @pytest.mark.network
     def test_gh_75(self, req):
         """Test of https://github.com/dr-leo/pandaSDMX/pull/75."""
 

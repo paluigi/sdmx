@@ -28,8 +28,7 @@ Optional dependencies for extra features
   Redis, and more: `requests-cache <https://requests-cache.readthedocs.io>`_.
 - for ``docs``, to build the documentation: `sphinx <https://sphinx-doc.org>`_
   and `IPython <https://ipython.org>`_.
-- for ``tests``, to run the test suite: `pytest <https://pytest.org>`_,
-  `pytest-remotedata <https://github.com/astropy/pytest-remotedata>`_, and
+- for ``tests``, to run the test suite: `pytest <https://pytest.org>`_, and
   `requests-mock <https://requests-mock.readthedocs.io>`_.
 
 Instructions

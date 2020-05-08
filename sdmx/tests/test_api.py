@@ -79,7 +79,7 @@ def test_request_get_exceptions():
         sdmx.read_url("https://example.com", foo="bar")
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_request_get_args():
     req = sdmx.Request("ESTAT")
 
@@ -118,7 +118,7 @@ def test_request_get_args():
     # TODO test req.get(obj) with IdentifiableArtefact subclasses
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_read_url():
     # URL can be queried without instantiating Request
     sdmx.read_url(
@@ -127,7 +127,7 @@ def test_read_url():
     )
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_request_preview_data():
     req = sdmx.Request("ECB")
 

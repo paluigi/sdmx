@@ -306,7 +306,7 @@ def test_writer_structure(path):
     # TODO test contents
 
 
-@pytest.mark.remote_data
+@pytest.mark.network
 def test_write_constraint():
     """'constraint' argument to writer.write_dataset."""
     with specimen("ng-ts.xml") as f:
