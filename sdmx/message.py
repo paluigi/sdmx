@@ -9,6 +9,7 @@ returned by data sources.
 """
 from typing import (
     List,
+    Optional,
     Text,
     Union,
     )
@@ -47,16 +48,16 @@ class Header(BaseModel):
     SDMX-JSON messages do not have headers.
     """
     #: (optional) Error code for the message.
-    error: Text = None
+    error: Optional[Text] = None
     #: Identifier for the message.
-    id: Text = None
+    id: Optional[Text] = None
     #: Date and time at which the message was generated.
-    prepared: Text = None
+    prepared: Optional[Text] = None
     #: Intended recipient of the message, e.g. the user's name for an
     #: authenticated service.
-    receiver: Text = None
+    receiver: Optional[Text] = None
     #: The :class:`.Agency` associated with the data :class:`~.source.Source`.
-    sender: Union[Item, Text] = None
+    sender: Optional[Union[Item, Text]] = None
 
     def __repr__(self):
         """String representation."""
@@ -86,10 +87,10 @@ class Message(BaseModel):
     #: :class:`Header` instance.
     header: Header = Header()
     #: (optional) :class:`Footer` instance.
-    footer: Footer = None
+    footer: Optional[Footer] = None
     #: :class:`requests.Response` instance for the response to the HTTP request
     #: that returned the Message. This is not part of the SDMX standard.
-    response: Response = None
+    response: Optional[Response] = None
 
     def __str__(self):
         return repr(self)
@@ -151,8 +152,8 @@ class DataMessage(Message):
     #: :class:`.DataflowDefinition` that contains the data.
     dataflow: DataflowDefinition = DataflowDefinition()
     #: The "dimension at observation level".
-    observation_dimension: Union[_AllDimensions, DimensionComponent,
-                                 List[DimensionComponent]] = None
+    observation_dimension: Optional[Union[_AllDimensions, DimensionComponent,
+                                          List[DimensionComponent]]] = None
 
     # Convenience access
     @property

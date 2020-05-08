@@ -6,7 +6,7 @@ from inspect import isclass
 from itertools import chain
 import logging
 import re
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from lxml import etree
 from lxml.etree import QName, XPath
@@ -205,7 +205,7 @@ class Reader(BaseReader):
 
     # Stack (0 = top) of tag names being parsed by _parse().
     # Tag parsers may examine the stack to determine context for parsing.
-    _stack = []
+    _stack: List[str] = []
 
     # Map of (class name, id) → sdmx.model object.
     # Only IdentifiableArtefacts should be stored. See _maintained().

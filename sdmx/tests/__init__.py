@@ -1,5 +1,6 @@
 import importlib
 from distutils import version
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -21,8 +22,8 @@ def assert_pd_equal(left, right, **kwargs):
 
 
 class MessageTest:
-    path = BASE_PATH
-    filename = None
+    path: Path = BASE_PATH
+    filename: str
 
     @pytest.fixture(scope='class')
     def msg(self):

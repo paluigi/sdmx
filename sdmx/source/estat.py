@@ -1,9 +1,9 @@
 from time import sleep
 from tempfile import NamedTemporaryFile
+from urllib.parse import urlparse
 from zipfile import ZipFile
 
 import requests
-from requests.compat import urlparse
 
 from . import Source as BaseSource
 

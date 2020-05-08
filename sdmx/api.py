@@ -8,9 +8,11 @@ guidelines.
 from functools import partial
 import logging
 from pathlib import Path
+from typing import Dict
 from warnings import warn
 
 from sdmx import remote
+from .message import Message
 from .model import DataStructureDefinition, MaintainableArtefact
 from .reader import get_reader_for_content_type
 from .source import NoSource, list_sources, sources
@@ -36,7 +38,7 @@ class Request:
         :class:`.Session`.
 
     """
-    cache = {}
+    cache: Dict[str, Message] = {}
 
     #: :class:`.source.Source` for requests sent from the instance.
     source = None

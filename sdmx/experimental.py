@@ -12,7 +12,7 @@ are stored internally as a pd.DataFrame. test_experimental.py verifies that
 this implementation exposes the same API as the default DataSet.
 
 """
-from typing import Text
+from typing import Optional, Text
 
 import pandas as pd
 from sdmx.model import (
@@ -29,10 +29,10 @@ from sdmx.util import DictLike
 
 class DataSet(AnnotableArtefact):
     # SDMX-IM features
-    action: ActionType = None
+    action: Optional[ActionType] = None
     attrib: DictLike[str, AttributeValue] = DictLike()
-    valid_from: Text = None
-    structured_by: DataStructureDefinition = None
+    valid_from: Optional[Text] = None
+    structured_by: Optional[DataStructureDefinition] = None
 
     # Internal storage: a pd.DataFrame with columns:
     # - 'value': the Observation value.

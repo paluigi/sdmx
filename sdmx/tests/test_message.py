@@ -1,3 +1,5 @@
+import re
+
 import sdmx
 
 from .data import specimen
@@ -37,14 +39,14 @@ EXPECTED = {
   observation_dimension: <Dimension: CURRENCY>""",
 
     # This message has two DataSets:
-    'action-delete.json': """<sdmx.DataMessage>
+    'action-delete.json': re.compile(r"""<sdmx\.DataMessage>
   <Header>
     id: '62b5f19d-f1c9-495d-8446-a3661ed24753'
     prepared: '2012-11-29T08:40:26Z'
     sender: <Item: 'ECB'='European Central Bank'>
-  DataSet (2)
-  dataflow: <DataflowDefinition: 'None'=''>
-  observation_dimension: [<Dimension: CURRENCY>]""",
+  DataSet \(2\)
+  dataflow: <DataflowDefinition: '\(\d+\)'=''>
+  observation_dimension: \[<Dimension: CURRENCY>\]"""),
 }
 
 
@@ -52,4 +54,7 @@ def test_message_repr():
     for pattern, expected in EXPECTED.items():
         with specimen(pattern) as f:
             msg = sdmx.read_sdmx(f)
-        assert expected == repr(msg)
+        if isinstance(expected, re.Pattern):
+            assert expected.fullmatch(repr(msg))
+        else:
+            assert expected == repr(msg)

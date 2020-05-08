@@ -15,7 +15,7 @@ from sdmx.util import BaseModel, Resource
 from pydantic import validator
 
 
-sources = {}
+sources: Dict[str, 'Source'] = {}
 
 DataContentType = Enum('DataContentType', 'XML JSON')
 

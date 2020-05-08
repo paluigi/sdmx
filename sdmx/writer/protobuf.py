@@ -1,9 +1,6 @@
 import logging
 
-try:
-    import sdmx.format.protobuf_pb2 as pb
-except ImportError:
-    pb = None
+import sdmx.format.protobuf_pb2 as pb
 
 
 log = logging.getLogger(__name__)
@@ -11,9 +8,6 @@ log = logging.getLogger(__name__)
 
 def write(obj, *args, **kwargs):
     """Convert an SDMX *obj* to protobuf string."""
-    if not pb:
-        raise RuntimeError('sdmx.format.protobuf_pb2 missing')
-
     return _write(obj, *args, **kwargs).SerializeToString()
 
 

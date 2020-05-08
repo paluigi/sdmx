@@ -6,6 +6,7 @@ To force the data to be retrieved over the Internet, delete this directory.
 # TODO add a pytest argument for clearing this cache in conftest.py
 import logging
 import os
+from typing import Any, Dict, Type
 
 import sdmx
 from sdmx import Resource
@@ -100,17 +101,17 @@ class DataSourceTest:
     # TODO also test structure-specific data
 
     # Must be one of the IDs in sources.json
-    source_id = None
+    source_id: str
 
     # Mapping of endpoint → Exception subclass.
     # Tests of these endpoints are expected to fail.
-    xfail = {}
+    xfail: Dict[str, Type[Exception]] = {}
 
     # True to xfail if a 503 Error is returned
     tolerate_503 = False
 
     # Keyword arguments for particular endpoints
-    endpoint_args = {}
+    endpoint_args: Dict[str, Dict[str, Any]] = {}
 
     @pytest.fixture
     def req(self):

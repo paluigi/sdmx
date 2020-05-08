@@ -34,11 +34,14 @@ from operator import attrgetter
 from typing import (
     Any,
     Dict,
+    Generic,
     Iterable,
     List,
     Mapping,
     Optional,
     Set,
+    Type,
+    TypeVar,
     Union,
     )
 from warnings import warn
@@ -46,7 +49,6 @@ from warnings import warn
 from sdmx.util import (
     BaseModel,
     DictLike,
-    get_class_hint,
     validate_dictlike,
     )
 from pydantic import validator
@@ -182,13 +184,13 @@ class InternationalString:
 class Annotation(BaseModel):
     #: Can be used to disambiguate multiple annotations for one
     #: AnnotableArtefact.
-    id: str = None
+    id: Optional[str] = None
     #: Title, used to identify an annotation.
-    title: str = None
+    title: Optional[str] = None
     #: Specifies how the annotation is processed.
-    type: str = None
+    type: Optional[str] = None
     #: A link to external descriptive text.
-    url: str = None
+    url: Optional[str] = None
 
     #: Content of the annotation.
     text: InternationalString = InternationalString()
@@ -204,12 +206,17 @@ class AnnotableArtefact(BaseModel):
 
 class IdentifiableArtefact(AnnotableArtefact):
     #: Unique identifier of the object.
-    id: str = None
+    id: str
     #: Universal resource identifier that may or may not be resolvable.
-    uri: str = None
+    uri: Optional[str] = None
     #: Universal resource name. For use in SDMX registries; all registered
     #: objects have a URN.
-    urn: str = None
+    urn: Optional[str] = None
+
+    def __init__(self, *args, **kwargs):
+        # Supply an ID for anonymous objects
+        id_arg = kwargs.pop('id', None)
+        super().__init__(*args, id=id_arg or f'({id(self)})', **kwargs)
 
     def __eq__(self, other):
         """Equality comparison.
@@ -248,31 +255,31 @@ class NameableArtefact(IdentifiableArtefact):
 
 class VersionableArtefact(NameableArtefact):
     #: A version string following an agreed convention.
-    version: str = None
+    version: Optional[str] = None
     #: Date from which the version is valid.
-    valid_from: str = None
+    valid_from: Optional[str] = None
     #: Date from which the version is superseded.
-    valid_to: str = None
+    valid_to: Optional[str] = None
 
 
 class MaintainableArtefact(VersionableArtefact):
     #: True if the object is final; otherwise it is in a draft state.
-    is_final: Optional[bool]
+    is_final: Optional[bool] = None
     #: :obj:`True` if the content of the object is held externally; i.e., not
     #: the current :class:`Message`.
-    is_external_reference: Optional[bool]
+    is_external_reference: Optional[bool] = None
     #: URL of an SDMX-compliant web service from which the object can be
     #: retrieved.
-    service_url: Optional[str]
+    service_url: Optional[str] = None
     #: URL of an SDMX-ML document containing the object.
-    structure_url: Optional[str]
+    structure_url: Optional[str] = None
     #: Association to the Agency responsible for maintaining the object.
-    maintainer: Optional['Agency']
+    maintainer: Optional['Agency'] = None
 
 
 # 3.4: Data Types
 
-ActionType = Enum('ActionType', 'delete replace append information', type=str)
+ActionType = Enum('ActionType', 'delete replace append information')
 
 UsageStatus = Enum('UsageStatus', 'mandatory conditional')
 
@@ -298,7 +305,7 @@ ConstraintRoleType = Enum('ConstraintRoleType', 'allowable actual')
 # 3.5: Item Scheme
 
 class Item(NameableArtefact):
-    parent: 'Item' = None
+    parent: Optional['Item'] = None
     child: List['Item'] = []
 
     # NB this is required to prevent RecursionError in pydantic;
@@ -339,8 +346,10 @@ class Item(NameableArtefact):
 
 Item.update_forward_refs()
 
+IT = TypeVar('IT', bound=Item)
 
-class ItemScheme(MaintainableArtefact):
+
+class ItemScheme(MaintainableArtefact, Generic[IT]):
     """SDMX-IM Item Scheme.
 
     The IM states that ItemScheme “defines a *set* of :class:`Items <.Item>`…”
@@ -367,13 +376,15 @@ class ItemScheme(MaintainableArtefact):
 
     is_partial: Optional[bool]
 
-    # Internal: the type of the Items in the ItemScheme.
-    _item_type = Item
-
     #: Members of the ItemScheme. Both ItemScheme and Item are abstract
     #: classes. Concrete classes are paired: for example, a
     #: :class:`.Codelist` contains :class:`Codes <.Code>`.
-    items: Dict[str, _item_type] = {}
+    items: Dict[str, IT] = {}
+
+    # The type of the Items in the ItemScheme. This is necessary because the
+    # type hint in the class declaration is static; not meant to be available
+    # at runtime.
+    _Item: Type = Item
 
     @validator('items', pre=True)
     def convert_to_dict(cls, v):
@@ -382,14 +393,17 @@ class ItemScheme(MaintainableArtefact):
         return {i.id: i for i in v}
 
     # Convenience access to items
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> IT:
         # Provided to pass test_dsd.py
-        return self.__getitem__(name)
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            raise AttributeError(name)
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> IT:
         return self.items[name]
 
-    def __contains__(self, item: Union[str, _item_type]):
+    def __contains__(self, item: Union[str, IT]) -> bool:
         """Check containment.
 
         No recursive search on children is performed as these are assumed to be
@@ -403,7 +417,7 @@ class ItemScheme(MaintainableArtefact):
     def __iter__(self):
         return iter(self.items.values())
 
-    def extend(self, items: Iterable[_item_type]):
+    def extend(self, items: Iterable[IT]):
         """Extend the ItemScheme with members of *items*.
 
         Parameters
@@ -417,7 +431,7 @@ class ItemScheme(MaintainableArtefact):
     def __len__(self):
         return len(self.items)
 
-    def append(self, item: Item):
+    def append(self, item: IT):
         """Add *item* to the ItemScheme.
 
         Parameters
@@ -433,7 +447,7 @@ class ItemScheme(MaintainableArtefact):
             self.id,
             len(self.items))
 
-    def setdefault(self, obj=None, **kwargs):
+    def setdefault(self, obj=None, **kwargs) -> IT:
         """Retrieve the item *name*, or add it with *kwargs* and return it.
 
         The returned object is a reference to an object in the ItemScheme, and
@@ -450,7 +464,7 @@ class ItemScheme(MaintainableArtefact):
                 kwargs['parent'] = self[parent]
 
             # Instantiate an object of the correct class
-            obj = self._item_type(**kwargs)
+            obj = self._Item(**kwargs)
 
         if obj not in self.items.values():
             # Add the object to the ItemScheme
@@ -463,45 +477,45 @@ class ItemScheme(MaintainableArtefact):
 
 class FacetType(BaseModel):
     #:
-    is_sequence: Optional[bool]
+    is_sequence: Optional[bool] = None
     #:
-    min_length: Optional[int]
+    min_length: Optional[int] = None
     #:
-    max_length: Optional[int]
+    max_length: Optional[int] = None
     #:
-    min_value: Optional[float]
+    min_value: Optional[float] = None
     #:
-    max_value: Optional[float]
+    max_value: Optional[float] = None
     #:
-    start_value: Optional[float]
+    start_value: Optional[float] = None
     #:
-    end_value: Optional[str]
+    end_value: Optional[str] = None
     #:
-    interval: Optional[float]
+    interval: Optional[float] = None
     #:
-    time_interval: Optional[timedelta]
+    time_interval: Optional[timedelta] = None
     #:
-    decimals: Optional[int]
+    decimals: Optional[int] = None
     #:
-    pattern: Optional[str]
+    pattern: Optional[str] = None
     #:
-    start_time: Optional[datetime]
+    start_time: Optional[datetime] = None
     #:
-    end_time: Optional[datetime]
+    end_time: Optional[datetime] = None
 
 
 class Facet(BaseModel):
     #:
     type: FacetType = FacetType()
     #:
-    value: str = None
+    value: Optional[str] = None
     #:
     value_type: Optional[FacetValueType] = None
 
 
 class Representation(BaseModel):
     #:
-    enumerated: ItemScheme = None
+    enumerated: Optional[ItemScheme] = None
     #:
     non_enumerated: List[Facet] = []
 
@@ -524,24 +538,22 @@ class ISOConceptReference(BaseModel):
 
 class Concept(Item):
     #:
-    core_representation: Representation = None
+    core_representation: Optional[Representation] = None
     #:
-    iso_concept: ISOConceptReference = None
+    iso_concept: Optional[ISOConceptReference] = None
 
 
-class ConceptScheme(ItemScheme):
-    _item_type = Concept
-    #:
-    items: Dict[str, _item_type] = {}
+class ConceptScheme(ItemScheme[Concept]):
+    _Item = Concept
 
 
 # 3.3: Basic Inheritance
 
 class Component(IdentifiableArtefact):
     #:
-    concept_identity: Concept = None
+    concept_identity: Optional[Concept] = None
     #:
-    local_representation: Representation = None
+    local_representation: Optional[Representation] = None
 
     def __contains__(self, value):
         for repr in [self.concept_identity.core_representation,
@@ -553,18 +565,25 @@ class Component(IdentifiableArtefact):
                         'representations')
 
 
-class ComponentList(IdentifiableArtefact):
+CT = TypeVar('CT', bound=Component)
+
+
+class ComponentList(IdentifiableArtefact, Generic[CT]):
     #:
-    components: List[Component] = []
+    components: List[CT] = []
     #:
     auto_order = 1
 
+    # The default type of the Components in the ComponentList. See comment on
+    # ItemScheme._Item
+    _Component: Type = Component
+
     # Convenience access to the components
-    def append(self, value):
+    def append(self, value: CT):
         """Append *value* to :attr:`components`."""
         self.components.append(value)
 
-    def get(self, id):
+    def get(self, id) -> CT:
         """Return the component with the given *id*."""
         # Search for an existing Component
         for c in self.components:
@@ -572,7 +591,7 @@ class ComponentList(IdentifiableArtefact):
                 return c
         raise KeyError(id)
 
-    def getdefault(self, id, cls=None, **kwargs):
+    def getdefault(self, id, cls=None, **kwargs) -> CT:
         """Return or create the component with the given *id*.
 
         If the component is automatically created, its :attr:`.Dimension.order`
@@ -600,8 +619,7 @@ class ComponentList(IdentifiableArtefact):
         # 1. Given by the cls argument,
         # 2. Specified by a subclass' _default_type attribute, or
         # 3. Hinted for a subclass' components attribute.
-        cls = cls or getattr(self, '_default_type',
-                             get_class_hint(self, 'components'))
+        cls = cls or self._Component
         component = cls(id=id, **kwargs)
 
         if 'order' not in kwargs:
@@ -617,7 +635,7 @@ class ComponentList(IdentifiableArtefact):
         return component
 
     # Properties of components
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> CT:
         """Convenience access to components."""
         return self.components[key]
 
@@ -643,10 +661,8 @@ class Code(Item):
     """SDMX-IM Code."""
 
 
-class Codelist(ItemScheme):
-    _item_type = Code
-    #:
-    items: Dict[str, _item_type] = {}
+class Codelist(ItemScheme[Code]):
+    _Item = Code
 
 
 # 4.5: Category Scheme
@@ -655,17 +671,15 @@ class Category(Item):
     """SDMX-IM Category."""
 
 
-class CategoryScheme(ItemScheme):
-    _item_type = Category
-    #:
-    items: Dict[str, _item_type] = {}
+class CategoryScheme(ItemScheme[Category]):
+    _Item = Category
 
 
 class Categorisation(MaintainableArtefact):
     #:
-    category: Category = None
+    category: Optional[Category] = None
     #:
-    artefact: IdentifiableArtefact = None
+    artefact: Optional[IdentifiableArtefact] = None
 
 
 # 4.6: Organisations
@@ -686,7 +700,7 @@ class Contact(BaseModel):
     #:
     org_unit: InternationalString = InternationalString()
     #:
-    telephone: str = None
+    telephone: Optional[str] = None
     #:
     responsibility: InternationalString = InternationalString()
     #:
@@ -716,16 +730,12 @@ for cls in list(locals().values()):
 # Skip the abstract OrganisationScheme class, since it has no particular
 # functionality
 
-class AgencyScheme(ItemScheme):
-    _item_type = Agency
-    #:
-    items: Dict[str, _item_type] = {}
+class AgencyScheme(ItemScheme[Agency]):
+    _Item = Agency
 
 
-class DataProviderScheme(ItemScheme):
-    _item_type = DataProvider
-    #:
-    items: Dict[str, _item_type] = {}
+class DataProviderScheme(ItemScheme[DataProvider]):
+    _Item = DataProvider
 
 
 # 10.2: Constraint inheritance
@@ -786,7 +796,7 @@ class MemberValue(SelectionValue):
     #:
     value: str
     #:
-    cascade_values: bool = None
+    cascade_values: Optional[bool] = None
 
     def __hash__(self):
         return hash(self.value)
@@ -878,7 +888,7 @@ class AttachmentConstraint(Constraint):
 
 class DimensionComponent(Component):
     #:
-    order: Optional[int]
+    order: Optional[int] = None
 
 
 class Dimension(DimensionComponent):
@@ -900,16 +910,15 @@ class PrimaryMeasure(Component):
     """SDMX-IM PrimaryMeasure."""
 
 
-class MeasureDescriptor(ComponentList):
-    #:
-    components: List[PrimaryMeasure] = []
+class MeasureDescriptor(ComponentList[PrimaryMeasure]):
+    _Component = PrimaryMeasure
 
 
 class AttributeRelationship(BaseModel):
     #:
     dimensions: List[Dimension] = []
     #:
-    group_key: 'GroupDimensionDescriptor' = None
+    group_key: Optional['GroupDimensionDescriptor'] = None
 
 
 NoSpecifiedRelationship = AttributeRelationship
@@ -922,41 +931,40 @@ DimensionRelationship = AttributeRelationship
 
 class DataAttribute(Component):
     #:
-    related_to: AttributeRelationship = None
+    related_to: Optional[AttributeRelationship] = None
     #:
-    usage_status: UsageStatus = None
+    usage_status: Optional[UsageStatus] = None
 
 
 class ReportingYearStartDay(DataAttribute):
     pass
 
 
-class AttributeDescriptor(ComponentList):
-    #:
-    components: List[DataAttribute] = []
+class AttributeDescriptor(ComponentList[DataAttribute]):
+    _Component = DataAttribute
 
 
 class Structure(MaintainableArtefact):
     #:
-    grouping: ComponentList = None
+    grouping: Optional[ComponentList] = None
 
 
 class StructureUsage(MaintainableArtefact):
     #:
-    structure: Structure = None
+    structure: Optional[Structure] = None
 
 
-class DimensionDescriptor(ComponentList):
+class DimensionDescriptor(ComponentList[DimensionComponent]):
     """Describes a set of dimensions.
 
     IM: “An ordered set of metadata concepts that, combined, classify a
     statistical series, and whose values, when combined (the key) in an
     instance such as a data set, uniquely identify a specific observation.”
+
+    :attr:`.components` is a :class:`list` (ordered) of :class:`Dimension`,
+    :class:`MeasureDimension`, and/or :class:`TimeDimension`.
     """
-    #: :class:`list` (ordered) of :class:`Dimension`,
-    #: :class:`MeasureDimension`, and/or :class:`TimeDimension`.
-    components: List[DimensionComponent] = []
-    _default_type = Dimension
+    _Component = Dimension
 
     def assign_order(self):
         """Assign the :attr:`.DimensionComponent.order` attribute.
@@ -1004,9 +1012,9 @@ class DimensionDescriptor(ComponentList):
 
 class GroupDimensionDescriptor(DimensionDescriptor):
     #:
-    attachment_constraint: bool = None
+    attachment_constraint: Optional[bool] = None
     #:
-    constraint: AttachmentConstraint = None
+    constraint: Optional[AttachmentConstraint] = None
 
     def assign_order(self):
         """:meth:`assign_order` has no effect for GroupDimensionDescriptor."""
@@ -1027,7 +1035,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     #: data structure.
     dimensions: DimensionDescriptor = DimensionDescriptor()
     #: A :class:`.MeasureDescriptor`.
-    measures: MeasureDescriptor = None
+    measures: Optional[MeasureDescriptor] = None
     #: Mapping from  :attr:`.GroupDimensionDescriptor.id` to
     #: :class:`.GroupDimensionDescriptor`.
     group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
@@ -1218,7 +1226,7 @@ class KeyValue(BaseModel):
     #: The actual value.
     value: Any
     #:
-    value_for: Dimension = None
+    value_for: Optional[Dimension] = None
 
     def __init__(self, *args, **kwargs):
         args, kwargs = value_for_dsd_ref('dimension', args, kwargs)
@@ -1255,9 +1263,9 @@ class AttributeValue(BaseModel):
     #:
     value: Union[str, Code]
     #:
-    value_for: DataAttribute = None
+    value_for: Optional[DataAttribute] = None
     #:
-    start_date: Optional[date]
+    start_date: Optional[date] = None
 
     def __init__(self, *args, **kwargs):
         args, kwargs = value_for_dsd_ref('attribute', args, kwargs)
@@ -1307,7 +1315,7 @@ class Key(BaseModel):
     #:
     attrib: DictLike[str, AttributeValue] = DictLike()
     #:
-    described_by: DimensionDescriptor = None
+    described_by: Optional[DimensionDescriptor] = None
     #: Individual KeyValues that describe the key.
     values: DictLike[str, KeyValue] = DictLike()
 
@@ -1438,7 +1446,7 @@ class Key(BaseModel):
 
 class GroupKey(Key):
     #:
-    id: str = None
+    id: Optional[str] = None
     #:
     described_by: Optional[GroupDimensionDescriptor] = None
 
@@ -1473,13 +1481,13 @@ class Observation(BaseModel):
     #:
     attached_attribute: DictLike[str, AttributeValue] = DictLike()
     #:
-    series_key: SeriesKey = None
+    series_key: Optional[SeriesKey] = None
     #: Key for dimension(s) varying at the observation level.
-    dimension: Key = None
+    dimension: Optional[Key] = None
     #: Data value.
-    value: Union[Any, Code] = None
+    value: Optional[Union[Any, Code]] = None
     #:
-    value_for: PrimaryMeasure = None
+    value_for: Optional[PrimaryMeasure] = None
     #: :mod:`sdmx` extension not in the IM.
     group_keys: Set[GroupKey] = set()
 
@@ -1513,13 +1521,13 @@ class Observation(BaseModel):
 class DataSet(AnnotableArtefact):
     # SDMX-IM features
     #:
-    action: ActionType = None
+    action: Optional[ActionType] = None
     #:
     attrib: DictLike[str, AttributeValue] = DictLike()
     #:
-    valid_from: str = None
+    valid_from: Optional[str] = None
     #:
-    structured_by: DataStructureDefinition = None
+    structured_by: Optional[DataStructureDefinition] = None
 
     #: All observations in the DataSet.
     obs: List[Observation] = []
@@ -1623,15 +1631,15 @@ class RESTDatasource(QueryDatasource):
 
 class ProvisionAgreement(MaintainableArtefact, ConstrainableArtefact):
     #:
-    structure_usage: StructureUsage = None
+    structure_usage: Optional[StructureUsage] = None
     #:
-    data_provider: DataProvider = None
+    data_provider: Optional[DataProvider] = None
 
 
 #: The SDMX-IM defines 'packages'; these are used in URNs.
 PACKAGE = dict()
 
-_PACKAGE_CLASS = {
+_PACKAGE_CLASS: Dict[str, set] = {
     'base': {Agency, AgencyScheme, DataProvider},
     'categoryscheme': {Category, Categorisation, CategoryScheme},
     'codelist': {Code, Codelist},

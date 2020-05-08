@@ -84,7 +84,7 @@ def maintainable(obj, parent=None):
 
 
 @Writer.register
-def _(obj: message.StructureMessage):
+def _sm(obj: message.StructureMessage):
     msg = Element('mes:Structure')
 
     # Empty header element
@@ -101,14 +101,14 @@ def _(obj: message.StructureMessage):
 
 
 @Writer.register
-def _(obj: model.ItemScheme):
+def _is(obj: model.ItemScheme):
     elem = maintainable(obj)
     elem.extend(Writer.recurse(i, parent=obj) for i in obj.items.values())
     return elem
 
 
 @Writer.register
-def _(obj: model.Item, parent):
+def _i(obj: model.Item, parent):
     elem = maintainable(obj, parent=parent)
 
     if obj.parent:
@@ -121,7 +121,7 @@ def _(obj: model.Item, parent):
 
 
 @Writer.register
-def _(obj: model.Annotation):
+def _a(obj: model.Annotation):
     elem = Element('com:Annotation')
     if obj.id:
         elem.attrib['id'] = obj.id

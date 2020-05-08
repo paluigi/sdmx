@@ -13,7 +13,7 @@ from . import MessageTest
 class StructuredMessageTest(MessageTest):
     """Variant of MessageTest for structure-specific messages."""
     path = MessageTest.path / 'ECB_EXR'
-    dsd = None
+    dsd_filename: str
 
     # Fixtures
     @pytest.fixture(scope='class')

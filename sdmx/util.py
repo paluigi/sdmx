@@ -1,13 +1,13 @@
+import collections
 from enum import Enum
+import typing
 from typing import (
     TYPE_CHECKING,
-    KT,
-    VT,
     Any,
+    List,
     Union,
     Type,
     TypeVar,
-    get_type_hints,
     no_type_check,
     )
 try:
@@ -15,14 +15,17 @@ try:
 except ImportError:
     # Python < 3.7.2 compatibility; see
     # https://github.com/python/cpython/commit/68b56d0
-    import collections
-    from typing import _alias
-    OrderedDict = _alias(collections.OrderedDict, (KT, VT))
+    from typing import _alias  # type: ignore
+    OrderedDict = _alias(collections.OrderedDict, (typing._KT, typing._VT))
 
 
 import pydantic
 from pydantic import DictError, Extra, ValidationError
 from pydantic.class_validators import make_generic_validator
+
+
+KT = TypeVar('KT')
+VT = TypeVar('VT')
 
 
 class Resource(str, Enum):
@@ -110,7 +113,7 @@ class BaseModel(pydantic.BaseModel):
     """
     class Config:
         validate_assignment = 'limited'
-        validate_assignment_exclude = []
+        validate_assignment_exclude: List[str] = []
 
     # Workaround for https://github.com/samuelcolvin/pydantic/issues/521
     @classmethod
@@ -154,17 +157,9 @@ class BaseModel(pydantic.BaseModel):
         self.__fields_set__.add(name)
 
 
-def get_class_hint(obj, attr):
-    """Return the type hint for attribute *attr* on *obj*."""
-    klass = get_type_hints(obj.__class__)[attr].__args__[0]
-    if getattr(klass, '__origin__', None) is Union:
-        klass = klass.__args__[0]
-    return klass
-
-
-class DictLike(OrderedDict[KT, VT]):
+class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
     """Container with features of a dict & list, plus attribute access."""
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[KT, int]) -> VT:
         try:
             return super().__getitem__(key)
         except KeyError:
@@ -175,13 +170,13 @@ class DictLike(OrderedDict[KT, VT]):
             else:
                 raise
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: KT, value: VT) -> None:
         key = self._apply_validators('key', key)
         value = self._apply_validators('value', value)
         super().__setitem__(key, value)
 
     # Access items as attributes
-    def __getattr__(self, name):
+    def __getattr__(self, name) -> VT:
         try:
             return self.__getitem__(name)
         except KeyError as e:

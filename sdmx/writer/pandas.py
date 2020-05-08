@@ -1,4 +1,5 @@
 from itertools import chain
+from typing import Set, Union
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ from sdmx.model import (
     DataSet,
     Dimension,
     DimensionComponent,
+    Item,
     Observation,
     SeriesKey,
     TimeDimension,
@@ -37,20 +39,21 @@ def write(obj, *args, **kwargs):
 
 # Functions for Python containers
 @Writer.register
-def _(obj: list, *args, **kwargs):
+def _list(obj: list, *args, **kwargs):
     """Convert a :class:`list` of SDMX objects."""
     if isinstance(obj[0], Observation):
         return write_dataset(obj, *args, **kwargs)
     elif isinstance(obj[0], DataSet) and len(obj) == 1:
         return write(obj[0], *args, **kwargs)
     elif isinstance(obj[0], SeriesKey):
-        return write_serieskeys(obj, *args, **kwargs)
+        assert len(args) == len(kwargs) == 0
+        return write_serieskeys(obj)
     else:
         return [write(item, *args, **kwargs) for item in obj]
 
 
 @Writer.register
-def _(obj: dict, *args, **kwargs):
+def _dict(obj: dict, *args, **kwargs):
     """Convert mappings."""
     result = {k: write(v, *args, **kwargs) for k, v in obj.items()}
 
@@ -77,7 +80,7 @@ def _(obj: dict, *args, **kwargs):
 
 
 @Writer.register
-def _(obj: set, *args, **kwargs):
+def _set(obj: set, *args, **kwargs):
     """Convert :class:`set`."""
     result = {write(o, *args, **kwargs) for o in obj}
     return result
@@ -149,14 +152,14 @@ def write_structuremessage(obj: message.StructureMessage, include=None,
 
     # Handle arguments
     if include is None:
-        attrs = all_contents
+        attr_set = all_contents
     else:
-        attrs = set([include] if isinstance(include, str) else include)
+        attr_set = set([include] if isinstance(include, str) else include)
         # Silently discard invalid names
-        attrs &= all_contents
-    attrs = sorted(attrs)
+        attr_set &= all_contents
+    attrs = sorted(attr_set)
 
-    result = DictLike()
+    result: DictLike[str, Union[pd.Series, pd.DataFrame]] = DictLike()
     for a in attrs:
         dl = write(getattr(obj, a), **kwargs)
         if len(dl):
@@ -169,13 +172,14 @@ def write_structuremessage(obj: message.StructureMessage, include=None,
 # Functions for model classes
 
 @Writer.register
-def _(obj: model.Component):
+def _c(obj: model.Component):
     """Convert :class:`.Component`."""
-    return str(obj.concept_identity.id)
+    # Raises AttributeError if the concept_identity is missing
+    return str(obj.concept_identity.id)   # type: ignore
 
 
 @Writer.register
-def _(obj: model.ContentConstraint, **kwargs):
+def _cc(obj: model.ContentConstraint, **kwargs):
     """Convert :class:`.ContentConstraint`."""
     if len(obj.data_content_region) != 1:
         raise NotImplementedError
@@ -184,12 +188,12 @@ def _(obj: model.ContentConstraint, **kwargs):
 
 
 @Writer.register
-def _(obj: model.CubeRegion, **kwargs):
+def _cr(obj: model.CubeRegion, **kwargs):
     """Convert :class:`.CubeRegion`."""
-    result = DictLike()
+    result: DictLike[str, pd.Series] = DictLike()
     for dim, memberselection in obj.member.items():
-        result[dim] = pd.Series([mv.value for mv in memberselection.values],
-                                name=dim.id)
+        result[dim.id] = pd.Series([mv.value for mv in memberselection.values],
+                                   name=dim.id)
     return result
 
 
@@ -276,7 +280,7 @@ def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
         raise ValueError(f"attributes must be in 'osgd'; got {attributes}")
 
     # Iterate on observations
-    result = {}
+    data = {}
     for observation in getattr(obj, 'obs', obj):
         # Check that the Observation is within the constraint, if any
         key = observation.key.order()
@@ -290,9 +294,10 @@ def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
         if attributes:
             row.update(observation.attrib)
 
-        result[tuple(map(str, key.get_values()))] = row
+        data[tuple(map(str, key.get_values()))] = row
 
-    result = pd.DataFrame.from_dict(result, orient='index')
+    result: Union[pd.Series, pd.DataFrame] = \
+        pd.DataFrame.from_dict(data, orient='index')
 
     if len(result):
         result.index.names = observation.key.order().values.keys()
@@ -460,7 +465,7 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
 
 
 @Writer.register
-def _(obj: model.DimensionDescriptor):
+def _dd(obj: model.DimensionDescriptor):
     """Convert :class:`.DimensionDescriptor`."""
     return write(obj.components)
 
@@ -479,7 +484,7 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
     pandas.Series
     """
     items = {}
-    seen = set()
+    seen: Set[Item] = set()
 
     def add_item(item):
         """Recursive helper for adding items."""
@@ -518,12 +523,12 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
 
 
 @Writer.register
-def _(obj: model.MemberValue):
+def _mv(obj: model.MemberValue):
     return obj.value
 
 
 @Writer.register
-def _(obj: model.NameableArtefact):
+def _na(obj: model.NameableArtefact):
     return str(obj.name)
 
 
