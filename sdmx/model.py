@@ -1186,7 +1186,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         attr = getattr(self.attributes, get_method)
 
         # Arguments for creating the Key
-        args = dict(described_by=self.dimensions)
+        args: Dict[str, Any] = dict(described_by=self.dimensions)
 
         if key_cls is GroupKey:
             # Get the GroupDimensionDescriptor, if indicated by group_id
