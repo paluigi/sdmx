@@ -672,7 +672,8 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         )
 
     # Must be reset because __eq__ is defined
-    __hash__ = IdentifiableArtefact.__hash__
+    def __hash__(self):
+        return super().__hash__()
 
 
 # 4.3: Codelist
