@@ -5,6 +5,7 @@ from pytest import raises
 
 from sdmx.model import (
     DEFAULT_LOCALE,
+    AttributeDescriptor,
     AttributeValue,
     ConstraintRole,
     ConstraintRoleType,
@@ -16,6 +17,8 @@ from sdmx.model import (
     DataStructureDefinition,
     Dimension,
     DimensionDescriptor,
+    GroupKey,
+    IdentifiableArtefact,
     Item,
     ItemScheme,
     Key,
@@ -48,10 +51,28 @@ def test_datastructuredefinition():
     d = dsd.dimensions.getdefault(id="baz", order=-1)
     assert isinstance(d, Dimension)
 
+    # make_key(GroupKey, ..., extend=True, group_id=None)
+    gk = dsd.make_key(GroupKey, dict(foo=1, bar=2), extend=True, group_id=None)
+
+    # … does not create a GroupDimensionDescriptor (anonymous group)
+    assert gk.described_by is None
+    assert len(dsd.group_dimensions) == 0
+
+    # But does create the 'bar' dimension
+    assert "bar" in dsd.dimensions
+
+    # make_key(..., group_id=...) creates a GroupDimensionDescriptor
+    gk = dsd.make_key(GroupKey, dict(foo=1, baz2=4), extend=True, group_id="g1")
+    assert gk.described_by is dsd.group_dimensions["g1"]
+    assert len(dsd.group_dimensions) == 1
+
+    # …also creates the "baz2" dimension and adds it to the GDD
+    assert dsd.dimensions.get("baz2") is dsd.group_dimensions["g1"].get("baz2")
+
     # from_keys()
     key1 = Key(foo=1, bar=2, baz=3)
     key2 = Key(foo=4, bar=5, baz=6)
-    dsd.from_keys([key1, key2])
+    DataStructureDefinition.from_keys([key1, key2])
 
 
 def test_dimension():
@@ -69,6 +90,19 @@ def test_dimensiondescriptor():
     assert list(key1.values.keys()) == list(reversed(key2.values.keys()))
     key3 = dd.order_key(key2)
     assert list(key1.values.keys()) == list(key3.values.keys())
+
+
+def test_identifiable():
+    """IdentifiableArtefact is hashable."""
+    ia = IdentifiableArtefact()
+    assert hash(ia) == id(ia)
+
+    ia = IdentifiableArtefact(id='foo')
+    assert hash(ia) == hash('foo')
+
+    # Subclass is hashable
+    ad = AttributeDescriptor()
+    assert hash(ad) == id(ad)
 
 
 def test_internationalstring():

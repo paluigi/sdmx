@@ -35,16 +35,14 @@ EXPECTED = {
   dataflow: <DataflowDefinition: 'STR1'=''>
   observation_dimension: <Dimension: CURRENCY>""",
     # This message has two DataSets:
-    "action-delete.json": re.compile(
-        r"""<sdmx\.DataMessage>
+    "action-delete.json": """<sdmx.DataMessage>
   <Header>
     id: '62b5f19d-f1c9-495d-8446-a3661ed24753'
     prepared: '2012-11-29T08:40:26Z'
     sender: <Item: 'ECB'='European Central Bank'>
-  DataSet \(2\)
-  dataflow: <DataflowDefinition: '\(\d+\)'=''>
-  observation_dimension: \[<Dimension: CURRENCY>\]"""
-    ),
+  DataSet (2)
+  dataflow: <DataflowDefinition: '<missing id>'=''>
+  observation_dimension: [<Dimension: CURRENCY>]""",
 }
 
 

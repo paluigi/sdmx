@@ -207,19 +207,25 @@ class AnnotableArtefact(BaseModel):
     annotations: List[Annotation] = []
 
 
+class _MissingID(str):
+    def __str__(self):
+        return "<missing id>"
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__)
+
+
+MissingID = _MissingID()
+
+
 class IdentifiableArtefact(AnnotableArtefact):
     #: Unique identifier of the object.
-    id: str
+    id: str = MissingID
     #: Universal resource identifier that may or may not be resolvable.
     uri: Optional[str] = None
     #: Universal resource name. For use in SDMX registries; all registered
     #: objects have a URN.
     urn: Optional[str] = None
-
-    def __init__(self, *args, **kwargs):
-        # Supply an ID for anonymous objects
-        id_arg = kwargs.pop("id", None)
-        super().__init__(*args, id=id_arg or f"({id(self)})", **kwargs)
 
     def __eq__(self, other):
         """Equality comparison.
@@ -234,13 +240,13 @@ class IdentifiableArtefact(AnnotableArtefact):
             return self.id == other
 
     def __hash__(self):
-        return hash(self.id)
+        return id(self) if self.id == MissingID else hash(self.id)
 
     def __str__(self):
-        return self.id if self.id else "<missing id>"
+        return self.id
 
     def __repr__(self):
-        return "<{}: {}>".format(self.__class__.__name__, self.id)
+        return f"<{self.__class__.__name__}: {self.id}>"
 
 
 class NameableArtefact(IdentifiableArtefact):
@@ -664,6 +670,9 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         return super().__eq__(other) and all(
             s == o for s, o in zip(self.components, other.components)
         )
+
+    # Must be reset because __eq__ is defined
+    __hash__ = IdentifiableArtefact.__hash__
 
 
 # 4.3: Codelist
@@ -1170,28 +1179,39 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
             If any of the keys of `values` is not a Dimension or Attribute in
             the DSD.
         """
-        # Methods
+        # Methods to get dimensions and attributes
         get_method = "getdefault" if extend else "get"
+        dim = getattr(self.dimensions, get_method)
         attr = getattr(self.attributes, get_method)
 
-        if key_cls is GroupKey:
-            try:
-                gdd = self.group_dimensions[group_id]
-            except KeyError:
-                # No GroupDimensionDescriptor with this ID
-                if not extend:
-                    # Cannot create
-                    raise
+        # Arguments for creating the Key
+        args = dict(described_by=self.dimensions)
 
+        if key_cls is GroupKey:
+            # Get the GroupDimensionDescriptor, if indicated by group_id
+            gdd = self.group_dimensions.get(group_id, None)
+
+            if group_id and not gdd and not extend:
+                # Cannot create
+                raise KeyError(group_id)
+            elif group_id and extend:
                 # Create the GDD
                 gdd = GroupDimensionDescriptor(id=group_id)
                 self.group_dimensions[gdd.id] = gdd
 
-            dim = getattr(gdd, get_method)
-            args = dict(id=group_id, described_by=gdd)
-        else:
-            dim = getattr(self.dimensions, get_method)
-            args = dict(described_by=self.dimensions)
+                # GroupKey will have same ID and be described by the GDD
+                args = dict(id=group_id, described_by=gdd)
+
+                # Dimensions to be retrieved from the GDD
+                def dim(id):
+                    # Get from the DimensionDescriptor
+                    new_dim = self.dimensions.getdefault(id)
+                    # Add to the GDD
+                    gdd.components.append(new_dim)
+                    return gdd.get(id)
+            else:
+                # Not described by anything
+                args = dict()
 
         key = key_cls(**args)
 
@@ -1207,7 +1227,8 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
                 key.attrib[da.id] = AttributeValue(**args, value_for=da)
                 continue
 
-            # Reference a Dimension from the DimensionDescriptor
+            # Reference a Dimension from the DimensionDescriptor. If extend=False and
+            # the Dimension does not exist, this will raise KeyError
             args["value_for"] = dim(id)
 
             # Retrieve the order

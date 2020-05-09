@@ -7,7 +7,7 @@ from collections import defaultdict
 from copy import copy
 from inspect import isclass
 from itertools import chain
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Type, Union
 
 from lxml import etree
 from lxml.etree import QName, XPath
@@ -249,10 +249,10 @@ class Reader(BaseReader):
 
     # Map of (class name, id) → sdmx.model object.
     # Only IdentifiableArtefacts should be stored. See _maintained().
-    _index: Dict[Tuple[str, str], Any] = {}
+    _index: Dict[Tuple[str, Union[int, None]], Any] = {}
 
     # Similar to _index, but specific to the current scope.
-    _current: Dict[Tuple[Any, str], Any] = {}
+    _current: Dict[Tuple[Type, Union[int, None]], Any] = {}
 
     def read_message(self, source, dsd=None):
         # Root XML element
@@ -276,7 +276,7 @@ class Reader(BaseReader):
                 log.warning(
                     "Ambiguous: dsd= argument for non-structure-" "specific message"
                 )
-            self._index[("DataStructureDefinition", dsd.id)] = dsd
+            self._index[("DataStructureDefinition", hash(dsd))] = dsd
             # Special index entry; None indicates the value passed as an
             # argument
             self._index[("DataStructureDefinition", None)] = dsd
@@ -331,8 +331,8 @@ class Reader(BaseReader):
 
             # Assemble a list of external categoryschemes
             ext_cs = []
-            for key, cs in self._index.items():
-                if key[0] == "CategoryScheme" and cs.is_external_reference:
+            for (cls, _), cs in self._index.items():
+                if cls == "CategoryScheme" and cs.is_external_reference:
                     ext_cs.append(cs)
 
             for c in structures.pop("categorisations", []):
@@ -455,10 +455,10 @@ class Reader(BaseReader):
                 and not item.is_external_reference
             ):
                 # Global index for MaintainableArtefacts
-                self._index[(item.__class__.__name__, item.id)] = item
+                self._index[(item.__class__.__name__, hash(item))] = item
             elif isinstance(item, IdentifiableArtefact):
                 # Current scope index for IdentifiableArtefacts
-                self._current[(item.__class__, item.id)] = item
+                self._current[(item.__class__, hash(item))] = item
 
     def _maintained(self, cls=None, id=None, urn=None, **kwargs):
         """Retrieve or instantiate a MaintainableArtefact of *cls* with *ids.
@@ -478,7 +478,7 @@ class Reader(BaseReader):
             # Re-add the URN to the kwargs
             kwargs["urn"] = urn
 
-        key = (cls.__name__, id) if isclass(cls) else (cls, id)
+        key = (cls.__name__ if isclass(cls) else cls, hash(id))
 
         # Maybe create a new object
         if key not in self._index:
@@ -537,7 +537,7 @@ class Reader(BaseReader):
             obj = cls(**attr)
 
         # Store object for parsing children
-        self._current[(cls, obj.id)] = obj
+        self._current[(cls, hash(obj))] = obj
 
         # Parse children
         values = self._parse(elem, **kwargs)
@@ -553,15 +553,15 @@ class Reader(BaseReader):
     def _get_current(self, cls, id=None):
         """Return an instance of *cls* in the :attr:`_current` scope.
 
-        *cls* may be a single class or tuple of classes valid as the
-        `classinfo` argument of :func:`issubclass`. If `id` is given, the
-        object must also have a matching ID.
+        *cls* may be a single class or tuple of classes valid as the `classinfo`
+        argument of :func:`issubclass`. If `id` is given, the object must also have a
+        matching ID.
 
         Raises RuntimeError if there are 0, or 2 or more instances.
         """
         results = []
-        for k, obj in self._current.items():
-            if issubclass(k[0], cls) and (id is None or id == k[1]):
+        for (c, i), obj in self._current.items():
+            if issubclass(c, cls) and (id is None or hash(id) == i):
                 results.append(obj)
 
         if len(results) == 1:
@@ -682,7 +682,7 @@ class Reader(BaseReader):
         # Look up an existing IdentifiableArtefact in the current scope
         for cls in wrap(cls):
             try:
-                return self._current[(cls, ref_id)]
+                return self._get_current(cls, id=ref_id)
             except KeyError:
                 pass
 
@@ -734,7 +734,7 @@ class Reader(BaseReader):
             if "structure_id" in values:
                 # Add the DSD to the index a second time, using the message
                 # -specific structure ID (rather that the DSD's own ID).
-                key = ("DataStructureDefinition", values["structure_id"])
+                key = ("DataStructureDefinition", hash(values["structure_id"]))
                 self._index[key] = dsd
 
             # Create a DataflowDefinition
@@ -1117,6 +1117,8 @@ class Reader(BaseReader):
             cls_name = QName(elem).localname.replace("List", "Descriptor")
         finally:
             ComponentListClass = sdmx.model.get_class(cls_name)
+            # Reappend the ID
+            attr["id"] = cls_name
 
         cl = ComponentListClass(
             components=list(chain(*self._parse(elem, unwrap=False).values())), **attr
