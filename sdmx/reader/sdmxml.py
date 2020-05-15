@@ -235,7 +235,7 @@ class Reader(BaseReader):
             self._dump()
             raise RuntimeError(f"{uncollected} uncollected items")
 
-        return self.get(message.Message)
+        return self.get_unique(message.Message)
 
     def _clean(self):
         for key in list(self.stack.keys()):
@@ -272,7 +272,7 @@ class Reader(BaseReader):
         except IndexError:
             pass
 
-    def get(self, cls_or_name, id=None, strict=False):
+    def get_unique(self, cls_or_name, id=None, strict=False):
         if isinstance(cls_or_name, str) or strict:
             results = self.stack.get(cls_or_name, [])
         else:
@@ -317,6 +317,12 @@ class Reader(BaseReader):
         except (IndexError, KeyError):
             return None
 
+    def get_top(self, cls_or_name):
+        try:
+            return self.stack[cls_or_name][-1]
+        except (IndexError, KeyError):
+            return None
+
     def pop_resolved_ref(self, cls, cls_or_name=None):
         return self.resolve(cls, self.pop_single(cls_or_name or cls))
 
@@ -329,7 +335,7 @@ class Reader(BaseReader):
         # log.info(f"Resolving {ref}")
 
         # Try to get the target directly
-        result = self.get(ref.child_cls, ref.child_id)
+        result = self.get_unique(ref.child_cls, ref.child_id)
 
         if result:
             # Success
@@ -337,7 +343,7 @@ class Reader(BaseReader):
             pass
         elif not ref.maintainable:
             # Retrieve the parent MaintainableArtefact or create a reference
-            parent = self.get(ref.cls, ref.id)
+            parent = self.get_unique(ref.cls, ref.id)
 
             if parent is None:
                 parent = self.maintainable(
@@ -425,11 +431,11 @@ def _message(reader, elem):
     # With 'dsd' argument, the message should be structure-specific
     if (
         "StructureSpecific" in elem.tag
-        and reader.get(model.DataStructureDefinition) is None
+        and reader.get_unique(model.DataStructureDefinition) is None
     ):
         log.warning(f"sdmxml.Reader got no dsd=… argument for {QName(elem).localname}")
         reader._ss_missing_dsd = True
-    elif "StructureSpecific" not in elem.tag and reader.get(
+    elif "StructureSpecific" not in elem.tag and reader.get_unique(
         model.DataStructureDefinition
     ):
         log.warning("Ambiguous: dsd=… argument for non–structure-specific message")
@@ -446,10 +452,10 @@ def _header_structure(reader, elem):
     if elem.getparent() is None:
         return
 
-    msg = reader.get(message.Message)
+    msg = reader.get_unique(message.Message)
 
     # Retrieve a DSD supplied to the parser, e.g. for a structure specific message
-    provided_dsd = reader.get(model.DataStructureDefinition)
+    provided_dsd = reader.get_unique(model.DataStructureDefinition)
 
     # Resolve the <com:Structure> child to a DSD, maybe is_external_reference=True
     header_dsd = reader.pop_resolved_ref(model.DataStructureDefinition, "Structure")
@@ -525,7 +531,7 @@ def _ds_start(reader, elem):
         qname("data:structureRef"), None
     )
     if id:
-        ds.structured_by = reader.get(id)
+        ds.structured_by = reader.get_unique(id)
     else:
         log.info("No DSD when creating DataSet {reader.stack}")
 
@@ -544,12 +550,12 @@ def _ds_end(reader, elem):
         ds._add_group_refs(obs)
 
     # Add the data set to the message
-    reader.get(message.Message).data.append(ds)
+    reader.get_unique(message.Message).data.append(ds)
 
 
 @end("gen:Series")
 def _series(reader, elem):
-    ds = reader.get(model.DataSet)
+    ds = reader.get_unique(model.DataSet)
     sk = reader.pop_single(model.SeriesKey)
     sk.attrib.update(reader.pop_single("Attributes") or {})
     ds.add_obs(reader.pop_all(model.Observation), sk)
@@ -557,7 +563,7 @@ def _series(reader, elem):
 
 @end("gen:Group")
 def _group(reader, elem):
-    ds = reader.get(model.DataSet)
+    ds = reader.get_unique(model.DataSet)
 
     gk = reader.pop_single(model.GroupKey)
     gk.attrib.update(reader.pop_single("Attributes") or {})
@@ -568,7 +574,7 @@ def _group(reader, elem):
 
 @end("gen:Attributes")
 def _avs(reader, elem):
-    ad = reader.get(model.DataSet).structured_by.attributes
+    ad = reader.get_unique(model.DataSet).structured_by.attributes
 
     result = {}
     for e in elem.iterchildren():
@@ -580,8 +586,8 @@ def _avs(reader, elem):
 
 @end("gen:Obs")
 def _obs(reader, elem):
-    dim_at_obs = reader.get(message.Message).observation_dimension
-    dsd = reader.get(model.DataSet).structured_by
+    dim_at_obs = reader.get_unique(message.Message).observation_dimension
+    dsd = reader.get_unique(model.DataSet).structured_by
 
     args = dict()
 
@@ -613,7 +619,7 @@ def _obs_ss(reader, elem):
     value = attrib.pop("OBS_VALUE", None)
 
     # Use the DSD to separate dimensions and attributes
-    dsd = reader.get(model.DataStructureDefinition)
+    dsd = reader.get_unique(model.DataStructureDefinition)
 
     # Extend the DSD if the user failed to provide it
     key = dsd.make_key(model.Key, attrib, extend=reader._ss_missing_dsd)
@@ -631,14 +637,14 @@ def _key(reader, elem):
 
     kv = {e.attrib["id"]: e.attrib["value"] for e in elem.iterchildren()}
 
-    dsd = reader.get(model.DataSet).structured_by
+    dsd = reader.get_unique(model.DataSet).structured_by
 
     return dsd.make_key(cls, kv, extend=True)
 
 
 @end(":Group")
 def _group_ss(reader, elem):
-    ds = reader.get(model.DataSet)
+    ds = reader.get_unique(model.DataSet)
     attrib = copy(elem.attrib)
 
     group_id = attrib.pop(qname("xsi", "type"), None)
@@ -664,7 +670,7 @@ def _group_ss(reader, elem):
 
 @end(":Series")
 def _series_ss(reader, elem):
-    ds = reader.get(model.DataSet)
+    ds = reader.get_unique(model.DataSet)
     ds.add_obs(
         reader.pop_all(model.Observation),
         ds.structured_by.make_key(
@@ -681,14 +687,14 @@ def _footer(reader, elem):
     if "code" in args:
         args["code"] = int(args["code"])
 
-    reader.get(message.Message).footer = message.Footer(
+    reader.get_unique(message.Message).footer = message.Footer(
         text=list(map(model.InternationalString, reader.pop_all("Text"))), **args,
     )
 
 
 @end("mes:Structures")
 def _structures(reader, elem):
-    msg = reader.get(message.Message)
+    msg = reader.get_unique(message.Message)
 
     # Populate dictionaries by ID
     for attr, name in (
@@ -829,7 +835,7 @@ def _header(reader, elem):
     )
     add_localizations(header.source, reader.pop_all("Source"))
 
-    reader.get(message.Message).header = header
+    reader.get_unique(message.Message).header = header
 
     # TODO check whether these occur anywhere besides footer.xml
     reader.pop_all("Timezone")
@@ -919,7 +925,7 @@ def _component(reader, elem):
 @end("str:AttributeRelationship")
 def _ar(reader, elem):
     # Retrieve the current DSD
-    dsd = reader.get(model.DataStructureDefinition)
+    dsd = reader.get_top(model.DataStructureDefinition)
 
     if "None" in elem[0].tag:
         return model.NoSpecifiedRelationship()
@@ -960,7 +966,7 @@ def _cl(reader, elem):
         pass
 
     # Retrieve the DSD
-    dsd = reader.get(model.DataStructureDefinition)
+    dsd = reader.get_top(model.DataStructureDefinition)
     if dsd is None:
         assert False
 
@@ -1006,7 +1012,7 @@ def _cl(reader, elem):
 @start("str:DataStructure", only=False)
 def _dsd_start(reader, elem):
     # Get an external reference, possibly created earlier
-    ext_dsd = reader.get(model.DataStructureDefinition)
+    ext_dsd = reader.get_unique(model.DataStructureDefinition)
 
     # Children are not parsed at this point
     candidate = reader.maintainable(model.DataStructureDefinition, elem)
@@ -1017,7 +1023,7 @@ def _dsd_start(reader, elem):
 
 @end("str:DataStructure", only=False)
 def _dsd_end(reader, elem):
-    dsd = reader.get(model.DataStructureDefinition)
+    dsd = reader.get_top(model.DataStructureDefinition)
     # TODO also handle annotations etc.
     add_localizations(dsd.name, reader.pop_all("Name"))
 
@@ -1108,7 +1114,7 @@ def _ms(reader, elem):
         # e.g. DataProvider, that does not provide an association to a DSD.
         # Try to get a Component from the current scope with matching ID.
         cl = None
-        component = reader.get(kind[1], id=elem.attrib["id"])
+        component = reader.get_unique(kind[1], id=elem.attrib["id"])
     else:
         # Get the Component
         component = cl.get(elem.attrib["id"])
