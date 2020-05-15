@@ -35,7 +35,7 @@ class StructuredMessageTest(MessageTest):
         assert msg.data[0].structured_by is dsd
 
 
-class TestStructSpecFlatDataSet(StructuredMessageTest):
+class TestFlatDataSet(StructuredMessageTest):
     filename = "ng-flat-ss.xml"
     dsd_filename = "ng-structure-full.xml"
 
@@ -70,7 +70,7 @@ class TestStructSpecFlatDataSet(StructuredMessageTest):
         assert isinstance(data_series, pd.Series)
 
 
-class TestStructSpecSeriesDataSet(StructuredMessageTest):
+class TestSeriesDataSet(StructuredMessageTest):
     filename = "ng-ts-gf-ss.xml"
     dsd_filename = "ng-structure-full.xml"
 
@@ -145,7 +145,7 @@ class TestStructSpecSeriesDataSet(StructuredMessageTest):
         assert df.iloc[1].OBS_STATUS == "A"
 
 
-class TestStructSpecSeriesDataSet2(StructuredMessageTest):
+class TestSeriesDataSet2(StructuredMessageTest):
     filename = "ng-ts-ss.xml"
     dsd_filename = "ng-structure-full.xml"
 
@@ -191,7 +191,7 @@ class TestStructSpecSeriesDataSet2(StructuredMessageTest):
         assert len(s) == 12
 
 
-class TestStructSpecSeriesData_SiblingGroup_TS(StructuredMessageTest):
+class TestSeriesData_SiblingGroup_TS(StructuredMessageTest):
     filename = "sg-ts-ss.xml"
     dsd_filename = "sg-structure.xml"
 
@@ -210,7 +210,7 @@ class TestStructSpecSeriesData_SiblingGroup_TS(StructuredMessageTest):
         assert len(g_attrib) == 1
 
 
-class TestStructSpecSeriesData_RateGroup_TS(StructuredMessageTest):
+class TestSeriesData_RateGroup_TS(StructuredMessageTest):
     filename = "rg-ts-ss.xml"
     dsd_filename = "rg-structure.xml"
 

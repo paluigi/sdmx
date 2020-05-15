@@ -7,6 +7,9 @@ import pydantic
 from pydantic import DictError, Extra, ValidationError
 from pydantic.class_validators import make_generic_validator
 
+KT = TypeVar("KT")
+VT = TypeVar("VT")
+
 try:
     from typing import OrderedDict
 except ImportError:
@@ -14,11 +17,7 @@ except ImportError:
     # https://github.com/python/cpython/commit/68b56d0
     from typing import _alias  # type: ignore
 
-    OrderedDict = _alias(collections.OrderedDict, (typing._KT, typing._VT))
-
-
-KT = TypeVar("KT")
-VT = TypeVar("VT")
+    OrderedDict = _alias(collections.OrderedDict, (KT, VT))
 
 
 class Resource(str, Enum):

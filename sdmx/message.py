@@ -11,21 +11,7 @@ from typing import List, Optional, Text, Union
 
 from requests import Response
 
-from sdmx.model import (
-    AgencyScheme,
-    CategoryScheme,
-    Codelist,
-    ConceptScheme,
-    ContentConstraint,
-    DataflowDefinition,
-    DataSet,
-    DataStructureDefinition,
-    DimensionComponent,
-    InternationalString,
-    Item,
-    ProvisionAgreement,
-    _AllDimensions,
-)
+from sdmx import model
 from sdmx.util import BaseModel, DictLike, summarize_dictlike
 
 
@@ -35,7 +21,7 @@ def _summarize(obj, fields):
         attr = getattr(obj, name)
         if attr is None:
             continue
-        yield f"{name}: {attr!r}"
+        yield f"{name}: {repr(attr)}"
 
 
 class Header(BaseModel):
@@ -52,9 +38,13 @@ class Header(BaseModel):
     prepared: Optional[Text] = None
     #: Intended recipient of the message, e.g. the user's name for an
     #: authenticated service.
-    receiver: Optional[Text] = None
+    receiver: Optional[model.Agency] = None
     #: The :class:`.Agency` associated with the data :class:`~.source.Source`.
-    sender: Optional[Union[Item, Text]] = None
+    sender: Optional[model.Agency] = None
+    #:
+    source: model.InternationalString = model.InternationalString()
+    #:
+    test: bool = False
 
     def __repr__(self):
         """String representation."""
@@ -70,11 +60,11 @@ class Footer(BaseModel):
     """
 
     #:
-    severity: Text
+    severity: Optional[str] = None
     #: The body text of the Footer contains zero or more blocks of text.
-    text: List[InternationalString] = []
+    text: List[model.InternationalString] = []
     #:
-    code: int
+    code: Optional[int] = None
 
 
 class Message(BaseModel):
@@ -109,21 +99,21 @@ class ErrorMessage(Message):
 
 class StructureMessage(Message):
     #: Collection of :class:`.CategoryScheme`.
-    category_scheme: DictLike[str, CategoryScheme] = DictLike()
+    category_scheme: DictLike[str, model.CategoryScheme] = DictLike()
     #: Collection of :class:`.Codelist`.
-    codelist: DictLike[str, Codelist] = DictLike()
+    codelist: DictLike[str, model.Codelist] = DictLike()
     #: Collection of :class:`.ConceptScheme`.
-    concept_scheme: DictLike[str, ConceptScheme] = DictLike()
+    concept_scheme: DictLike[str, model.ConceptScheme] = DictLike()
     #: Collection of :class:`.ContentConstraint`.
-    constraint: DictLike[str, ContentConstraint] = DictLike()
+    constraint: DictLike[str, model.ContentConstraint] = DictLike()
     #: Collection of :class:`.DataflowDefinition`.
-    dataflow: DictLike[str, DataflowDefinition] = DictLike()
+    dataflow: DictLike[str, model.DataflowDefinition] = DictLike()
     #: Collection of :class:`.DataStructureDefinition`.
-    structure: DictLike[str, DataStructureDefinition] = DictLike()
+    structure: DictLike[str, model.DataStructureDefinition] = DictLike()
     #: Collection of :class:`.AgencyScheme`.
-    organisation_scheme: DictLike[str, AgencyScheme] = DictLike()
+    organisation_scheme: DictLike[str, model.AgencyScheme] = DictLike()
     #: Collection of :class:`.ProvisionAgreement`.
-    provisionagreement: DictLike[str, ProvisionAgreement] = DictLike()
+    provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
 
     def __repr__(self):
         """String representation."""
@@ -147,12 +137,16 @@ class DataMessage(Message):
     """
 
     #: :class:`list` of :class:`.DataSet`.
-    data: List[DataSet] = []
+    data: List[model.DataSet] = []
     #: :class:`.DataflowDefinition` that contains the data.
-    dataflow: DataflowDefinition = DataflowDefinition()
+    dataflow: model.DataflowDefinition = model.DataflowDefinition()
     #: The "dimension at observation level".
     observation_dimension: Optional[
-        Union[_AllDimensions, DimensionComponent, List[DimensionComponent]]
+        Union[
+            model._AllDimensions,
+            model.DimensionComponent,
+            List[model.DimensionComponent],
+        ]
     ] = None
 
     # Convenience access

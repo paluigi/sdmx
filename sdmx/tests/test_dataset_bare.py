@@ -1,4 +1,5 @@
 import sdmx
+from sdmx import model
 from sdmx.message import DataMessage, Header
 from sdmx.model import AttributeValue, DataAttribute, DataSet, Key, Observation
 
@@ -14,7 +15,7 @@ def test_flat():
     header = Header(
         id="62b5f19d-f1c9-495d-8446-a3661ed24753",
         prepared="2012-11-29T08:40:26Z",
-        sender="ECB",
+        sender=model.Agency(id="ECB"),
     )
     msg.header = header
 

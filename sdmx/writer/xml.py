@@ -6,13 +6,11 @@ from sdmx import message, model
 from sdmx.format.xml import NS, qname
 from sdmx.writer.base import BaseWriter
 
-_element_maker = ElementMaker(nsmap=NS)
+_element_maker = ElementMaker(nsmap={k: v for k, v in NS.items() if v is not None})
 
 
 def Element(name, *args, **kwargs):
-    name = name.split(":")
-    name = qname(*name) if len(name) == 2 else name[0]
-    return _element_maker(name, *args, **kwargs)
+    return _element_maker(qname(name), *args, **kwargs)
 
 
 Writer = BaseWriter("XML")
@@ -91,7 +89,7 @@ def _sm(obj: message.StructureMessage):
     structures = Element("mes:Structures")
     msg.append(structures)
 
-    codelists = Element("mes:Codelists")
+    codelists = Element("str:Codelists")
     structures.append(codelists)
     codelists.extend(Writer.recurse(cl) for cl in obj.codelist.values())
 
@@ -112,7 +110,7 @@ def _i(obj: model.Item, parent):
     if obj.parent:
         # Reference to parent code
         e_parent = Element("str:Parent")
-        e_parent.append(Element("Ref", id=obj.parent.id))
+        e_parent.append(Element(":Ref", id=obj.parent.id))
         elem.append(e_parent)
 
     return elem

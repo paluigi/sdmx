@@ -1,201 +1,27 @@
 """SDMXML v2.1 reader."""
 import logging
 import re
-
-# See comments on the Reader() class for implementation details
 from collections import defaultdict
 from copy import copy
-from inspect import isclass
-from itertools import chain
-from typing import Any, Dict, List, Tuple, Type, Union
+from itertools import chain, product
+from operator import itemgetter
+from sys import maxsize
+from typing import Union
 
 from lxml import etree
-from lxml.etree import QName, XPath
+from lxml.etree import QName
 
-import sdmx.model
 import sdmx.urn
-from sdmx.exceptions import ParseError, XMLParseError
-from sdmx.format.xml import NS, qname
-from sdmx.message import DataMessage, ErrorMessage, Footer, Header, StructureMessage
-from sdmx.model import (
-    DEFAULT_LOCALE,
-    Agency,
-    AllDimensions,
-    Annotation,
-    AttributeDescriptor,
-    AttributeValue,
-    Categorisation,
-    Category,
-    CategoryScheme,
-    Code,
-    Codelist,
-    ComponentValue,
-    Concept,
-    ConceptScheme,
-    ConstraintRole,
-    ConstraintRoleType,
-    Contact,
-    ContentConstraint,
-    CubeRegion,
-    DataAttribute,
-    DataflowDefinition,
-    DataKey,
-    DataKeySet,
-    DataProvider,
-    DataProviderScheme,
-    DataStructureDefinition,
-    Dimension,
-    DimensionDescriptor,
-    DimensionRelationship,
-    Facet,
-    FacetValueType,
-    GroupDimensionDescriptor,
-    GroupKey,
-    IdentifiableArtefact,
-    InternationalString,
-    ItemScheme,
-    Key,
-    MaintainableArtefact,
-    MeasureDescriptor,
-    MemberSelection,
-    MemberValue,
-    NoSpecifiedRelationship,
-    Observation,
-    PrimaryMeasure,
-    PrimaryMeasureRelationship,
-    ProvisionAgreement,
-    Representation,
-    SeriesKey,
-    TimeDimension,
-    UsageStatus,
-)
+from sdmx import message, model
+from sdmx.exceptions import XMLParseError  # noqa: F401
+from sdmx.format.xml import MESSAGE, qname
 from sdmx.reader import BaseReader
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
-_TO_SNAKE_RE = re.compile("([A-Z]+)")
-
-
-def to_snake(value):
-    """Convert *value* from lowerCamelCase to snake_case."""
-    return _TO_SNAKE_RE.sub(r"_\1", value).lower()
-
-
-# Mapping tag names → Message classes
-MESSAGE = {
-    qname("mes", name): cls
-    for name, cls in (
-        ("Structure", StructureMessage),
-        ("GenericData", DataMessage),
-        ("GenericTimeSeriesData", DataMessage),
-        ("StructureSpecificData", DataMessage),
-        ("StructureSpecificTimeSeriesData", DataMessage),
-        ("Error", ErrorMessage),
-    )
-}
-
-
-# XPath expressions for parse_header()
-HEADER_XPATH = {
-    key: XPath(expr, namespaces=NS, smart_strings=False)
-    for key, expr in (
-        ("id", "mes:ID/text()"),
-        ("prepared", "mes:Prepared/text()"),
-        ("sender", "mes:Sender/@*"),
-        ("receiver", "mes:Receiver/@*"),
-        ("structure_id", "mes:Structure/@structureID"),
-        ("dim_at_obs", "mes:Structure/@dimensionAtObservation"),
-        # 'Structure' vs 'StructureUsage' varies across XML specimens.
-        (
-            "structure_ref_id",
-            "(mes:Structure/com:Structure/Ref/@id | "
-            "mes:Structure/com:StructureUsage/Ref/@id)[1]",
-        ),
-        (
-            "structure_ref_agencyid",
-            "(mes:Structure/com:Structure/Ref/@agencyID | "
-            "mes:Structure/com:StructureUsage/Ref/"
-            "@agencyID)[1]",
-        ),
-        (
-            "structure_ref_version",
-            "(mes:Structure/com:Structure/Ref/@version | "
-            "mes:Structure/com:StructureUsage/Ref/"
-            "@version)[1]",
-        ),
-        ("structure_ref_urn", "mes:Structure/com:Structure/URN/text()"),
-    )
-}
-
-
-# For Reader._parse(): tag name → Reader.parse_[…] method to use
-# TODO make this data structure more compact/avoid repetition
-METHOD = {
-    "AnnotationText": "international_string",
-    "Name": "international_string",
-    "Department": "international_string",
-    "Description": "international_string",
-    "Role": "international_string",
-    "Text": "international_string",
-    "DimensionList": "componentlist",
-    "AttributeList": "componentlist",
-    "MeasureList": "componentlist",
-    "CoreRepresentation": "representation",
-    "LocalRepresentation": "representation",
-    "AnnotationType": "text",
-    "AnnotationTitle": "text",
-    "AnnotationURL": "text",
-    "Email": "text",
-    "None": "text",
-    "Telephone": "text",
-    "URI": "text",
-    "URN": "text",
-    "Value": "text",
-    "ObsKey": "key",
-    "SeriesKey": "key",
-    "GroupKey": "key",
-    "AgencyScheme": "orgscheme",
-    "DataproviderScheme": "orgscheme",
-    "Agency": "organisation",
-    "DataProvider": "organisation",
-    "KeyValue": "memberselection",
-    "TextFormat": "facet",
-    "EnumerationFormat": "facet",
-    "MeasureDimension": "dimension",
-    "TimeDimension": "dimension",
-    # Tags that are bare containers for other XML elements; skip entirely
-    "Annotations": "SKIP",
-    "CategorySchemes": "SKIP",
-    "Categorisations": "SKIP",
-    "Codelists": "SKIP",
-    "Concepts": "SKIP",
-    "Constraints": "SKIP",
-    "Dataflows": "SKIP",
-    "DataStructures": "SKIP",
-    "DataStructureComponents": "SKIP",
-    "Footer": "SKIP",
-    "OrganisationSchemes": "SKIP",
-    "ProvisionAgreements": "SKIP",
-    # Tag names that only ever contain references
-    "AttachmentGroup": "ref",
-    "DimensionReference": "ref",
-    "Parent": "ref",
-    "Source": "ref",
-    "Structure": "ref",  # str:Structure, not mes:Structure
-    "Target": "ref",
-    # 'ConstraintAttachment': 'ref',
-    "Enumeration": "ref",
-}
-
-
-def wrap(value):
-    """Return *value* as a list.
-
-    Reader._parse(elem, unwrap=True) returns single children of *elem* as bare
-    objects. wrap() ensures they are a list.
-    """
-    return value if isinstance(value, list) else [value]
+TO_SNAKE_RE = re.compile("([A-Z]+)")
 
 
 def add_localizations(target, values):
@@ -205,1163 +31,1097 @@ def add_localizations(target, values):
     target.localizations.update({locale: label for locale, label in values})
 
 
-class Reparse(Exception):
-    """Raised for a forward reference to trigger reparsing."""
+def setdefault_attrib(target, elem, *names):
+    try:
+        for name in names:
+            try:
+                target.setdefault(to_snake(name), elem.attrib[name])
+            except KeyError:
+                pass
+    except AttributeError:
+        pass
 
+
+def to_snake(value):
+    """Convert *value* from lowerCamelCase to snake_case."""
+    return TO_SNAKE_RE.sub(r"_\1", value).lower()
+
+
+def get_sdmx_class(elem_or_name: Union[etree.Element, str], package=None):
+    try:
+        name = QName(elem_or_name).localname
+    except ValueError:
+        name = elem_or_name
+    name = {
+        "Attribute": "DataAttribute",
+        "Dataflow": "DataflowDefinition",
+        "DataStructure": "DataStructureDefinition",
+        "GroupDimension": "Dimension",
+        "ObsKey": "Key",
+        "Receiver": "Agency",
+        "Sender": "Agency",
+        "Source": "Agency",
+    }.get(name, name)
+    return model.get_class(name, package)
+
+
+def to_tags(*args):
+    return chain(*[[qname(tag) for tag in arg.split()] for arg in args])
+
+
+SKIP = (
+    "com:Annotations com:Footer footer:Message "
+    # Key and observation values
+    "gen:ObsDimension gen:ObsValue gen:Value "
+    # Tags that are bare containers for other XML elements
+    "str:Categorisations str:CategorySchemes str:Codelists str:Concepts "
+    "str:ConstraintAttachment str:Constraints str:Dataflows "
+    "str:DataStructureComponents str:DataStructures str:None str:OrganisationSchemes "
+    "str:ProvisionAgreements "
+    # Contents of references
+    ":Ref :URN"
+)
+
+
+PARSE = {k: None for k in product(to_tags(SKIP), ["start", "end"])}
+
+
+def start(*args, only=True):
+    def decorator(func):
+        for tag in to_tags(*args):
+            PARSE[tag, "start"] = func
+            if only:
+                PARSE[tag, "end"] = None
+        return func
+
+    return decorator
+
+
+def end(*args, only=True):
+    def decorator(func):
+        for tag in to_tags(*args):
+            PARSE[tag, "end"] = func
+            if only:
+                PARSE[tag, "start"] = None
+        return func
+
+    return decorator
+
+
+def matching_class(cls):
+    return lambda item: isinstance(item, type) and issubclass(item, cls)
+
+
+def matching_class0(cls):
+    return lambda item: isinstance(item[0], type) and issubclass(item[0], cls)
+
+
+class NotReference(Exception):
     pass
 
 
-# Reader operates by recursion through the _parse() method:
-#
-# - _parse(elem) uses the XML tag name of elem, plus METHOD, to find a method
-#    like Reader.parse_X().
-# - parse_X(elem) is called. These methods perform similar tasks such as:
-#   - Create an instance of a sdmx.model class,
-#   - Recursively:
-#     - call _parse() on the children of elem,
-#     - call _named(), which also creates an instance of a NameableArtefact,
-#   - Handle the returned values (i.e. parsed XML child elements) and attach
-#     them to the model object,
-#   - Handle the XML attributes of elem and attach these to the model object,
-#   - ``assert len(values) == 0`` or similar to assert that all parsed child
-#     elements and/or attributes have been consumed,
-#   - Return the parsed model object to be used further up the recursive stack.
-#
-class Reader(BaseReader):
-    """Read SDMX-ML 2.1 and expose it as instances from :mod:`sdmx.model`.
+class Reference:
+    """Temporary class for references.
 
-    The implementation is recursive, and depends on:
-
-    - :meth:`_parse`, :meth:`_named` and :meth:`_maintained`.
-    - State variables :attr:`_current`, :attr:`_stack, :attr:`_index`.
-
-    Parameters
-    ----------
-    dsd : :class:`~.DataStructureDefinition`
-        For “structure-specific” `format`=``XML`` messages only.
+    - id, cls, and version are always the ID for a MaintainableArtefact.
+    - If the target is maintainable, child_id and child_cls are identical to id
+      and version, respectively. Otherwise, they describe the targeted object.
     """
 
-    # State variables for reader
+    def __init__(self, elem, cls_hint=None):
+        try:
+            # Use the first child
+            elem = elem[0]
+        except IndexError:
+            raise NotReference
 
-    # Stack (0 = top) of tag names being parsed by _parse().
-    # Tag parsers may examine the stack to determine context for parsing.
-    _stack: List[str] = []
+        if cls_hint:
+            cls_hint = get_sdmx_class(cls_hint)
 
-    # Map of (class name, id) → sdmx.model object.
-    # Only IdentifiableArtefacts should be stored. See _maintained().
-    _index: Dict[Tuple[str, Union[int, None]], Any] = {}
+        if elem.tag == "Ref":
+            match = None
+            child_id = elem.attrib["id"]
+            id = elem.attrib.get("maintainableParentID", None)
+            version = elem.attrib.get("maintainableParentVersion", None)
 
-    # Similar to _index, but specific to the current scope.
-    _current: Dict[Tuple[Type, Union[int, None]], Any] = {}
+            try:
+                child_cls = get_sdmx_class(
+                    elem.attrib["class"], elem.attrib["package"],
+                )
+            except KeyError:
+                try:
+                    child_cls = get_sdmx_class(elem.getparent())
+                except KeyError:
+                    child_cls = cls_hint
+
+        elif elem.tag == "URN":
+            match = sdmx.urn.match(elem.text)
+            child_cls = get_sdmx_class(match["class"], match["package"])
+            child_id = match["id"]
+            id = match["id"]
+            version = match["version"]
+        else:
+            raise NotReference
+
+        if cls_hint and issubclass(cls_hint, child_cls):
+            child_cls = cls_hint
+
+        self.maintainable = issubclass(child_cls, model.MaintainableArtefact)
+
+        if self.maintainable:
+            cls, id = child_cls, child_id
+        else:
+            # Non-maintainable child of a MaintainableArtefact
+            cls = model.parent_class(child_cls)
+
+            if match:
+                # Use the ID of the item from the URN
+                child_id = match["item_id"]
+
+        # Store
+        self.child_cls = child_cls
+        self.child_id = child_id
+        self.cls = cls
+        self.id = id
+        self.version = version
+
+    def __str__(self):
+        return "{0.cls} {0.id} {0.version} / {0.child_cls} {0.child_id}".format(self)
+
+
+class Reader(BaseReader):
+    _ss_missing_dsd = False
 
     def read_message(self, source, dsd=None):
-        # Root XML element
-        root = etree.parse(source).getroot()
+        self.stack = defaultdict(list)
 
-        # Message class
+        self._ss_missing_dsd = False
+
+        self.ignore = set([id(dsd)])
+
+        self.push(dsd)
+
         try:
-            cls = MESSAGE[root.tag]
-        except KeyError:
-            msg = "Unrecognized message root element {!r}".format(root.tag)
-            raise ParseError(msg) from None
+            for event, element in etree.iterparse(source, events=("start", "end")):
+                try:
+                    func = PARSE[element.tag, event]
+                except KeyError:
+                    # Fail immediately
+                    raise NotImplementedError(element.tag, event) from None
 
-        # Reset state
-        self._stack = []
-        self._index = {}
-        self._current = {}
-
-        # With 'dsd' argument, the message should be structure-specific
-        if dsd is not None:
-            if "StructureSpecific" not in root.tag:
-                log.warning(
-                    "Ambiguous: dsd= argument for non-structure-" "specific message"
-                )
-            self._index[("DataStructureDefinition", hash(dsd))] = dsd
-            # Special index entry; None indicates the value passed as an
-            # argument
-            self._index[("DataStructureDefinition", None)] = dsd
-
-        # Parse the tree
-        values = self._parse(root)
-
-        # Instantiate the message object
-        msg = cls()
-
-        # Store the header
-        header = values.pop("header", None)
-        if header is None and "errormessage" in values:
-            # An error message
-            msg.header = Header()
-
-            # Error message attributes resemble footer attributes
-            values["footer"] = Footer(**values.pop("errormessage"))
-        elif len(header) == 2:
-            # Length-2 list includes DFD/DSD reference
-            msg.header, msg.dataflow = header
-            msg.observation_dimension = self._obs_dim
-        else:
-            # No DFD in the header, e.g. for a StructureMessage
-            msg.header = header[0]
-
-        # Store the footer
-        msg.footer = values.pop("footer", None)
-
-        # Finalize according to the message type
-        if cls is DataMessage:
-            # Simply store the datasets
-            msg.data.extend(wrap(values.pop("dataset", [])))
-        elif cls is StructureMessage:
-            structures = values.pop("structures")
-
-            # Populate dictionaries by ID
-            for attr, name in (
-                ("dataflow", "dataflows"),
-                ("codelist", "codelists"),
-                ("constraint", "constraints"),
-                ("structure", "datastructures"),
-                ("category_scheme", "categoryschemes"),
-                ("concept_scheme", "concepts"),
-                ("organisation_scheme", "organisationschemes"),
-                ("provisionagreement", "provisionagreements"),
-            ):
-                for obj in structures.pop(name, []):
-                    getattr(msg, attr)[obj.id] = obj
-
-            # Check, but do not store, Categorisations
-
-            # Assemble a list of external categoryschemes
-            ext_cs = []
-            for (cls, _), cs in self._index.items():
-                if cls == "CategoryScheme" and cs.is_external_reference:
-                    ext_cs.append(cs)
-
-            for c in structures.pop("categorisations", []):
-                if not isinstance(c.artefact, DataflowDefinition):
-                    continue
-                assert c.artefact in msg.dataflow.values()
-
-                missing_cs = True
-                for cs in chain(msg.category_scheme.values(), ext_cs):
-                    if c.category in cs:
-                        missing_cs = False
-                        if cs.is_external_reference:
-                            # Store the externally-referred CategoryScheme
-                            msg.category_scheme[cs.id] = cs
-                        break
-
-                assert not missing_cs
-
-            assert len(structures) == 0, structures
-
-        assert len(values) == 0, values
-        return msg
-
-    def _check_ss_without_dsd(self):
-        """Warn and return :obj:`True` if parsing SS data without a DSD."""
-        if (
-            "StructureSpecific" in self._stack[0]
-            and ("DimensionDescriptor", None) not in self._index
-        ):
-            log.warning(
-                "sdmxml.Reader got no dsd=... argument for " f"{self._stack[0]}"
-            )
-            return True
-        else:  # pragma: no cover
-            return False
-
-    def _parse(self, elem, unwrap=True):
-        """Recursively parse the XML *elem* and return sdmx.model objects.
-
-        Methods like 'Reader.parse_attribute()' are called for XML elements
-        with tag names like '<ns:Attribute>'; each emits sdmx.model objects.
-
-        If *unwrap* is True (the default), then single-entry lists are returned
-        as bare objects.
-        """
-        # Container for results
-        results = defaultdict(list)
-
-        # Store state: tag name for the elem
-        self._stack.append(QName(elem).localname)
-
-        # Parse each child
-        reparse = []  # Elements to reparse after the first pass
-        reparse_limit = 2 * len(elem)
-        for i, child in enumerate(chain(elem, reparse)):
-            if i > reparse_limit:
-                # Probably repeated failure to parse the same elements, which
-                # would lead to an infinite loop
-                raise ValueError(f"Unable to parse elements {reparse!r}")
-
-            # Tag name for the child
-            tag_name = QName(child).localname
-
-            # Invoke the parser for this element
-            try:
-                # Get the name of the parser method
-                how = METHOD.get(tag_name, tag_name)
-
-                if how == "SKIP":
-                    # Element is a bare container for other elements; parse its
-                    # children directly
-                    result = list(chain(*self._parse(child, unwrap=False).values()))
-                elif how == "ref" or (len(child) == 1 and child[0].tag == "Ref"):
-                    # Element contains a reference
-                    # Parse the reference; may raise Reparse (below)
-                    result = [self.parse_ref(child[0], parent=tag_name)]
+                try:
+                    result = func(self, element)
+                except TypeError:
+                    if func is None:
+                        continue
+                    else:
+                        raise
                 else:
-                    # All other elements
-                    result = [getattr(self, f"parse_{how}".lower())(child)]
-            except Reparse as r:
-                # Raise one level beyond the original to reparse <Parent><Ref>
-                # instead of <Ref>
-                if r.args[0] < 1:
-                    self._stack.pop()
-                    raise Reparse(r.args[0] + 1)
+                    self.push(result)
+                    if event == "end":
+                        element.clear()
 
-                # Add to the queue to be reparsed on the second pass
-                reparse.append(child)
+        except Exception as exc:
+            self._dump()
+            raise XMLParseError from exc
+            # raise
 
-                # Continue with next child element
-                continue
-            except XMLParseError:
-                raise  # Re-raise without adding to the stack
-            except Exception as e:
-                # Other exception, convert to XMLParseError
-                raise XMLParseError(self, child) from e
-                # NOTE to debug, use:
-                # raise e
+        # Count only non-ignored items
+        uncollected = -1
+        for key, objects in self.stack.items():
+            uncollected += sum([1 if id(o) not in self.ignore else 0 for o in objects])
 
-            # Add objects with IDs to the appropriate index
-            self._add_to_index(result)
+        if uncollected > 0:
+            self._dump()
+            raise RuntimeError(f"{uncollected} uncollected items")
 
-            # Store the parsed elements
-            results[tag_name.lower()].extend(result)
+        return self.get(message.Message)
 
-        # Restore state
-        self._clear_current(self._stack.pop())
+    def _clean(self):
+        for key in list(self.stack.keys()):
+            if len(self.stack[key]) == 0:
+                self.stack.pop(key)
 
-        if unwrap:
-            # Unwrap every value in results that is a length-1 list
-            results = {k: v[0] if len(v) == 1 else v for k, v in results.items()}
+    def _dump(self):
+        self._clean()
+        print("\n\n")
+        for key, values in self.stack.items():
+            print(key, values)
 
-        return results
-
-    def _add_to_index(self, items):
-        """Add objects with IDs to the appropriate index."""
-        for item in items:
-            if (
-                isinstance(item, MaintainableArtefact)
-                and not item.is_external_reference
-            ):
-                # Global index for MaintainableArtefacts
-                self._index[(item.__class__.__name__, hash(item))] = item
-            elif isinstance(item, IdentifiableArtefact):
-                # Current scope index for IdentifiableArtefacts
-                self._current[(item.__class__, hash(item))] = item
-
-    def _maintained(self, cls=None, id=None, urn=None, **kwargs):
-        """Retrieve or instantiate a MaintainableArtefact of *cls* with *ids.
-
-        If the object has been parsed (i.e. is in :attr:`_index`), it is
-        returned; if not and `match_subclass` is :obj:`False`, it is
-        instantiated with ``is_external_reference=True``, passing `kwargs`.
-
-        If *urn* is given, it is used to determine *cls* and *id*, per the URN
-        regular expression.
-        """
-        if urn:
-            match = sdmx.urn.match(urn)
-            cls = sdmx.model.get_class(match["class"], match["package"])
-            id = match["id"]
-
-            # Re-add the URN to the kwargs
-            kwargs["urn"] = urn
-
-        key = (cls.__name__ if isclass(cls) else cls, hash(id))
-
-        # Maybe create a new object
-        if key not in self._index:
-            if not isclass(cls):
-                raise TypeError(f"cannot instantiate from {cls!r}")
-            elif not issubclass(cls, MaintainableArtefact):
-                raise TypeError(f"{cls} is not maintainable")
-
-            # A reference to a MaintainableArtefact that is not (yet) defined
-            # in the current message is, necessarily, external, so finding
-            # is_external_reference=False in the kwargs is a fatal error here.
-            assert kwargs.setdefault("is_external_reference", True)
-
-            # Create a new object and add to index
-            self._index[key] = cls(id=id, **kwargs)
-
-        # Existing or newly-created object
-        return self._index[key]
-
-    def _named(self, cls, elem, **kwargs):
-        """Parse a NameableArtefact of *cls* from *elem*.
-
-        NameableArtefacts may have .name and .description attributes that are
-        InternationalStrings, plus zero or more Annotations. _named() handles
-        these common elements, and returns an object and a _parse()'d dict of
-        other, class-specific child values.
-
-        Additional *kwargs* are used when parsing the children of *elem*.
-        """
-        # Apply conversions to attributes
-        convert_attrs = {
-            "agency_id": ("maintainer", lambda value: Agency(id=value)),
-            "role": (
-                "role",
-                lambda value: ConstraintRole(role=ConstraintRoleType[value]),
-            ),
-        }
-
-        attr = {}
-        for name, value in elem.attrib.items():
-            # Name in snake case
-            name = to_snake(name)
-            # Optional new name and function to transform the value
-            (name, xform) = convert_attrs.get(name, (name, lambda v: v))
-            # Store transformed value
-            attr[name] = xform(value)
-
-        try:
-            # Maybe retrieve an existing reference
-            obj = self._maintained(cls, **attr)
-            # Since the object is now being parsed, it's defined in the current
-            # message and no longer an external reference
-            obj.is_external_reference = False
-        except TypeError:
-            # Instantiate the class and store its attributes
-            obj = cls(**attr)
-
-        # Store object for parsing children
-        self._current[(cls, hash(obj))] = obj
-
-        # Parse children
-        values = self._parse(elem, **kwargs)
-
-        # Store the name, description and annotations
-        add_localizations(obj.name, values.pop("name"))
-        add_localizations(obj.description, values.pop("description", []))
-        obj.annotations = wrap(values.pop("annotations", []))
-
-        # Return the instance and any non-name values
-        return obj, values
-
-    def _get_current(self, cls, id=None):
-        """Return an instance of *cls* in the :attr:`_current` scope.
-
-        *cls* may be a single class or tuple of classes valid as the `classinfo`
-        argument of :func:`issubclass`. If `id` is given, the object must also have a
-        matching ID.
-
-        Raises RuntimeError if there are 0, or 2 or more instances.
-        """
-        results = []
-        for (c, i), obj in self._current.items():
-            if issubclass(c, cls) and (id is None or hash(id) == i):
-                results.append(obj)
-
-        if len(results) == 1:
-            return results[0]
-        elif len(results) > 1:  # pragma: no cover
-            raise RuntimeError(
-                f"cannot disambiguate multiple {cls.__name__} "
-                f"in the current scope: {results}"
-            )
-        else:  # pragma: no cover
-            raise RuntimeError(f"no {cls.__name__} in the current scope")
-
-    def _clear_current(self, scope):
-        """Clear references from self._current at the end of *scope*."""
-        classes = {
-            "CategoryScheme": (Category, CategoryScheme),
-            "Categorisation": (Categorisation,),
-            "Codelist": (Code,),
-            "ConceptScheme": (Concept, ConceptScheme),
-            "ContentConstraint": (ContentConstraint,),
-            "Dataflow": (DataflowDefinition,),
-            "DataSet": (DataStructureDefinition,),
-            "DataStructure": (DataStructureDefinition,),
-        }.get(scope, [])
-
-        if len(classes) == 0:
+    def push(self, *args):
+        """Push an object into the appropriate stack."""
+        if args[0] is None:
             return
 
-        for k in list(self._current.keys()):
-            if k[0] in classes:
-                self._current.pop(k)
+        if len(args) == 1:
+            args = (args[0].__class__, args[0])
+        elif len(args) == 2 and isinstance(args[0], etree._Element):
+            args = (QName(args[0]).localname, args[1])
+        elif len(args) > 2:
+            raise ValueError(args)
 
-    def _get_cc_dsd(self):
-        """Return the DSD for the ContentConstraint in the current scope."""
-        return list(self._get_current(ContentConstraint).content)[0].structure
+        self.stack[args[0]].append(args[1])
 
-    # Parsers for common elements
+    def stash(self, *keys):
+        self.stack["_stash"].append({k: self.pop_all(k, strict=True) for k in keys})
 
-    def parse_international_string(self, elem):
-        # Return a tuple (locale, text)
-        return (elem.attrib.get(qname("xml", "lang"), DEFAULT_LOCALE), elem.text)
-
-    def parse_text(self, elem):
-        return elem.text
-
-    def parse_ref(self, elem, parent=None):
-        """References to Identifiable- and MaintainableArtefacts.
-
-        `parent` is the tag containing the reference.
-        """
-        # Unused attributes
-        attr = copy(elem.attrib)
-        attr.pop("agencyID", None)
-        attr.pop("version", None)
-
-        if elem.tag == "URN":
-            # Ref is a URN
-            return self._maintained(urn=elem.text)
-
-        # Every non-URN ref has an 'id' attribute
-        ref_id = attr.pop("id")
-
-        # Determine the class of the ref'd object
+    def unstash(self):
         try:
-            # 'package' and 'class' attributes give the class directly
-            cls = sdmx.model.get_class(attr.pop("class"), attr.pop("package"))
-        except KeyError:
-            # No 'package' and 'class' attributes
-
-            if parent == "Parent":
-                # Ref to parent of an Item in an ItemScheme; the ref'd object
-                # has the same class as the Item
-                cls = sdmx.model.get_class(self._stack[-1])
-            elif parent in ("AttachmentGroup", "Group"):
-                cls = GroupDimensionDescriptor
-            elif parent in ("Dimension", "DimensionReference"):
-                # References to Dimensions
-                cls = [Dimension, TimeDimension]
-            else:
-                cls = sdmx.model.get_class(parent)
-
-        # Get or instantiate the object itself
-        try:
-            # Some refs to IdentifiableArtefacts specify the parent
-            # MaintainableArtefact
-
-            # Attributes of the maintainable parent; this raises KeyError if
-            # not present
-            parent_attrs = dict(
-                id=attr.pop("maintainableParentID"),
-                version=attr.pop("maintainableParentVersion"),
-            )
-            assert len(attr) == 0
-
-            # Class of the maintainable parent object
-            parent_cls = {
-                Category: CategoryScheme,
-                Code: Codelist,
-                Concept: ConceptScheme,
-                DataProvider: DataProviderScheme,
-            }[cls]
-
-            # Retrieve or create the parent
-            parent = self._maintained(parent_cls, **parent_attrs)
-
-            # Retrieve or create the referenced object within the parent
-            return parent.setdefault(id=ref_id, **attr)
-        except KeyError:
+            for key, values in self.stack["_stash"].pop(-1).items():
+                self.stack[key].extend(values)
+        except IndexError:
             pass
 
-        # Instantiate a new MaintainableArtefact
-        try:
-            return self._maintained(cls, id=ref_id)
-        except TypeError:
-            # 'cls' is not a MaintainableArtefact
-            pass
-
-        # Look up an existing IdentifiableArtefact in the current scope
-        for cls in wrap(cls):
-            try:
-                return self._get_current(cls, id=ref_id)
-            except KeyError:
-                pass
-
-        # Failed; probably a forward reference
-        raise Reparse(0)
-
-    # Parsers for elements appearing in data messages
-
-    def parse_attributes(self, elem):
-        result = {}
-
-        ad = self._get_current(AttributeDescriptor)
-        for e in elem.iterchildren():
-            da = ad.getdefault(e.attrib["id"])
-            av = AttributeValue(value=e.attrib["value"], value_for=da)
-            result[da.id] = av
-        return result
-
-    def parse_header(self, elem):
-        # Collect values from *elem* and its children using XPath
-        values = {}
-        for key, xpath in HEADER_XPATH.items():
-            matches = xpath(elem)
-            if len(matches) == 0:
-                continue
-            values[key] = matches[0] if len(matches) == 1 else matches
-
-        # Handle a reference to a DataStructureDefinition
-        attrs = {}
-        for k in ["id", "agencyid", "version", "urn"]:
-            value = values.pop("structure_ref_" + k, None)
-            if not value:
-                continue
-            elif k == "agencyid":
-                attrs["maintainer"] = Agency(id=value)
-            else:
-                attrs[k] = value
-
-        if set(attrs.keys()) == {"urn"}:
-            attrs["id"] = values["structure_id"]
-
-        extra = []
-
-        if "id" in attrs:
-            # Create or retrieve the DSD. NB if the dsd argument was provided
-            # to read_message(), this should be the same DSD
-            dsd = self._maintained(DataStructureDefinition, **attrs)
-
-            if "structure_id" in values:
-                # Add the DSD to the index a second time, using the message
-                # -specific structure ID (rather that the DSD's own ID).
-                key = ("DataStructureDefinition", hash(values["structure_id"]))
-                self._index[key] = dsd
-
-            # Create a DataflowDefinition
-            dfd = DataflowDefinition(id=values.pop("structure_id"), structure=dsd)
-            extra.append(dfd)
-
-            # Store the observation at dimension level
-            dim_at_obs = values.pop("dim_at_obs")
-            if dim_at_obs == "AllDimensions":
-                self._obs_dim = AllDimensions
-            else:
-                # Retrieve or create the Dimension
-                args = dict(id=dim_at_obs, order=1e9)
-                if "TimeSeries" in self._stack[0]:
-                    # {,StructureSpecific}TimeSeriesData message → the
-                    # dimension at observation level is a TimeDimension
-                    args["cls"] = TimeDimension
-                self._obs_dim = dsd.dimensions.getdefault(**args)
-
-        # Maybe return the DFD; see .initialize()
-        return [Header(**values)] + extra
-
-    def parse_message(self, elem):
-        f = Footer(**elem.attrib)
-        for locale, label in self._parse(elem)["text"]:
-            f.text.append(InternationalString(**{locale: label}))
-        return f
-
-    def parse_dataset(self, elem):
-        # Attributes: structure reference to a DSD
-        for attr in ["structureRef", qname("data", "structureRef")]:
-            if attr in elem.attrib:
-                structure_ref = elem.attrib[attr]
-                break
-
-        # Create or retrieve (structure-specific message) the DSD
-        dsd = self._maintained(DataStructureDefinition, structure_ref)
-        # Add DSD contents to the indices for use in recursive parsing
-        self._add_to_index(indexables_from_dsd(dsd))
-        self._current[(DataStructureDefinition, None)] = dsd
-
-        # DataSet class, e.g. GenericDataSet for root XML tag 'GenericData'
-        DataSetClass = sdmx.model.get_class(f"{self._stack[0]}Set")
-
-        # Create the object
-        ds = DataSetClass(structured_by=dsd)
-
-        values = self._parse(elem, unwrap=False)
-
-        # Process groups
-        ds.group = {g: [] for g in values.pop("group", [])}
-
-        # Process series
-        for series_key, obs_list in values.pop("series", []):
-            # Add observations under this key
-            ds.add_obs(obs_list, series_key)
-
-        # Process bare observations
-        ds.add_obs(values.pop("obs", []))
-
-        assert len(values) == 0
-        return ds
-
-    def parse_group(self, elem):
-        """<generic:Group>, <structure:Group>, or <Group>."""
-        values = self._parse(elem)
-
-        # Check which namespace this Group tag is part of
-        if elem.tag == qname("gen", "Group"):
-            # generic → GroupKey in a DataMessage
-            gk = values.pop("groupkey")
-            gk.attrib.update(values.pop("attributes", {}))
-            result = gk
-        elif elem.tag == qname("str", "Group"):
-            # structure → GroupDimensionDescriptor
-            gdd = GroupDimensionDescriptor(
-                id=elem.attrib["id"], components=wrap(values.pop("groupdimension"))
-            )
-
-            # Early update of the DSD so that later definitions in the DSD can
-            # reference gdd
-            dsd = self._get_current(DataStructureDefinition)
-            dsd.group_dimensions[gdd.id] = gdd
-
-            result = gdd
+    def get(self, cls_or_name, id=None, strict=False):
+        if isinstance(cls_or_name, str) or strict:
+            results = self.stack.get(cls_or_name, [])
         else:
-            # no namespace → GroupKey
-            dsd = self._get_current(DataStructureDefinition)
-
-            # Pop the 'type' attribute
-            args = copy(elem.attrib)
-            group_id = args.pop(qname("xsi", "type")).split(":")[-1]
-
-            try:
-                result = dsd.make_key(GroupKey, args, group_id=group_id)
-            except KeyError:
-                if not self._check_ss_without_dsd():  # pragma: no cover
-                    raise
-
-                log.warning(
-                    "Create new GroupDimensionDescriptor with id=" f"{group_id}"
+            results = chain(
+                *map(
+                    itemgetter(1),
+                    filter(matching_class0(cls_or_name), self.stack.items()),
                 )
-                result = dsd.make_key(GroupKey, args, group_id=group_id, extend=True)
+            )
 
-        assert len(values) == 0
-        return result
-
-    def parse_key(self, elem):
-        """SeriesKey, GroupKey, observation dimensions."""
-        cls = {
-            "GroupKey": GroupKey,
-            "ObsKey": Key,
-            "SeriesKey": SeriesKey,
-            "Key": DataKey,  # for DataKeySet
-        }[QName(elem).localname]
-        if cls is not DataKey:
-            # Most data: the value is specified as an XML attribute
-            kv = {e.attrib["id"]: e.attrib["value"] for e in elem.iterchildren()}
-
-            dsd = self._get_current(DataStructureDefinition)
-            return dsd.make_key(cls, kv, extend=True)
+        if id:
+            for obj in results:
+                if obj.id == id:
+                    return obj
         else:
-            # <str:DataKeySet> and <str:CubeRegion>: the value(s) are specified
-            # with a <com:Value>...</com:Value> element.
-            dd = self._get_cc_dsd().dimensions
-            kv = {}
-            for e in elem.iterchildren():
-                c = dd.getdefault(e.attrib["id"])
-                kv[c] = ComponentValue(value_for=c, value=self._parse(e)["value"])
-            return cls(included=elem.attrib.get("isIncluded", True), key_value=kv)
+            results = list(results)
+            return None if len(results) != 1 else results[0]
 
-    def parse_obs(self, elem):
-        values = self._parse(elem)
+    def pop_all(self, cls_or_name, strict=False):
+        """Remove all instances of *cls_or_name* from the stack and return.
 
-        dsd = self._get_current(DataStructureDefinition)
-
-        # Attached attributes
-        aa = values.pop("attributes", {})
-
-        if "obskey" in values:
-            key = values.pop("obskey")
-        elif "obsdimension" in values:
-            od = values.pop("obsdimension")
-            dim = self._obs_dim.id
-            if len(od) == 2:
-                assert od["id"] == dim, (values, dim)
-            key = dsd.make_key(Key, {dim: od["value"]})
-
-        if len(values):
-            value = values.pop("obsvalue", None)
+        Returns
+        -------
+        list
+        """
+        if isinstance(cls_or_name, str):
+            return self.stack.pop(cls_or_name, [])
         else:
-            # StructureSpecificData message—all information stored as XML
-            # attributes of the <Observation>.
-            attr = copy(elem.attrib)
+            cond = matching_class(cls_or_name)
+            return list(
+                chain(
+                    *[
+                        self.stack.pop(k) if cond(k) else []
+                        for k in list(self.stack.keys())
+                    ]
+                )
+            )
 
-            # Value of the observation
-            value = attr.pop("OBS_VALUE", None)
-
-            # Use the DSD to separate dimensions and attributes
-            try:
-                key = dsd.make_key(Key, attr)
-            except KeyError as exc:
-                if not self._check_ss_without_dsd():  # pragma: no cover
-                    raise
-
-                log.warning(f"Create Dimension(s) with ids [{exc.args[0]}, …]")
-                key = dsd.make_key(Key, attr, extend=True)
-
-            # Remove attributes from the Key to be attached to the Observation
-            aa.update(key.attrib)
-            key.attrib = {}
-
-        assert len(values) == 0, values
-        return Observation(dimension=key, value=value, attached_attribute=aa)
-
-    def parse_obsdimension(self, elem):
-        assert set(elem.attrib.keys()) <= {"id", "value"}
-        return copy(elem.attrib)
-
-    def parse_obsvalue(self, elem):
-        assert len(elem.attrib) == 1, elem.attrib
-        return elem.attrib["value"]
-
-    def parse_series(self, elem):
-        values = self._parse(elem)
+    def pop_single(self, cls_or_name):
         try:
-            series_key = values.pop("serieskey")
-            series_key.attrib.update(values.pop("attributes", {}))
-        except KeyError:
-            # StructureSpecificData message
-            dsd = self._get_current(DataStructureDefinition)
+            return self.stack[cls_or_name].pop(-1)
+        except (IndexError, KeyError):
+            return None
 
-            try:
-                series_key = dsd.make_key(SeriesKey, elem.attrib)
-            except KeyError as exc:
-                if not self._check_ss_without_dsd():  # pragma: no cover
-                    raise
+    def pop_resolved_ref(self, cls, cls_or_name=None):
+        return self.resolve(cls, self.pop_single(cls_or_name or cls))
 
-                log.warning(f"Create Dimension(s) with ids [{exc.args[0]}, …]")
-                series_key = dsd.make_key(SeriesKey, elem.attrib, extend=True)
+    def resolve(self, cls, ref):
+        if not isinstance(ref, Reference):
+            return ref
 
-        obs_list = wrap(values.pop("obs", []))
-        for o in obs_list:
-            o.series_key = series_key
-        assert len(values) == 0
-        return (series_key, obs_list)
+        assert issubclass(ref.cls, cls) or issubclass(ref.child_cls, cls)
 
-    # Parsers for elements appearing in structure messages
+        # log.info(f"Resolving {ref}")
 
-    def parse_structures(self, elem):
-        return self._parse(elem, unwrap=False)
+        # Try to get the target directly
+        result = self.get(ref.child_cls, ref.child_id)
 
-    def parse_organisation(self, elem):
-        cls = sdmx.model.get_class(QName(elem).localname)
-        o, values = self._named(cls, elem)
-        o.contact = wrap(values.pop("contact", []))
-        assert len(values) == 0
-        return o
-
-    def parse_contact(self, elem):
-        values = self._parse(elem, unwrap=False)
-        # Map XML element names to the class attributes in the SDMX-IM spec
-        values["name"] = values.pop("name")[0]
-        values["telephone"] = values.pop("telephone", [None])[0]
-        values["org_unit"] = values.pop("department", [{}])[0]
-        values["responsibility"] = values.pop("role", [{}])[0]
-        return Contact(**values)
-
-    def parse_annotation(self, elem):
-        values = self._parse(elem)
-
-        # Rename values from child elements: 'annotationurl' → 'url'
-        for tag in ("text", "title", "type", "url"):
-            try:
-                values[tag] = values.pop("annotation" + tag)
-            except KeyError:
-                pass
-
-        # Optional 'id' attribute
-        try:
-            values["id"] = elem.attrib["id"]
-        except KeyError:
+        if result:
+            # Success
+            # log.info(f"Internal ref to {repr(result)}")
             pass
+        elif not ref.maintainable:
+            # Retrieve the parent MaintainableArtefact or create a reference
+            parent = self.get(ref.cls, ref.id)
 
-        return Annotation(**values)
+            if parent is None:
+                parent = self.maintainable(
+                    ref.cls, None, id=ref.id, is_external_reference=True,
+                )
+                self.push(parent)
 
-    def parse_code(self, elem):
-        c, values = self._named(Code, elem)
-        try:
-            c.parent = values.pop("parent")
-            c.parent.child.append(c)
-        except KeyError:
-            pass
-        assert len(values) == 0, values
-        return c
-
-    def parse_categorisation(self, elem):
-        c, values = self._named(Categorisation, elem)
-        c.artefact = values.pop("source")
-        c.category = values.pop("target")
-        assert len(values) == 0
-        return c
-
-    def parse_category(self, elem):
-        c, values = self._named(Category, elem, unwrap=False)
-        for child_category in values.pop("category", []):
-            c.child.append(child_category)
-            child_category.parent = c
-        assert len(values) == 0
-        return c
-
-    def parse_categoryscheme(self, elem):
-        cs, values = self._named(CategoryScheme, elem)
-        cs.extend(values.pop("category", []))
-        assert len(values) == 0
-        return cs
-
-    def parse_codelist(self, elem):
-        cl, values = self._named(Codelist, elem, unwrap=False)
-        cl.extend(values.pop("code", []))
-        assert len(values) == 0
-        return cl
-
-    def parse_concept(self, elem):
-        c, values = self._named(Concept, elem)
-        c.core_representation = values.pop("corerepresentation", None)
-        try:
-            c.parent = values.pop("parent")
-        except KeyError:
-            pass
-        assert len(values) == 0
-        return c
-
-    def parse_conceptidentity(self, elem):
-        # <ConceptIdentity> element can contain a child <URN>. Unlike other
-        # URNs, this references a non-maintainable class (Concept), rather than
-        # its maintainable parent (ConceptScheme); so parse_ref fails.
-
-        # Parse children, which should only be a <URN>
-        values = self._parse(elem)
-        if set(values.keys()) != {"urn"}:
-            raise ValueError(values)
-
-        # URN should refer to a Concept
-        match = sdmx.urn.match(values["urn"])
-        if match["class"] != "Concept":
-            raise ValueError(values["urn"])
-
-        # Look up the parent ConceptScheme
-        cls = sdmx.model.get_class("ConceptScheme", match["package"])
-        cs = self._maintained(cls=cls, id=match["id"])
-
-        # Get or create the Concept within *cs*
-        return cs.setdefault(id=match["item_id"])
-
-    def parse_constraintattachment(self, elem):
-        constrainables = self._parse(elem)
-        assert len(constrainables) == 1
-        result = list(constrainables.values())[0]
-
-        # Also add to the parent ContentConstraint for use in parsing KeyValues
-        self._get_current(ContentConstraint).content.add(result)
+            if parent.is_external_reference:
+                result = None
+                log.info(
+                    f"Parent {repr(ref.id)} is external; cannot resolve child "
+                    f"{repr(ref.child_id)}"
+                )
+            else:
+                result = parent[ref.child_id]
+                # log.info(
+                #     f"Internal ref to child {repr(ref.child_id)} of {repr(ref.id)}"
+                # )
+        else:
+            # log.info(f"External ref to {repr(ref.id)}")
+            result = self.maintainable(
+                ref.cls, None, id=ref.id, is_external_reference=True,
+            )
+            self.push(result)
 
         return result
 
-    def parse_orgscheme(self, elem):
-        cls = sdmx.model.get_class(QName(elem).localname)
-        os, values = self._named(cls, elem, unwrap=False)
-        # Get the list of organisations. The following assumes that the
-        # *values* dict has only one item. Otherwise, the returned item will be
-        # unpredictable.
-        # TODO review the code parsing the children to verify that the
-        #      assumption always holds.
-        _, orgs = values.popitem()
-        os.extend(orgs)
-        return os
+    def annotable(self, cls, elem, **kwargs):
+        """Create a AnnotableArtefact of `cls` from `elem` and `kwargs`.
 
-    def parse_conceptscheme(self, elem):
-        cs, values = self._named(ConceptScheme, elem, unwrap=False)
-        cs.extend(values.pop("concept", []))
-        assert len(values) == 0
-        return cs
+        Collects all parsed <com:Annotation>.
+        """
+        if elem is not None:
+            kwargs.setdefault("annotations", [])
+            kwargs["annotations"].extend(self.pop_all(model.Annotation))
+        return cls(**kwargs)
 
-    def parse_dataflow(self, elem):
-        dfd, values = self._named(DataflowDefinition, elem)
-        dfd.structure = values.pop("structure")
-        assert len(values) == 0
-        return dfd
+    def identifiable(self, cls, elem, **kwargs):
+        """Create a IdentifiableArtefact of `cls` from `elem` and `kwargs`."""
+        setdefault_attrib(kwargs, elem, "id")
+        return self.annotable(cls, elem, **kwargs)
 
-    def parse_datastructure(self, elem):
-        dsd, values = self._named(DataStructureDefinition, elem)
-        target = {
-            DimensionDescriptor: "dimensions",
-            AttributeDescriptor: "attributes",
-            MeasureDescriptor: "measures",
-            GroupDimensionDescriptor: "group_dimensions",
-        }
-        for c in values.pop("datastructurecomponents"):
-            attr = target[type(c)]
+    def nameable(self, cls, elem, **kwargs):
+        """Create a NameableArtefact of `cls` from `elem` and `kwargs`.
 
-            if attr == "group_dimensions":
-                # These are already added 'eagerly', by parse_group
-                continue
+        Collects all parsed :class:`.InternationalString` localizations of <com:Name>
+        and <com:Description>.
+        """
+        obj = self.identifiable(cls, elem, **kwargs)
+        if elem is not None:
+            add_localizations(obj.name, self.pop_all("Name"))
+            add_localizations(obj.description, self.pop_all("Description"))
+        return obj
 
-            setattr(dsd, attr, c)
+    def versionable(self, cls, elem, **kwargs):
+        """Create a VersionableArtefact of `cls` from `elem` and `kwargs`."""
+        setdefault_attrib(kwargs, elem, "version")
+        return self.nameable(cls, elem, **kwargs)
 
-        assert len(values) == 0
-        return dsd
+    def maintainable(self, cls, elem, **kwargs):
+        """Create a MaintainableArtefact of `cls` from `elem` and `kwargs`.
 
-    def parse_componentlist(self, elem):
-        attr = copy(elem.attrib)
+        Following the SDMX-IM class hierachy, :meth:`maintainable` calls
+        :meth:`versionable`, which in turn calls :meth:`nameable`, etc.
+        For all of these methods:
 
-        # Determine the class
-        try:
-            cls_name = attr.pop("id")
-        except KeyError:
-            # SDMX-ML spec for, e.g. DimensionList: "The id attribute is
-            # provided in this case for completeness. However, its value is
-            # fixed to 'DimensionDescriptor'."
-            cls_name = QName(elem).localname.replace("List", "Descriptor")
-        finally:
-            ComponentListClass = sdmx.model.get_class(cls_name)
-            # Reappend the ID
-            attr["id"] = cls_name
+        - Already-parsed items are only removed from the stack if `elem` is not
+          :obj:`None`.
+        - `kwargs` (e.g. 'id') take precedences over values retrieved from attributes
+           of `elem`.
+        """
+        setdefault_attrib(kwargs, elem, "isExternalReference", "uri", "urn")
+        return self.versionable(cls, elem, **kwargs)
 
-        cl = ComponentListClass(
-            components=list(chain(*self._parse(elem, unwrap=False).values())), **attr
-        )
 
-        try:
-            cl.assign_order()
-        except AttributeError:
-            pass
+@start(*[f"mes:{k}" for k in MESSAGE.keys() if k != "Structure"])
+@start("mes:Structure", only=False)
+def _message(reader, elem):
+    """Start of a Message."""
+    # <mes:Structure> within <mes:Header> of a data message is handled by
+    # _header_structure() below.
+    if getattr(elem.getparent(), "tag", None) == qname("mes", "Header"):
+        return
 
-        return cl
+    # With 'dsd' argument, the message should be structure-specific
+    if (
+        "StructureSpecific" in elem.tag
+        and reader.get(model.DataStructureDefinition) is None
+    ):
+        log.warning(f"sdmxml.Reader got no dsd=… argument for {QName(elem).localname}")
+        reader._ss_missing_dsd = True
+    elif "StructureSpecific" not in elem.tag and reader.get(
+        model.DataStructureDefinition
+    ):
+        log.warning("Ambiguous: dsd=… argument for non–structure-specific message")
 
-    def parse_dimension(self, elem):
-        values = self._parse(elem)
+    # Instantiate the message object
+    cls = MESSAGE[QName(elem).localname]
+    return cls()
 
-        # Object class: Dimension, MeasureDimension, or TimeDimension
-        DimensionClass = sdmx.model.get_class(QName(elem).localname)
 
-        args = copy(elem.attrib)
-        try:
-            args["order"] = int(args.pop("position"))
-        except KeyError:
-            pass
+@end("mes:Structure", only=False)
+def _header_structure(reader, elem):
+    """<mes:Structure> within <mes:Header> of a DataMessage."""
+    # The root node of a structure message is handled by _message(), above.
+    if elem.getparent() is None:
+        return
 
-        args.update(
-            dict(
-                concept_identity=values.pop("conceptidentity"),
-                local_representation=values.pop("localrepresentation", None),
+    msg = reader.get(message.Message)
+
+    # Retrieve a DSD supplied to the parser, e.g. for a structure specific message
+    provided_dsd = reader.get(model.DataStructureDefinition)
+
+    # Resolve the <com:Structure> child to a DSD, maybe is_external_reference=True
+    header_dsd = reader.pop_resolved_ref(model.DataStructureDefinition, "Structure")
+    # Resolve the <str:StructureUsage> child, if any, and remove it from the stack
+    header_su = reader.pop_resolved_ref(object, "StructureUsage")
+    reader.pop_single(model.StructureUsage)
+
+    if provided_dsd:
+        dsd = provided_dsd
+    else:
+        if header_su:
+            su_dsd = reader.maintainable(
+                model.DataStructureDefinition,
+                None,
+                id=header_su.id,
+                maintainer=header_su.maintainer,
+                version=header_su.version,
             )
-        )
-        assert len(values) == 0, values
 
-        return DimensionClass(**args)
-
-    def parse_groupdimension(self, elem):
-        values = self._parse(elem)
-        d = values.pop("dimensionreference")
-        assert len(values) == 0
-        return d
-
-    def parse_attribute(self, elem):
-        if self._stack[-1] == "CubeRegion":
-            # <com:Attribute> inside a CubeRegion is a MemberSelection
-            return self.parse_memberselection(elem)
-
-        args = dict(id=elem.attrib["id"])
-        try:
-            args["urn"] = elem.attrib["urn"]
-        except KeyError:
-            pass
-
-        try:
-            us = elem.attrib["assignmentStatus"]
-        except KeyError:
-            pass
+        if header_dsd:
+            if header_su:
+                assert header_dsd == su_dsd
+            dsd = header_dsd
+        elif header_su:
+            reader.push(su_dsd)
+            dsd = su_dsd
         else:
-            args["usage_status"] = UsageStatus[us.lower()]
+            raise RuntimeError
 
-        values = self._parse(elem)
-        args.update(
-            dict(
-                concept_identity=values.pop("conceptidentity"),
-                local_representation=values.pop("localrepresentation", None),
-                related_to=values.pop("attributerelationship"),
+        # Store as an object that won't cause a parsing error if it is left over
+        reader.ignore.add(id(dsd))
+
+    # Store
+    msg.dataflow.structure = dsd
+
+    # Store under the structure ID, so it can be looked up by that ID
+    reader.push(elem.attrib["structureID"], dsd)
+
+    try:
+        # Information about the 'dimension at observation level'
+        dim_at_obs = elem.attrib["dimensionAtObservation"]
+    except KeyError:
+        pass
+    else:
+        # Store
+        if dim_at_obs == "AllDimensions":
+            # Use a singleton object
+            dim = model.AllDimensions
+        elif provided_dsd:
+            # Use existing dimension from the provided DSD
+            dim = dsd.dimensions.get(dim_at_obs)
+        else:
+            # Force creation of the 'dimension at observation' level
+            dim = dsd.dimensions.getdefault(
+                dim_at_obs,
+                cls=(
+                    model.TimeDimension
+                    if "TimeSeries" in elem.getparent().getparent().tag
+                    else model.Dimension
+                ),
+                # TODO later, reduce this
+                order=maxsize,
             )
-        )
-        assert len(values) == 0
+        msg.observation_dimension = dim
 
-        return DataAttribute(**args)
 
-    def parse_primarymeasure(self, elem):
-        values = self._parse(elem)
-        pm = PrimaryMeasure(
-            concept_identity=values.pop("conceptidentity"),
-            local_representation=values.pop("localrepresentation", None),
-            **elem.attrib,
-        )
-        assert len(values) == 0
-        return pm
+@start("mes:DataSet", only=False)
+def _ds_start(reader, elem):
+    ds = model.DataSet()
 
-    def parse_attributerelationship(self, elem):
-        # Child element names
-        tags = set([QName(e).localname for e in elem.iterchildren()])
+    # Store a reference to the DSD that structures the data set
+    id = elem.attrib.get("structureRef", None) or elem.attrib.get(
+        qname("data:structureRef"), None
+    )
+    if id:
+        ds.structured_by = reader.get(id)
+    else:
+        log.info("No DSD when creating DataSet {reader.stack}")
 
-        if "PrimaryMeasure" not in tags:
-            # Avoid recurive _parse() here, because it may contain a Ref to
-            # a PrimaryMeasure that is not yet defined
-            values = self._parse(elem, unwrap=False)
-        else:
-            values = []
+    return ds
 
-        args = {}
+
+@end("mes:DataSet", only=False)
+def _ds_end(reader, elem):
+    ds = reader.pop_single(model.DataSet)
+
+    # Collect observations not grouped by SeriesKey
+    ds.add_obs(reader.pop_all(model.Observation))
+
+    # Create group references
+    for obs in ds.obs:
+        ds._add_group_refs(obs)
+
+    # Add the data set to the message
+    reader.get(message.Message).data.append(ds)
+
+
+@end("gen:Series")
+def _series(reader, elem):
+    ds = reader.get(model.DataSet)
+    sk = reader.pop_single(model.SeriesKey)
+    sk.attrib.update(reader.pop_single("Attributes") or {})
+    ds.add_obs(reader.pop_all(model.Observation), sk)
+
+
+@end("gen:Group")
+def _group(reader, elem):
+    ds = reader.get(model.DataSet)
+
+    gk = reader.pop_single(model.GroupKey)
+    gk.attrib.update(reader.pop_single("Attributes") or {})
+
+    # Group association of Observations is done in _ds_end()
+    ds.group[gk] = []
+
+
+@end("gen:Attributes")
+def _avs(reader, elem):
+    ad = reader.get(model.DataSet).structured_by.attributes
+
+    result = {}
+    for e in elem.iterchildren():
+        da = ad.getdefault(e.attrib["id"])
+        result[da.id] = model.AttributeValue(value=e.attrib["value"], value_for=da)
+
+    reader.push("Attributes", result)
+
+
+@end("gen:Obs")
+def _obs(reader, elem):
+    dim_at_obs = reader.get(message.Message).observation_dimension
+    dsd = reader.get(model.DataSet).structured_by
+
+    args = dict()
+
+    for e in elem.iterchildren():
+        localname = QName(e).localname
+        if localname == "Attributes":
+            args["attached_attribute"] = reader.pop_single("Attributes")
+        elif localname == "ObsDimension":
+            # Mutually exclusive with ObsKey
+            args["dimension"] = dsd.make_key(
+                model.Key, {dim_at_obs.id: e.attrib["value"]}
+            )
+        elif localname == "ObsKey":
+            # Mutually exclusive with ObsDimension
+            args["dimension"] = reader.pop_single(model.Key)
+        elif localname == "ObsValue":
+            args["value"] = e.attrib["value"]
+
+    return model.Observation(**args)
+
+
+@end(":Obs")
+def _obs_ss(reader, elem):
+    # StructureSpecificData message—all information stored as XML
+    # attributes of the <Observation>.
+    attrib = copy(elem.attrib)
+
+    # Value of the observation
+    value = attrib.pop("OBS_VALUE", None)
+
+    # Use the DSD to separate dimensions and attributes
+    dsd = reader.get(model.DataStructureDefinition)
+
+    # Extend the DSD if the user failed to provide it
+    key = dsd.make_key(model.Key, attrib, extend=reader._ss_missing_dsd)
+
+    # Remove attributes from the Key to be attached to the Observation
+    aa = key.attrib
+    key.attrib = {}
+
+    return model.Observation(dimension=key, value=value, attached_attribute=aa)
+
+
+@end("gen:ObsKey gen:GroupKey gen:SeriesKey")
+def _key(reader, elem):
+    cls = get_sdmx_class(elem)
+
+    kv = {e.attrib["id"]: e.attrib["value"] for e in elem.iterchildren()}
+
+    dsd = reader.get(model.DataSet).structured_by
+
+    return dsd.make_key(cls, kv, extend=True)
+
+
+@end(":Group")
+def _group_ss(reader, elem):
+    ds = reader.get(model.DataSet)
+    attrib = copy(elem.attrib)
+
+    group_id = attrib.pop(qname("xsi", "type"), None)
+
+    gk = ds.structured_by.make_key(
+        model.GroupKey, attrib, extend=reader._ss_missing_dsd,
+    )
+
+    if group_id:
+        # The group_id is in a format like "foo:GroupName", where "foo" is an XML
+        # namespace
+        ns, group_id = group_id.split(":")
+        assert ns in elem.nsmap
+
         try:
-            tags.remove("AttachmentGroup")
+            gk.described_by = ds.structured_by.group_dimensions[group_id]
         except KeyError:
-            pass
-        else:
-            args["group_key"] = values.pop("attachmentgroup")[0]
+            if not reader._ss_missing_dsd:
+                raise
 
-        tag = tags.pop()
-        assert len(tags) == 0, tags
+    ds.group[gk] = []
 
-        cls = {
-            "Dimension": DimensionRelationship,
-            "PrimaryMeasure": PrimaryMeasureRelationship,
-            "None": NoSpecifiedRelationship,
-            "Group": DimensionRelationship,
-        }[tag]
 
-        if tag == "Dimension":
-            args["dimensions"] = values.pop("dimension")
-        elif tag == "Group":
-            # Reference to a GroupDimensionDescriptor
-            args["group_key"] = values.pop("group")[0]
-        elif tag == "None":
-            values.pop("none")
-        assert len(values) == 0, values
+@end(":Series")
+def _series_ss(reader, elem):
+    ds = reader.get(model.DataSet)
+    ds.add_obs(
+        reader.pop_all(model.Observation),
+        ds.structured_by.make_key(
+            model.SeriesKey, elem.attrib, extend=reader._ss_missing_dsd,
+        ),
+    )
 
-        return cls(**args)
 
-    def parse_representation(self, elem):
-        r = Representation()
-        values = self._parse(elem, unwrap=False)
-        if "enumeration" in values:
-            for e in values.pop("enumeration"):
-                if isinstance(e, str):
-                    e = ItemScheme(urn=e)
-                r.enumerated = e
-            if "enumerationformat" in values:
-                r.non_enumerated = values.pop("enumerationformat")
-        elif "textformat" in values:
-            r.non_enumerated = values.pop("textformat")
+@end("footer:Footer")
+def _footer(reader, elem):
+    # Get attributes from the child <footer:Messsage>
+    args = dict()
+    setdefault_attrib(args, elem[0], "code", "severity")
+    if "code" in args:
+        args["code"] = int(args["code"])
 
-        assert len(values) == 0
-        return r
+    reader.get(message.Message).footer = message.Footer(
+        text=list(map(model.InternationalString, reader.pop_all("Text"))), **args,
+    )
 
-    def parse_facet(self, elem):
-        # Parse facet value type; SDMX-ML default is 'String'
-        fvt = elem.attrib.get("textType", "String")
+
+@end("mes:Structures")
+def _structures(reader, elem):
+    msg = reader.get(message.Message)
+
+    # Populate dictionaries by ID
+    for attr, name in (
+        ("dataflow", model.DataflowDefinition),
+        ("codelist", model.Codelist),
+        ("constraint", model.ContentConstraint),
+        ("structure", model.DataStructureDefinition),
+        ("category_scheme", model.CategoryScheme),
+        ("concept_scheme", model.ConceptScheme),
+        ("organisation_scheme", model.OrganisationScheme),
+        ("provisionagreement", model.ProvisionAgreement),
+    ):
+        for obj in reader.pop_all(name):
+            getattr(msg, attr)[obj.id] = obj
+
+    # Check, but do not store, categorizations
+    for c in reader.pop_all(model.Categorisation):
+        log.info(" ".join(map(repr, [c, c.artefact, c.category])))
+
+
+@start("str:Agency str:Code str:Category str:DataProvider", only=False)
+def _item_start(reader, elem):
+    try:
+        if not (elem[0].tag in ("Ref", "URN")):
+            # Avoid stealing the name(s) of the parent ItemScheme from the stack
+            # TODO check this works for annotations
+            reader.stash("Name")
+    except IndexError:
+        pass
+
+
+@end("str:Agency str:Code str:Category str:DataProvider", only=False)
+def _item(reader, elem):
+    try:
+        # <str:DataProvider> may be a reference, e.g. in <str:ConstraintAttachment>
+        return Reference(elem)
+    except NotReference:
+        pass
+
+    cls = get_sdmx_class(elem)
+    item = reader.nameable(cls, elem)
+
+    # Hierarchy is stored in two ways
+
+    # (1) XML sub-elements of the parent. These have already been parsed.
+    for e in elem:
+        if e.tag == elem.tag:
+            # Found 1 child XML element with same tag → claim 1 child object
+            item.append_child(reader.pop_single(cls))
+
+    # (2) through <str:Parent>
+    parent = reader.pop_resolved_ref(cls, "Parent")
+    if parent:
+        parent.append_child(item)
+
+    reader.unstash()
+    return item
+
+
+@end("str:Concept", only=True)
+def _concept(reader, elem):
+    concept = _item(reader, elem)
+    concept.core_representation = reader.pop_single(model.Representation)
+    return concept
+
+
+@end("str:CoreRepresentation str:LocalRepresentation")
+def _rep(reader, elem):
+    return model.Representation(
+        enumerated=reader.pop_resolved_ref(model.ItemScheme, "Enumeration"),
+        non_enumerated=(
+            reader.pop_all("EnumerationFormat") + reader.pop_all("TextFormat")
+        ),
+    )
+
+
+@end("str:EnumerationFormat str:TextFormat")
+def _facet(reader, elem):
+    attrib = copy(elem.attrib)
+
+    # Parse facet value type; SDMX-ML default is 'String'
+    fvt = attrib.pop("textType", "String")
+
+    f = model.Facet(
         # Convert case of the value. In XML, first letter is uppercase; in
         # the spec and Python enum, lowercase.
-        f = Facet(value_type=FacetValueType[fvt[0].lower() + fvt[1:]])
+        value_type=model.FacetValueType[fvt[0].lower() + fvt[1:]],
+        # Other attributes are for Facet.type, an instance of FacetType. Convert
+        # the attribute name from camelCase to snake_case
+        type=model.FacetType(**{to_snake(key): val for key, val in attrib.items()}),
+    )
+    reader.push(elem, f)
 
-        # Other attributes are for Facet.type, an instance of FacetType
-        for key, value in elem.attrib.items():
-            if key == "textType":
-                continue
-            # Convert attribute name from camelCase to snake_case
-            setattr(f.type, to_snake(key), value)
 
-        return f
+@end(
+    "str:AgencyScheme str:Codelist str:ConceptScheme str:CategoryScheme "
+    "str:DataProviderScheme",
+)
+def _itemscheme(reader, elem):
+    cls = get_sdmx_class(elem)
 
-    # Parsers for constraints etc.
-    def parse_contentconstraint(self, elem):
-        role = elem.attrib.pop("type").lower()
-        elem.attrib["role"] = "allowable" if role == "allowed" else role
-        cc, values = self._named(ContentConstraint, elem)
-        cc.content.update(wrap(values.pop("constraintattachment")))
-        cc.data_content_region.append(values.pop("cuberegion", None))
-        cc.data_content_keys = values.pop("datakeyset", None)
-        assert len(values) == 0, values
-        return cc
+    # Iterate over all Item objects *and* their children
+    iter_all = chain(*[iter(item) for item in reader.pop_all(cls._Item)])
+    # Set of objects already added to `items`
+    seen = dict()
+    # Flatten the list
+    items = [seen.setdefault(i, i) for i in iter_all if i not in seen]
 
-    def parse_cuberegion(self, elem):
-        values = self._parse(elem, unwrap=False)
-        cr = CubeRegion(included=elem.attrib["include"])
+    return reader.maintainable(cls, elem, items=items)
 
-        # Combine member selections for Dimensions and Attributes
-        for ms in values.pop("keyvalue", []) + values.pop("attribute", []):
-            cr.member[ms.values_for] = ms
 
-        assert len(values) == 0
-        return cr
+@end("com:Annotation")
+def _a(reader, elem):
+    args = dict(
+        title=reader.pop_single("AnnotationTitle"),
+        type=reader.pop_single("AnnotationType"),
+        url=reader.pop_single("AnnotationURL"),
+    )
 
-    def parse_memberselection(self, elem):
-        """<com:KeyValue> (not inside <com:Key>); or <com:Attribute>."""
-        values = self._parse(elem)
-        values = list(map(lambda v: MemberValue(value=v), values["value"]))
+    # Optional 'id' attribute
+    setdefault_attrib(args, elem, "id")
 
-        # Values are for either a Dimension or Attribute, based on tag name
-        kind = {
-            "KeyValue": ("dimensions", Dimension),
-            "Attribute": ("attributes", DataAttribute),
-        }.get(QName(elem).localname)
+    a = model.Annotation(**args)
+    add_localizations(a.text, reader.pop_all("AnnotationText"))
 
+    return a
+
+
+@end("mes:Header")
+def _header(reader, elem):
+    # Attach to the Message
+    header = message.Header(
+        id=reader.pop_single("ID") or None,
+        prepared=reader.pop_single("Prepared") or None,
+        receiver=reader.pop_single("Receiver"),
+        sender=reader.pop_single("Sender") or None,
+        test=str(reader.pop_single("Test")).lower() == "true",
+    )
+    add_localizations(header.source, reader.pop_all("Source"))
+
+    reader.get(message.Message).header = header
+
+    # TODO check whether these occur anywhere besides footer.xml
+    reader.pop_all("Timezone")
+    reader.pop_all("DataSetAction")
+    reader.pop_all("DataSetID")
+
+
+@end(
+    "mes:DataSetAction mes:DataSetID mes:ID mes:Prepared mes:Test mes:Timezone "
+    "com:AnnotationType com:AnnotationTitle com:AnnotationURL com:Email com:None "
+    "com:Telephone com:URI com:URN com:Value"
+)
+def _text(reader, elem):
+    reader.push(elem, elem.text)
+
+
+@end("mes:Receiver mes:Sender")
+def _header_org(reader, elem):
+    reader.push(elem, reader.nameable(get_sdmx_class(elem), elem))
+
+
+@end(
+    "com:AnnotationText com:Name com:Department com:Description com:Role com:Text "
+    "mes:Source"
+)
+def _localization(reader, elem):
+    reader.push(
+        elem, (elem.attrib.get(qname("xml:lang"), model.DEFAULT_LOCALE), elem.text)
+    )
+
+
+@end(
+    # in <mes:Header> of structure-specific data message
+    "com:Structure "
+    # in <mes:Header>/<mes:Structure> of generic data message
+    "com:StructureUsage str:AttachmentGroup str:ConceptIdentity str:DimensionReference"
+    " str:Parent str:Source "
+    # In e.g. <str:Dataflow>
+    "str:Structure str:Target str:Enumeration"
+)
+def _ref(reader, elem):
+    localname = QName(elem).localname
+
+    # Certain XML elements always point to certain classes
+    cls_hint = {
+        "AttachmentGroup": "GroupDimensionDescriptor",
+        "DimensionReference": "Dimension",
+        "Parent": QName(elem.getparent()).localname,
+        "Structure": "DataStructureDefinition",
+    }.get(localname, None)
+
+    reader.push(localname, Reference(elem, cls_hint))
+
+
+@end(
+    "str:Attribute str:Dimension str:GroupDimension str:MeasureDimension "
+    "str:PrimaryMeasure str:TimeDimension"
+)
+def _component(reader, elem):
+    try:
+        # May be a reference
+        return Reference(elem)
+    except NotReference:
+        pass
+
+    # Object class: {,Measure,Time}Dimension or DataAttribute
+    cls = get_sdmx_class(elem)
+
+    args = dict(
+        concept_identity=reader.pop_resolved_ref(model.Concept, "ConceptIdentity"),
+        local_representation=reader.pop_single(model.Representation),
+    )
+    try:
+        args["order"] = int(elem.attrib["position"])
+    except KeyError:
+        pass
+
+    # DataAttribute only
+    ar = reader.pop_all(model.AttributeRelationship)
+    if len(ar):
+        assert len(ar) == 1
+        args["related_to"] = ar[0]
+
+    return reader.identifiable(cls, elem, **args)
+
+
+@end("str:AttributeRelationship")
+def _ar(reader, elem):
+    # Retrieve the current DSD
+    dsd = reader.get(model.DataStructureDefinition)
+
+    if "None" in elem[0].tag:
+        return model.NoSpecifiedRelationship()
+
+    # Iterate over the stack of parsed references
+    args = dict(dimensions=list())
+    for ref in reader.pop_all(Reference, strict=True):
+        # Use the <Ref id="..."> to retrieve a Component from the DSD
         try:
-            # Navigate from the current ContentConstraint to a
-            # ConstrainableArtefact. If this is a DataFlow, it has a DSD, which
-            # has an Attribute- or DimensionDescriptor
-            cl = getattr(self._get_cc_dsd(), kind[0])
-        except AttributeError:
-            # Failed because the ContentConstraint is attached to something,
-            # e.g. DataProvider, that does not provide an association to a DSD.
-            # Try to get a Component from the current scope with matching ID.
-            component = self._get_current(cls=kind[1], id=elem.attrib["id"])
+            if issubclass(ref.child_cls, model.DimensionComponent):
+                component = dsd.dimensions.get(ref.child_id)
+                args["dimensions"].append(component)
+            elif issubclass(ref.child_cls, model.PrimaryMeasure):
+                component = dsd.measures.get(ref.child_id)
+                assert False
+            elif ref.child_cls is model.GroupDimensionDescriptor:
+                args["group_key"] = dsd.group_dimensions[ref.child_id]
+        except KeyError:
+            log.warning(f"Not implemented: forward ref to {str(ref)}")
+
+    ref = reader.pop_single("AttachmentGroup")
+    if ref:
+        args["group_key"] = dsd.group_dimensions[ref.child_id]
+
+    if len(args["dimensions"]):
+        return model.DimensionRelationship(**args)
+    else:
+        args.pop("dimensions")
+        return model.GroupRelationship(**args)
+
+
+@end("str:AttributeList str:DimensionList str:Group str:MeasureList")
+def _cl(reader, elem):
+    try:
+        # <str:Group> may be a reference
+        return Reference(elem, cls_hint="GroupDimensionDescriptor")
+    except NotReference:
+        pass
+
+    # Retrieve the DSD
+    dsd = reader.get(model.DataStructureDefinition)
+    if dsd is None:
+        assert False
+
+    # Retrieve the components
+    args = dict(components=reader.pop_all(model.Component))
+
+    # Determine the class
+    localname = QName(elem).localname
+    if localname == "Group":
+        cls_name = "GroupDimensionDescriptor"
+    else:
+        # SDMX-ML spec for, e.g. DimensionList: "The id attribute is
+        # provided in this case for completeness. However, its value is
+        # fixed to 'DimensionDescriptor'."
+        cls_name = elem.attrib.get("id", localname.replace("List", "Descriptor"))
+        args["id"] = cls_name
+
+    # GroupDimensionDescriptor only
+    for ref in reader.pop_all("DimensionReference"):
+        args["components"].append(dsd.dimensions.get(ref.child_id))
+
+    cl = reader.identifiable(get_sdmx_class(cls_name), elem, **args)
+
+    try:
+        # DimensionDescriptor only
+        cl.assign_order()
+    except AttributeError:
+        pass
+
+    # Assign to the DSD eagerly for reference by next ComponentLists
+    attr = {
+        model.DimensionDescriptor: "dimensions",
+        model.AttributeDescriptor: "attributes",
+        model.MeasureDescriptor: "measures",
+        model.GroupDimensionDescriptor: "group_dimensions",
+    }.get(cl.__class__)
+    if attr == "group_dimensions":
+        getattr(dsd, attr)[cl.id] = cl
+    else:
+        setattr(dsd, attr, cl)
+
+
+@start("str:DataStructure", only=False)
+def _dsd_start(reader, elem):
+    # Get an external reference, possibly created earlier
+    ext_dsd = reader.get(model.DataStructureDefinition)
+
+    # Children are not parsed at this point
+    candidate = reader.maintainable(model.DataStructureDefinition, elem)
+
+    if candidate != ext_dsd:
+        reader.push(candidate)
+
+
+@end("str:DataStructure", only=False)
+def _dsd_end(reader, elem):
+    dsd = reader.get(model.DataStructureDefinition)
+    # TODO also handle annotations etc.
+    add_localizations(dsd.name, reader.pop_all("Name"))
+
+
+@end("str:Dataflow")
+def _dfd(reader, elem):
+    try:
+        # <str:Dataflow> may be a reference, e.g. in <str:ConstraintAttachment>
+        return Reference(elem)
+    except NotReference:
+        pass
+
+    structure = reader.pop_resolved_ref(model.DataStructureDefinition, "Structure")
+    if structure is None:
+        log.warning(
+            "Not implemented: forward reference to:\n" + etree.tostring(elem).decode()
+        )
+        arg = {}
+    else:
+        arg = dict(structure=structure)
+
+    # Create first to collect names
+    return reader.maintainable(model.DataflowDefinition, elem, **arg)
+
+
+@end("str:Categorisation")
+def _cat(reader, elem):
+    return reader.maintainable(
+        model.Categorisation,
+        elem,
+        artefact=reader.pop_resolved_ref(model.IdentifiableArtefact, "Source"),
+        category=reader.pop_resolved_ref(model.Category, "Target"),
+    )
+
+
+@end("str:ContentConstraint")
+def _cc(reader, elem):
+    cr_str = elem.attrib["type"].lower().replace("allowed", "allowable")
+
+    content = set()
+    for ref in reader.pop_all(Reference):
+        resolved = reader.resolve(model.ConstrainableArtefact, ref)
+        if resolved is None:
+            log.warning(
+                f"Unable to resolve Content.Constraint.content reference:\n  "
+                + str(ref)
+            )
         else:
-            try:
-                # Get the Component
-                component = cl.get(elem.attrib["id"])
-            except KeyError:
-                log.warning(
-                    f"{cl} has no {kind[1].__name__} with ID "
-                    f"{elem.attrib['id']}; XML element ignored"
-                )
+            content.add(resolved)
 
-        return MemberSelection(values=values, values_for=component)
-
-    def parse_datakeyset(self, elem):
-        values = self._parse(elem)
-        dks = DataKeySet(included=elem.attrib.pop("isIncluded"), keys=values.pop("key"))
-        assert len(values) == 0
-        return dks
-
-    def parse_provisionagreement(self, elem):
-        pa, values = self._named(ProvisionAgreement, elem)
-        pa.structure_usage = values.pop("structureusage")
-        pa.data_provider = values.pop("dataprovider")
-        assert len(values) == 0, values
-        return pa
-
-    # Parsers for elements appearing in error messages
-
-    def parse_errormessage(self, elem):
-        values = self._parse(elem)
-        values["text"] = [InternationalString(values["text"])]
-        values["code"] = elem.attrib["code"]
-        return values
+    return reader.nameable(
+        model.ContentConstraint,
+        elem,
+        role=model.ConstraintRole(role=model.ConstraintRoleType[cr_str]),
+        content=content,
+        data_content_keys=reader.pop_single(model.DataKeySet),
+        data_content_region=reader.pop_all(model.CubeRegion),
+    )
 
 
-def indexables_from_dsd(dsd):
-    """Return indexable items from a DSD."""
-    # AttributeDescriptor and DataAttributes
-    yield dsd.attributes
-    yield from dsd.attributes.components
+@end("str:CubeRegion")
+def _cr(reader, elem):
+    return model.CubeRegion(
+        included=elem.attrib["include"],
+        # Combine member selections for Dimensions and Attributes
+        member={ms.values_for: ms for ms in reader.pop_all(model.MemberSelection)},
+    )
 
-    # DimensionDescriptor and *Dimensions
-    yield dsd.dimensions
-    yield from dsd.dimensions.components
 
-    if dsd.measures:
-        yield dsd.measures
-        yield from dsd.measures.components
+@end("com:Attribute com:KeyValue")
+def _ms(reader, elem):
+    # Values are for either a Dimension or Attribute, based on tag name
+    kind = {
+        "KeyValue": ("dimensions", model.Dimension),
+        "Attribute": ("attributes", model.DataAttribute),
+    }.get(QName(elem).localname)
 
-    for gdd in dsd.group_dimensions.values():
-        yield gdd
-        yield from gdd.components
+    try:
+        # Navigate from the current ContentConstraint to a
+        # ConstrainableArtefact. If this is a DataFlow, it has a DSD, which
+        # has an Attribute- or DimensionDescriptor
+        cc_content = reader.stack[Reference]
+        assert len(cc_content) == 1
+        dfd = reader.resolve(model.ConstrainableArtefact, cc_content[0])
+        cl = getattr(dfd.structure, kind[0])
+    except AttributeError:
+        # Failed because the ContentConstraint is attached to something,
+        # e.g. DataProvider, that does not provide an association to a DSD.
+        # Try to get a Component from the current scope with matching ID.
+        cl = None
+        component = reader.get(kind[1], id=elem.attrib["id"])
+    else:
+        # Get the Component
+        component = cl.get(elem.attrib["id"])
+
+    # Convert to MemberValue
+    values = map(lambda v: model.MemberValue(value=v), reader.pop_all("Value"))
+
+    if not component:
+        log.warning(
+            f"{cl} has no {kind[1].__name__} with ID {elem.attrib['id']}; XML element "
+            "ignored and MemberValues discarded"
+        )
+        # Values are discarded
+        return None
+
+    return model.MemberSelection(values_for=component, values=list(values))

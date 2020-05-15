@@ -131,7 +131,7 @@ def test_doc_usage_structure():
     # spec, that assumes:
     # - There is 1 Categorization using the CategoryScheme; there could be
     #   many.
-    # - The Categorization maps DataStructureDefintions to Categories, when
+    # - The Categorization maps DataStructureDefinitions to Categories, when
     #   there could be many.
     # list(cat_response.category_scheme['MOBILE_NAVI']['07'])
 

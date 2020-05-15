@@ -190,6 +190,7 @@ class TestESTAT(DataSourceTest):
 
         return fixture
 
+    @pytest.mark.network
     def test_xml_footer(self, mock):
         req = Request(self.source_id)
 

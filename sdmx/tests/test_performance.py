@@ -3,14 +3,14 @@ from sdmx.model import AttributeValue, DataAttribute, DataStructureDefinition
 
 
 def test_refcount():
-    # Component (subclasses) created outside of a DataStructureDefintion
+    # Component (subclasses) created outside of a DataStructureDefinition
     da1 = DataAttribute(id="foo")
     da2 = DataAttribute(id="foo")
 
     assert id(da1) != id(da2)
     assert da1 is not da2
 
-    # Retrieving attributes from a DataStructureDefintion results in references
+    # Retrieving attributes from a DataStructureDefinition results in references
     # to the same object
     dsd = DataStructureDefinition()
 

@@ -97,8 +97,8 @@ def test_identifiable():
     ia = IdentifiableArtefact()
     assert hash(ia) == id(ia)
 
-    ia = IdentifiableArtefact(id='foo')
-    assert hash(ia) == hash('foo')
+    ia = IdentifiableArtefact(id="foo")
+    assert hash(ia) == hash("foo")
 
     # Subclass is hashable
     ad = AttributeDescriptor()

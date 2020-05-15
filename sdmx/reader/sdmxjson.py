@@ -1,6 +1,7 @@
 """SDMX-JSON v2.1 reader"""
 import json
 
+from sdmx import model
 from sdmx.message import DataMessage, Header
 from sdmx.model import (
     ActionType,
@@ -8,7 +9,6 @@ from sdmx.model import (
     AttributeValue,
     Concept,
     DataSet,
-    Item,
     Key,
     KeyValue,
     Observation,
@@ -36,7 +36,9 @@ class Reader(BaseReader):
         # TODO handle KeyError here
         elem = tree["header"]
         msg.header = Header(
-            id=elem["id"], prepared=elem["prepared"], sender=Item(**elem["sender"])
+            id=elem["id"],
+            prepared=elem["prepared"],
+            sender=model.Agency(**elem["sender"]),
         )
 
         # pre-fetch some structures for efficient use in series and obs

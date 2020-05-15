@@ -106,7 +106,6 @@ def test_write_agencyscheme():
 def test_write_categoryscheme():
     with specimen("IPI-2010-A21-structure.xml") as f:
         msg = sdmx.read_sdmx(f)
-        print(msg.category_scheme)
         data = sdmx.to_pandas(msg)
 
     cs = data["category_scheme"]["CLASSEMENT_DATAFLOWS"]

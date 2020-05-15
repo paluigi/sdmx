@@ -115,7 +115,7 @@ def specimen(pattern="", opened=True):
     """Open the test specimen file with *pattern* in the name."""
     for path, f, k in TEST_FILES:
         if path.match("*" + pattern + "*"):
-            yield open(path) if opened else path
+            yield open(path, "br") if opened else path
             return
     raise ValueError(pattern)
 

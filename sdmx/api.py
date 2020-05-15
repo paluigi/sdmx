@@ -552,13 +552,14 @@ def read_sdmx(filename_or_obj, format=None, **kwargs):
         first_line = filename_or_obj.readline().strip()
         filename_or_obj.seek(pos)
 
-        if first_line.startswith("{"):
+        if first_line.startswith(b"{"):
             reader = readers["JSON"]
-        elif first_line.startswith("<"):
+        elif first_line.startswith(b"<"):
             reader = readers["XML"]
         else:
-            msg = f"cannot infer SDMX message format from '{first_line[:5]}..'"
-            raise RuntimeError(msg)
+            raise RuntimeError(
+                f"cannot infer SDMX message format from '{first_line[:5].decode()}..'"
+            )
 
         obj = filename_or_obj
 

@@ -106,7 +106,7 @@ def test_exr_constraints():
     assert ad[-1].id == "UNIT_MULT"
     assert "5" in ad.get("UNIT_MULT")
 
-    pytest.xfail("constrained codes not implemented")  # TODO
+    pytest.xfail("constrained codes not implemented")
     assert len(m._constrained_codes), 14
 
     assert "W" not in m._constrained_codes.FREQ

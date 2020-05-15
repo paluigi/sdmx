@@ -19,8 +19,11 @@ class TestGenericFlatDataSet(DataMessageTest):
         assert isinstance(msg, message.DataMessage)
 
     def test_header_attributes(self, msg):
-        # Internal reference of the StructureUsage is available
-        assert msg.dataflow.id == "STR1"
+        # NB removed 2020-05-15. This is the <mes:Structure structureID="…"> attrib.
+        #    SDMXCommon.xsd states: "The structureID attribute uniquely identifies the
+        #    structure for the purpose of referencing it from the payload. This is only
+        #    used in structure specific formats." It is not related to any DFD.
+        # assert msg.dataflow.id == "STR1"
 
         # Maintained ID of the DataStructureDefinition is available
         assert msg.structure.id == "ECB_EXR_NG"
@@ -61,7 +64,8 @@ class TestGenericSeriesDataSet(DataMessageTest):
     filename = "ng-ts-gf.xml"
 
     def test_header_attributes(self, msg):
-        assert msg.dataflow.id == "STR1"
+        # NB remove 2020-05-15; see above.
+        # assert msg.dataflow.id == "STR1"
         assert msg.structure.id == "ECB_EXR_NG"
         assert msg.observation_dimension == "TIME_PERIOD"
 
@@ -161,7 +165,8 @@ class TestGenericSeriesDataSet2(DataMessageTest):
     filename = "ng-ts.xml"
 
     def test_header_attributes(self, msg):
-        assert msg.dataflow.id == "STR1"
+        # NB removed 2020-05-15; see above.
+        # assert msg.dataflow.id == "STR1"
         assert msg.structure.id == "ECB_EXR_NG"
 
         # Observation dimension is 1 or more Dimensions

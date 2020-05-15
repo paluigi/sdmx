@@ -1,5 +1,5 @@
 import logging
-from io import StringIO
+from io import BytesIO
 
 import pandas as pd
 import pytest
@@ -31,7 +31,7 @@ def test_read_sdmx(tmp_path):
         sdmx.read_sdmx(f)
 
     # Exception raised when the file contents don't allow to guess the format
-    bad_file = StringIO("#! neither XML nor JSON")
+    bad_file = BytesIO(b"#! neither XML nor JSON")
     exc = "cannot infer SDMX message format from '#! ne..'"
     with pytest.raises(RuntimeError, match=exc):
         sdmx.read_sdmx(bad_file)

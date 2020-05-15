@@ -138,7 +138,7 @@ class InternationalString:
         try:
             return self.__dict__["localizations"][name]
         except KeyError:
-            raise AttributeError(name)
+            raise AttributeError(name) from None
 
     def __add__(self, other):
         result = copy(self)
@@ -209,7 +209,7 @@ class AnnotableArtefact(BaseModel):
 
 class _MissingID(str):
     def __str__(self):
-        return "<missing id>"
+        return "(missing id)"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__)
@@ -246,7 +246,7 @@ class IdentifiableArtefact(AnnotableArtefact):
         return self.id
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: {self.id}>"
+        return f"<{self.__class__.__name__} {self.id}>"
 
 
 class NameableArtefact(IdentifiableArtefact):
@@ -256,8 +256,10 @@ class NameableArtefact(IdentifiableArtefact):
     description: InternationalString = InternationalString()
 
     def __repr__(self):
-        return "<{}: '{}'='{}'>".format(
-            self.__class__.__name__, self.id, str(self.name)
+        return "<{} {}:{}>".format(
+            self.__class__.__name__,
+            self.id,
+            (" " + str(self.name)) if len(self.name.localizations) else "",
         )
 
 
@@ -340,6 +342,12 @@ class Item(NameableArtefact):
         for c in self.child:
             if item == c or item in c:
                 return True
+
+    def __iter__(self, recurse=True):
+        yield self
+        for c in self.child:
+            yield c
+            yield from iter(c)
 
     def append_child(self, other):
         if other not in self.child:
@@ -488,6 +496,9 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
 
 
 class FacetType(BaseModel):
+    class Config:
+        extra = "forbid"
+
     #:
     is_sequence: Optional[bool] = None
     #:
@@ -517,6 +528,9 @@ class FacetType(BaseModel):
 
 
 class Facet(BaseModel):
+    class Config:
+        extra = "forbid"
+
     #:
     type: FacetType = FacetType()
     #:
@@ -526,6 +540,9 @@ class Facet(BaseModel):
 
 
 class Representation(BaseModel):
+    class Config:
+        extra = "forbid"
+
     #:
     enumerated: Optional[ItemScheme] = None
     #:
@@ -541,6 +558,9 @@ class Representation(BaseModel):
 
 
 class ISOConceptReference(BaseModel):
+    class Config:
+        extra = "forbid"
+
     #:
     agency: str
     #:
@@ -739,12 +759,11 @@ class Organisation(Item):
     contact: List[Contact] = []
 
 
-Agency = Organisation
+class Agency(Organisation):
+    pass
 
 
-class DataProvider(Organisation):
-    """SDMX-IM DataProvider."""
-
+# DataProvider delayed until after ConstrainableArtefact, below
 
 # Update forward references to 'Agency'
 for cls in list(locals().values()):
@@ -752,23 +771,29 @@ for cls in list(locals().values()):
         cls.update_forward_refs()
 
 
-# Skip the abstract OrganisationScheme class, since it has no particular
-# functionality
+class OrganisationScheme:
+    """SDMX-IM abstract OrganisationScheme."""
 
 
-class AgencyScheme(ItemScheme[Agency]):
+class AgencyScheme(ItemScheme[Agency], OrganisationScheme):
     _Item = Agency
 
 
-class DataProviderScheme(ItemScheme[DataProvider]):
-    _Item = DataProvider
-
+# DataProviderScheme delayed until after DataProvider, below
 
 # 10.2: Constraint inheritance
 
 
 class ConstrainableArtefact(BaseModel):
     """SDMX-IM ConstrainableArtefact."""
+
+
+class DataProvider(Organisation, ConstrainableArtefact):
+    """SDMX-IM DataProvider."""
+
+
+class DataProviderScheme(ItemScheme[DataProvider], OrganisationScheme):
+    _Item = DataProvider
 
 
 # 10.3: Constraints
@@ -911,7 +936,7 @@ class AttachmentConstraint(Constraint):
     attachment: Set[ConstrainableArtefact] = set()
 
 
-# 5.2: Data Structure Defintion
+# 5.2: Data Structure Definition
 
 
 class DimensionComponent(Component):
@@ -943,18 +968,28 @@ class MeasureDescriptor(ComponentList[PrimaryMeasure]):
 
 
 class AttributeRelationship(BaseModel):
+    pass
+
+
+class NoSpecifiedRelationship(AttributeRelationship):
+    pass
+
+
+class PrimaryMeasureRelationship(AttributeRelationship):
+    pass
+
+
+class DimensionRelationship(AttributeRelationship):
     #:
-    dimensions: List[Dimension] = []
-    #:
+    dimensions: List[DimensionComponent] = []
+    #: NB the IM says "0..*" here in a diagram, but the text does not match.
     group_key: Optional["GroupDimensionDescriptor"] = None
 
 
-NoSpecifiedRelationship = AttributeRelationship
-PrimaryMeasureRelationship = AttributeRelationship
-DimensionRelationship = AttributeRelationship
-
 # 'Retained for compatibility reasons' in SDMX 2.1; not used by pandaSDMX
-# GroupRelationship = AttributeRelationship
+class GroupRelationship(AttributeRelationship):
+    #:
+    group_key: Optional["GroupDimensionDescriptor"] = None
 
 
 class DataAttribute(Component):
@@ -1052,13 +1087,13 @@ class GroupDimensionDescriptor(DimensionDescriptor):
         pass
 
 
-AttributeRelationship.update_forward_refs()
-# GroupRelationship.update_forward_refs()
+DimensionRelationship.update_forward_refs()
+GroupRelationship.update_forward_refs()
 
 
 @validate_dictlike("group_dimensions")
 class DataStructureDefinition(Structure, ConstrainableArtefact):
-    """SDMX-IM DataStructureDefintion (‘DSD’)."""
+    """SDMX-IM DataStructureDefinition (‘DSD’)."""
 
     #: A :class:`AttributeDescriptor` that describes the attributes of the
     #: data structure.
@@ -1067,7 +1102,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     #: data structure.
     dimensions: DimensionDescriptor = DimensionDescriptor()
     #: A :class:`.MeasureDescriptor`.
-    measures: Optional[MeasureDescriptor] = None
+    measures: MeasureDescriptor = MeasureDescriptor()
     #: Mapping from  :attr:`.GroupDimensionDescriptor.id` to
     #: :class:`.GroupDimensionDescriptor`.
     group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
@@ -1210,6 +1245,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
                     # Add to the GDD
                     gdd.components.append(new_dim)
                     return gdd.get(id)
+
             else:
                 # Not described by anything
                 args = dict()
@@ -1607,9 +1643,8 @@ class DataSet(AnnotableArtefact):
         if series_key:
             # Associate series_key with any GroupKeys that apply to it
             self._add_group_refs(series_key)
-            if series_key not in self.series:
-                # Initialize empty series
-                self.series[series_key] = []
+            # Maybe initialize empty series
+            self.series.setdefault(series_key, [])
 
         for obs in observations:
             # Associate the observation with any GroupKeys that contain it
@@ -1619,14 +1654,14 @@ class DataSet(AnnotableArtefact):
             self.obs.append(obs)
 
             if series_key:
-                # Check that the Observation is not associated with a different
-                # SeriesKey
-                assert obs.series_key is series_key, (
-                    obs.series_key,
-                    id(obs.series_key),
-                    series_key,
-                    id(series_key),
-                )
+                if obs.series_key is None:
+                    # Assign the observation to the SeriesKey
+                    obs.series_key = series_key
+                else:
+                    # Check that the Observation is not associated with a different
+                    # SeriesKey
+                    assert obs.series_key is series_key
+
                 # Store a reference to the observation
                 self.series[series_key].append(obs)
 
@@ -1707,12 +1742,21 @@ for package, classes in _PACKAGE_CLASS.items():
 
 def get_class(cls, package=None):
     """Return a class object for string *cls* and *package* names."""
-    if isinstance(cls, str):
-        if cls in "Dataflow DataStructure":
-            cls += "Definition"
-        cls = globals()[cls]
+    cls = globals()[cls]
 
     if package and package != PACKAGE[cls]:
         raise ValueError(f"Package {repr(package)} invalid for {cls}")
 
     return cls
+
+
+def parent_class(cls):
+    return {
+        Category: CategoryScheme,
+        Code: Codelist,
+        Concept: ConceptScheme,
+        Dimension: DimensionDescriptor,
+        DataProvider: DataProviderScheme,
+        GroupDimensionDescriptor: DataStructureDefinition,
+        PrimaryMeasure: MeasureDescriptor,
+    }[cls]
