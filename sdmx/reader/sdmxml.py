@@ -409,7 +409,7 @@ class Reader(BaseReader):
         - `kwargs` (e.g. 'id') take precedences over values retrieved from attributes
            of `elem`.
         """
-        setdefault_attrib(kwargs, elem, "isExternalReference", "uri", "urn")
+        setdefault_attrib(kwargs, elem, "isExternalReference", "isFinal", "uri", "urn")
         return self.versionable(cls, elem, **kwargs)
 
 
@@ -1125,3 +1125,25 @@ def _ms(reader, elem):
         return None
 
     return model.MemberSelection(values_for=component, values=list(values))
+
+
+@end("str:DataKeySet")
+def _dks(reader, elem):
+    return model.DataKeySet(
+        included=elem.attrib["isIncluded"],
+        keys=reader.pop_all(model.DataKey)
+    )
+
+
+@end("str:Key")
+def _dk(reader, elem):
+    return model.DataKey(
+        included=elem.attrib.get("isIncluded", True),
+        # Convert MemberSelection/MemberValue from _ms() to ComponentValue
+        key_value={
+            ms.values_for: model.ComponentValue(
+                value_for=ms.values_for,
+                value=ms.values.pop().value,
+            ) for ms in reader.pop_all(model.MemberSelection)
+        },
+    )

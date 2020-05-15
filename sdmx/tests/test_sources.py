@@ -127,7 +127,7 @@ class DataSourceTest:
     @pytest.mark.network
     def test_endpoints(self, req, endpoint, args):
         # See pytest_generate_tests() for values of 'endpoint'
-        cache = self._cache_path.with_suffix("." + endpoint)
+        cache = self._cache_path.with_suffix(f".{endpoint}.xml")
         result = req.get(endpoint, tofile=cache, **args)
 
         # For debugging
