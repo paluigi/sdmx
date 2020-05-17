@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 
 class BaseReader(ABC):
     #: List of HTTP content types handled by the reader.
-    content_types = []
+    content_types: List[str] = []
 
     #: List of file name suffixes handled by the reader.
-    suffixes = []
+    suffixes: List[str] = []
 
     @classmethod
-    def detect(cls, content: bytes):
+    def detect(cls, content: bytes) -> bool:
         """Detect whether the reader can handle `content`.
 
         Returns

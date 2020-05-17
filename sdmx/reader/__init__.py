@@ -1,16 +1,17 @@
 from pathlib import Path
+from typing import List, Mapping, Type
 
 from . import sdmxjson, sdmxml
 
 
 #: Reader classes
-READERS = []
+READERS: List[Type] = []
 
 #: Mapping from HTTP content type to reader class.
-CTYPE_READER = {}
+CTYPE_READER: Mapping[str, Type] = {}
 
 #: Mapping from file path suffix to reader class.
-SUFFIX_READER = {}
+SUFFIX_READER: Mapping[str, Type] = {}
 
 
 def detect_content_reader(content):
