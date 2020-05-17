@@ -1,5 +1,6 @@
-import logging
 from io import BytesIO
+import json
+import logging
 
 import pandas as pd
 import pytest
@@ -15,16 +16,8 @@ def test_read_sdmx(tmp_path):
     with specimen("flat.json", opened=False) as original:
         target.open("w").write(original.read_text())
 
-    # Can't infer message type for unknown file extension
-    exc = (
-        "cannot identify SDMX message format from file name 'foo.badsuffix'"
-        "; use  format='...'"
-    )
-    with pytest.raises(RuntimeError, match=exc):
-        sdmx.read_sdmx(target)
-
-    # Using the format= kwarg suppresses the error
-    sdmx.read_sdmx(target, format="JSON")
+    # With unknown file extension, read_sdmx() peeks at the file content
+    sdmx.read_sdmx(target)
 
     # Format can be inferred from an already-open file without extension
     with specimen("flat.json") as f:
@@ -32,9 +25,16 @@ def test_read_sdmx(tmp_path):
 
     # Exception raised when the file contents don't allow to guess the format
     bad_file = BytesIO(b"#! neither XML nor JSON")
-    exc = "cannot infer SDMX message format from '#! ne..'"
-    with pytest.raises(RuntimeError, match=exc):
+    exc = (
+        "cannot infer SDMX message format from path None, format={}, or content "
+        "'#! ne..'"
+    )
+    with pytest.raises(RuntimeError, match=exc.format("None")):
         sdmx.read_sdmx(bad_file)
+
+    # Using the format= argument forces a certain reader to be used
+    with pytest.raises(json.JSONDecodeError):
+        sdmx.read_sdmx(bad_file, format="JSON")
 
 
 def test_request():

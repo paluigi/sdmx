@@ -1,6 +1,7 @@
 import pkg_resources
 
-from sdmx.api import Request, read_sdmx, read_url
+from sdmx.api import Request, read_url
+from sdmx.reader import read_sdmx
 from sdmx.source import add_source, list_sources
 from sdmx.util import Resource
 from sdmx.writer import to_pandas, to_xml

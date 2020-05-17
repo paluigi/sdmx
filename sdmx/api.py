@@ -7,7 +7,6 @@ guidelines.
 """
 import logging
 from functools import partial
-from pathlib import Path
 from typing import Dict
 from warnings import warn
 
@@ -17,7 +16,7 @@ from sdmx import remote
 
 from .message import Message
 from .model import DataStructureDefinition, MaintainableArtefact
-from .reader import get_reader_for_content_type
+from sdmx.reader import get_reader_for_content_type
 from .source import NoSource, list_sources, sources
 from .util import Resource
 
@@ -505,65 +504,6 @@ class Request:
         else:
             # No key is provided
             return list(all_keys)
-
-
-def read_sdmx(filename_or_obj, format=None, **kwargs):
-    """Load a SDMX-ML or SDMX-JSON message from a file or file-like object.
-
-    Parameters
-    ----------
-    filename_or_obj : str or :class:`~os.PathLike` or file
-    format : 'XML' or 'JSON', optional
-
-    Other Parameters
-    ----------------
-    dsd : :class:`~.DataStructureDefinition`
-        For “structure-specific” `format`=``XML`` messages only.
-    """
-    import sdmx.reader.sdmxml
-    import sdmx.reader.sdmxjson
-
-    readers = {"XML": sdmx.reader.sdmxml.Reader, "JSON": sdmx.reader.sdmxjson.Reader}
-
-    if isinstance(filename_or_obj, str):
-        filename_or_obj = Path(filename_or_obj)
-
-    try:
-        # Use the file extension to guess the reader
-        reader = readers[filename_or_obj.suffix.lstrip(".").upper()]
-
-        # Open the file
-        obj = open(filename_or_obj, "br")
-    except KeyError:
-        if format:
-            reader = readers[format]
-            obj = open(filename_or_obj, "br")
-        else:
-            msg = (
-                "cannot identify SDMX message format from file name "
-                f"'{filename_or_obj.name}'; use  format='...'"
-            )
-            raise RuntimeError(msg)
-    except AttributeError:
-        # File is already open
-
-        # Read a line and then return the cursor to the initial position
-        pos = filename_or_obj.tell()
-        first_line = filename_or_obj.readline().strip()
-        filename_or_obj.seek(pos)
-
-        if first_line.startswith(b"{"):
-            reader = readers["JSON"]
-        elif first_line.startswith(b"<"):
-            reader = readers["XML"]
-        else:
-            raise RuntimeError(
-                f"cannot infer SDMX message format from '{first_line[:5].decode()}..'"
-            )
-
-        obj = filename_or_obj
-
-    return reader().read_message(obj, **kwargs)
 
 
 def read_url(url, **kwargs):

@@ -15,7 +15,7 @@ import sdmx.urn
 from sdmx import message, model
 from sdmx.exceptions import XMLParseError  # noqa: F401
 from sdmx.format.xml import MESSAGE, qname
-from sdmx.reader import BaseReader
+from sdmx.reader.base import BaseReader
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -227,6 +227,19 @@ class Reference:
 
 
 class Reader(BaseReader):
+    content_types = [
+        "application/xml",
+        "application/vnd.sdmx.genericdata+xml",
+        "application/vnd.sdmx.structure+xml",
+        "application/vnd.sdmx.structurespecificdata+xml",
+        "text/xml",
+    ]
+    suffixes = [".xml"]
+
+    @classmethod
+    def detect(cls, content):
+        return content.startswith(b"<")
+
     def read_message(self, source, dsd=None):
         # Initialize stacks
         self.stack = defaultdict(list)

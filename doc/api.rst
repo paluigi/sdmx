@@ -50,6 +50,7 @@ Top-level methods and classes
 
 SDMX-ML
 :::::::
+
 .. currentmodule:: sdmx.reader.sdmxml
 
 :mod:`sdmx` supports the several types of SDMX-ML messages.
@@ -66,6 +67,18 @@ SDMX-JSON
 .. autoclass:: sdmx.reader.sdmxjson.Reader
     :members:
     :undoc-members:
+
+
+Reader API
+::::::::::
+
+.. currentmodule:: sdmx.reader
+
+.. automodule:: sdmx.reader
+   :members:
+
+.. autoclass:: sdmx.reader.base.BaseReader
+   :members:
 
 
 ``writer``: Convert ``sdmx`` objects to other formats

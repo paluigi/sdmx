@@ -14,11 +14,23 @@ from sdmx.model import (
     Observation,
     SeriesKey,
 )
-from sdmx.reader import BaseReader
+from sdmx.reader.base import BaseReader
 
 
 class Reader(BaseReader):
     """Read SDMXJSON 2.1 and expose it as instances from :mod:`sdmx.model`."""
+    content_types = [
+        "application/vnd.sdmx.draft-sdmx-json+json",
+        # For e.g. OECD
+        "draft-sdmx-json",
+        "text/json",
+    ]
+
+    suffixes = [".json"]
+
+    @classmethod
+    def detect(cls, content):
+        return content.startswith(b"{")
 
     def read_message(self, source, dsd=None):
         # Initialize message instance
