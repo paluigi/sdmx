@@ -47,9 +47,8 @@ from typing import (
 )
 from warnings import warn
 
-from pydantic import validator
+from sdmx.util import BaseModel, DictLike, validate_dictlike, validator
 
-from sdmx.util import BaseModel, DictLike, validate_dictlike
 
 # TODO read this from the environment, or use any value set in the SDMX XML
 # spec. Currently set to 'en' because test_dsd.py expects it

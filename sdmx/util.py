@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
 
 import pydantic
-from pydantic import DictError, Extra, ValidationError
+from pydantic import DictError, Extra, ValidationError, validator  # noqa: F401
 from pydantic.class_validators import make_generic_validator
 
 KT = TypeVar("KT")

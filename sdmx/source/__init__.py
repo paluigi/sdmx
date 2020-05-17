@@ -7,8 +7,7 @@ from typing import Any, Dict, Union
 from pkg_resources import resource_stream
 
 from sdmx.model import DataStructureDefinition
-from sdmx.util import BaseModel, Resource
-from pydantic import validator
+from sdmx.util import BaseModel, Resource, validator
 
 
 sources: Dict[str, "Source"] = {}
