@@ -22,13 +22,12 @@ Get started
 ===========
 
 SDMX was designed to be flexible enough to accommodate almost *any* data.
-This also means it is complex, with many abstract concepts for describing data,
-metadata, and their relationships.
-These are called the “SDMX Information Model” (IM).
+To do this, it includes a large number of abstract concepts for describing data, metadata, and their relationships.
+These are collectively called the “SDMX Information Model” (IM).
 
 .. _not-the-standard:
 
-This documentation does not repeat full descriptions of SDMX, the IM, or SDMX web services; it focuses on functionality provided by :mod:`sdmx` itself.
+This documentation does not repeat full descriptions of SDMX, the IM, or SDMX web services; it focuses on the Python implementation in :mod:`sdmx` itself.
 Detailed knowledge of the IM is not needed to use :mod:`sdmx`; see a
 :doc:`usage example in only 10 lines of code <example>`, and then the longer, narrative :doc:`walkthrough <walkthrough>`.
 

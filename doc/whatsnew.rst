@@ -6,9 +6,27 @@ What's new?
 Next release (vX.Y.0)
 =====================
 
+- Data model changes, to bring :mod:`sdmx` into closer alignment with the standard Information Model (:pull:`4`):
+
+  - Change :attr:`.Header.receiver` and :attr:`.Header.sender` to optional :class:`.Agency`, not :class:`str`.
+  - Add :attr:`.Header.source` and :attr:`~.Header.test`.
+  - :attr:`.IdentifiableArtefact.id` is strictly typed as :class:`str`, with a a singleton object (analogous to :obj:`None`) used for missing IDs.
+  - :attr:`.IdentifiableArtefact.id`, :attr:`.VersionableArtefact.version`, and :attr:`.MaintainableArtefact.maintainer` are inferred from a URN if one is passed during construction.
+  - :meth:`.VersionableArtefact.identical` and :meth:`.MaintainableArtefact.identical` compare on version and maintainer attributes, respectively.
+  - :class:`.Facet`, :class:`.Representation`, and :class:`.ISOConceptReference` are strictly validated, i.e. cannot be assigned non-IM attributes.
+  - Add :class:`.OrganisationScheme`, :class:`.NoSpecifiedRelationship`, :class:`.PrimaryMeasureRelationship`, :class:`.DimensionRelationship`, and :class:`.GroupRelationship` as distinct classes.
+  - Type of :attr:`.DimensionRelationship.dimensions` is :class:`.DimensionComponent`, not the narrower :class:`.Dimension`.
+  - :attr:`.DataStructureDefinition.measures` is an empty :class:`.MeasureDescriptor` by default, not :obj:`None`.
+  - :meth:`.DataSet.add_obs` now accepts :class:`Observations <.Observation>` with no :class:`.SeriesKey` association, and sets this association to the one provided as an argument.
+  - String representations are simplified but contain more information.
+
 - New features:
 
-  - :pull:`3`: Add :meth:`to_xml` to generate SDMX-ML for a subset of the IM.
+  - :attr:`.Item.hierarchical_id` and :meth:`.ItemScheme.get_hierarchical` create and search on IDs like ‘A.B.C’ for Item ‘A’ with child/grandchild Items ‘B’ and ‘C’ (:pull:`4`).
+  - New methods :func:`.parent_class`, :func:`.get_reader_for_path`, :func:`.detect_content_reader`, and :func:`.reader.register` (:pull:`4`).
+  - :class:`.sdmxml.Reader` uses an event-driven, rather than recursive/tree iterating, parser (:pull:`4`).
+  - The codebase is improved to pass static type checking with `mypy <https://mypy.readthedocs.io>`_ (:pull:`4`).
+  - Add :func:`.to_xml` to generate SDMX-ML for a subset of the IM (:pull:`3`).
 
 - Test suite:
 

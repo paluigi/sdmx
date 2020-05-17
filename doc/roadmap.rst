@@ -1,12 +1,62 @@
-Development roadmap
-===================
+Development
+***********
 
-This page describes some possible future enhancements to :mod:`sdmx`.
+This page gives development guidelines and some possible future enhancements to :mod:`sdmx`.
 For current development priorities, see the list of `GitHub milestones <https://github.com/khaeru/sdmx/milestones>`_ and issues/PRs targeted to each.
 Contributions are welcome!
 
-Using pd.DataFrame for internal storage
-----------------------------------------
+Code style
+==========
+
+- Apply the following to new or modified code::
+
+    isort -rc . && black . && mypy . && flake8
+
+  Respectively, these:
+
+  - **isort**: sort import lines at the top of code files in a consistent way, using `isort <https://pypi.org/project/isort/>`_.
+  - **black**: apply `black <https://black.readthedocs.io>`_ code style.
+  - **mypy**: check typing using `mypy <https://mypy.readthedocs.io>`_.
+  - **flake8**: check code style against `PEP 8 <https://www.python.org/dev/peps/pep-0008>`_ using `flake8 <https://flake8.pycqa.org>`_.
+
+- Write docstrings in the `numpydoc <https://numpydoc.readthedocs.io/en/latest/format.html>`_ style.
+
+Roadmap
+=======
+
+SDMX features & miscellaneous
+-----------------------------
+
+- Serialize :class:`Message` objects as SDMX-CSV (simplest), -JSON, or -ML (most complex).
+
+- Parse SDMX-JSON structure messages.
+
+- Selective/partial parsing of SDMX-ML messages.
+
+- sdmx.api.Request._resources only contains a subset of: https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1 (see "NOT SUPPORTED OPERATIONS"); provide the rest.
+
+- Get a set of API keys for testing UNESCO and encrypt them for use in CI: https://docs.travis-ci.com/user/encryption-keys/
+
+- Use the `XML Schema <https://en.wikipedia.org/wiki/XML_Schema_(W3C)>`_ definitions of SDMX-ML to validate messages and snippets.
+
+- Implement SOAP web service APIs.
+  This would allow access to, e.g., a broader set of :ref:`IMF` data.
+
+- Support SDMX-ML 2.0.
+  Several data providers still exist which only return SDMX-ML 2.0 messages.
+
+- Performance.
+  Parsing some messages can be slow.
+  Install pytest-profiling_ and run, for instance::
+
+      $ py.test --profile --profile-svg -k xml_structure_insee
+      $ python3 -m pstats prof/combined.prof
+      % sort cumulative
+      % stats
+
+
+Use pd.DataFrame for internal storage
+-------------------------------------
 
 :mod:`sdmx` handles :class:`Observations <sdmx.model.Observation>` as individual object instances.
 An alternative is to use :mod:`pandas` or other data structures internally.
@@ -24,53 +74,8 @@ To that end, note that the experimental DataSet involves three conversions:
 
 For a fair comparison, the API between the readers and DataSet could be changed to eliminate the round trip in #1/#2, but *without* sacrificing the data model consistency provided by pydantic on Observation instances.
 
-Optimize parsing
-----------------
-
-The current readers implement depth-first parsing of XML or JSON SDMX messages.
-This ensures the returned objects confirm rigorously to the SDMX Information Model, but can be slow for very large messages (both Structure and Data).
-
-There are some ways this performance could be improved:
-
-- Create-on-access: don't immediately parse an entire document, but only as requested to construct other objects.
-  This would make some internals more complex:
-
-  - Observation association with GroupKeys is determined by comparing the Observation key with the GroupKey.
-    In order to have a complete list of all Observations associated with a GroupKey, at least the dimension of each Observation would need to be parsed immediately.
-
-  - In sdmx.sdmxml.reader, references are determined to be internal or external by checking against an _index of already-parsed objects.
-    This index would need to represent existing-but-not-parsed objects.
-
-- Parallelize parsing, e.g. at the level of Series or other mostly-separate collections of objects.
-
-SDMX features & miscellaneous
------------------------------
-
-- sdmx.api.Request._resources only contains a small subset of: https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1 (see "NOT SUPPORTED OPERATIONS"); provide the rest.
-
-- Get a set of API keys for testing UNESCO and encrypt them for use in CI: https://docs.travis-ci.com/user/encryption-keys/
-
-- Serialize :class:`Message` objects SDMX-CSV (simplest), -JSON, or -ML (most complex).
-
-- Use the `XML Schema <https://en.wikipedia.org/wiki/XML_Schema_(W3C)>`_ definitions of SDMX-ML to validate messages and snippets.
-
-- SOAP APIs. Currently only REST APIs are supported.
-  This would allow access to, e.g., a broader set of :ref:`IMF` data.
-
-- Support SDMX-ML 2.0.
-  Several data providers still exist which only return SDMX-ML 2.0 messages.
-
-- Performance.
-  Parsing some messages can be slow.
-  Install pytest-profiling_ and run, for instance::
-
-      $ py.test --profile --profile-svg -k xml_structure_insee
-      $ python3 -m pstats prof/combined.prof
-      % sort cumulative
-      % stats
-
 Inline TODOs
-~~~~~~~~~~~~
+------------
 
 .. todolist::
 

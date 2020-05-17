@@ -97,7 +97,7 @@ Reader API
 
 :func:`.to_pandas` implements a dispatch pattern according to the type of *obj*.
 Some of the internal methods take specific arguments and return varying values.
-These arguments can be passed to :meth:`to_pandas` when `obj` is of the appropriate type:
+These arguments can be passed to :func:`.to_pandas` when `obj` is of the appropriate type:
 
 .. autosummary::
    sdmx.writer.pandas.write_dataset
