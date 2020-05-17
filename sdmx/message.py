@@ -7,29 +7,12 @@
 :mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data
 returned by data sources.
 """
-from typing import (
-    List,
-    Text,
-    Union,
-    )
+from typing import List, Optional, Text, Union
 
-from sdmx.model import (
-    _AllDimensions,
-    AgencyScheme,
-    CategoryScheme,
-    Codelist,
-    ConceptScheme,
-    ContentConstraint,
-    DataSet,
-    DataflowDefinition,
-    DataStructureDefinition,
-    DimensionComponent,
-    InternationalString,
-    Item,
-    ProvisionAgreement,
-    )
-from sdmx.util import BaseModel, DictLike, summarize_dictlike
 from requests import Response
+
+from sdmx import model
+from sdmx.util import BaseModel, DictLike, summarize_dictlike
 
 
 def _summarize(obj, fields):
@@ -38,7 +21,7 @@ def _summarize(obj, fields):
         attr = getattr(obj, name)
         if attr is None:
             continue
-        yield f'{name}: {attr!r}'
+        yield f"{name}: {repr(attr)}"
 
 
 class Header(BaseModel):
@@ -46,23 +29,28 @@ class Header(BaseModel):
 
     SDMX-JSON messages do not have headers.
     """
+
     #: (optional) Error code for the message.
-    error: Text = None
+    error: Optional[Text] = None
     #: Identifier for the message.
-    id: Text = None
+    id: Optional[Text] = None
     #: Date and time at which the message was generated.
-    prepared: Text = None
+    prepared: Optional[Text] = None
     #: Intended recipient of the message, e.g. the user's name for an
     #: authenticated service.
-    receiver: Text = None
+    receiver: Optional[model.Agency] = None
     #: The :class:`.Agency` associated with the data :class:`~.source.Source`.
-    sender: Union[Item, Text] = None
+    sender: Optional[model.Agency] = None
+    #:
+    source: model.InternationalString = model.InternationalString()
+    #:
+    test: bool = False
 
     def __repr__(self):
         """String representation."""
-        lines = ['<Header>']
+        lines = ["<Header>"]
         lines.extend(_summarize(self, self.__fields__.keys()))
-        return '\n  '.join(lines)
+        return "\n  ".join(lines)
 
 
 class Footer(BaseModel):
@@ -70,12 +58,13 @@ class Footer(BaseModel):
 
     SDMX-JSON messages do not have footers.
     """
+
     #:
-    severity: Text
+    severity: Optional[str] = None
     #: The body text of the Footer contains zero or more blocks of text.
-    text: List[InternationalString] = []
+    text: List[model.InternationalString] = []
     #:
-    code: int
+    code: Optional[int] = None
 
 
 class Message(BaseModel):
@@ -86,10 +75,10 @@ class Message(BaseModel):
     #: :class:`Header` instance.
     header: Header = Header()
     #: (optional) :class:`Footer` instance.
-    footer: Footer = None
+    footer: Optional[Footer] = None
     #: :class:`requests.Response` instance for the response to the HTTP request
     #: that returned the Message. This is not part of the SDMX standard.
-    response: Response = None
+    response: Optional[Response] = None
 
     def __str__(self):
         return repr(self)
@@ -97,11 +86,11 @@ class Message(BaseModel):
     def __repr__(self):
         """String representation."""
         lines = [
-            f'<sdmx.{self.__class__.__name__}>',
-            repr(self.header).replace('\n', '\n  '),
+            f"<sdmx.{self.__class__.__name__}>",
+            repr(self.header).replace("\n", "\n  "),
         ]
-        lines.extend(_summarize(self, ['footer', 'response']))
-        return '\n  '.join(lines)
+        lines.extend(_summarize(self, ["footer", "response"]))
+        return "\n  ".join(lines)
 
 
 class ErrorMessage(Message):
@@ -110,21 +99,21 @@ class ErrorMessage(Message):
 
 class StructureMessage(Message):
     #: Collection of :class:`.CategoryScheme`.
-    category_scheme: DictLike[str, CategoryScheme] = DictLike()
+    category_scheme: DictLike[str, model.CategoryScheme] = DictLike()
     #: Collection of :class:`.Codelist`.
-    codelist: DictLike[str, Codelist] = DictLike()
+    codelist: DictLike[str, model.Codelist] = DictLike()
     #: Collection of :class:`.ConceptScheme`.
-    concept_scheme: DictLike[str, ConceptScheme] = DictLike()
+    concept_scheme: DictLike[str, model.ConceptScheme] = DictLike()
     #: Collection of :class:`.ContentConstraint`.
-    constraint: DictLike[str, ContentConstraint] = DictLike()
+    constraint: DictLike[str, model.ContentConstraint] = DictLike()
     #: Collection of :class:`.DataflowDefinition`.
-    dataflow: DictLike[str, DataflowDefinition] = DictLike()
+    dataflow: DictLike[str, model.DataflowDefinition] = DictLike()
     #: Collection of :class:`.DataStructureDefinition`.
-    structure: DictLike[str, DataStructureDefinition] = DictLike()
+    structure: DictLike[str, model.DataStructureDefinition] = DictLike()
     #: Collection of :class:`.AgencyScheme`.
-    organisation_scheme: DictLike[str, AgencyScheme] = DictLike()
+    organisation_scheme: DictLike[str, model.AgencyScheme] = DictLike()
     #: Collection of :class:`.ProvisionAgreement`.
-    provisionagreement: DictLike[str, ProvisionAgreement] = DictLike()
+    provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
 
     def __repr__(self):
         """String representation."""
@@ -135,7 +124,7 @@ class StructureMessage(Message):
             if isinstance(attr, DictLike) and attr:
                 lines.append(summarize_dictlike(attr))
 
-        return '\n  '.join(lines)
+        return "\n  ".join(lines)
 
 
 class DataMessage(Message):
@@ -146,13 +135,19 @@ class DataMessage(Message):
        data set in the message, access the first element of the list:
        ``msg.data[0]``.
     """
+
     #: :class:`list` of :class:`.DataSet`.
-    data: List[DataSet] = []
+    data: List[model.DataSet] = []
     #: :class:`.DataflowDefinition` that contains the data.
-    dataflow: DataflowDefinition = DataflowDefinition()
+    dataflow: model.DataflowDefinition = model.DataflowDefinition()
     #: The "dimension at observation level".
-    observation_dimension: Union[_AllDimensions, DimensionComponent,
-                                 List[DimensionComponent]] = None
+    observation_dimension: Optional[
+        Union[
+            model._AllDimensions,
+            model.DimensionComponent,
+            List[model.DimensionComponent],
+        ]
+    ] = None
 
     # Convenience access
     @property
@@ -166,7 +161,7 @@ class DataMessage(Message):
 
         # DataMessage contents
         if self.data:
-            lines.append('DataSet ({})'.format(len(self.data)))
-        lines.extend(_summarize(self, ('dataflow', 'observation_dimension')))
+            lines.append("DataSet ({})".format(len(self.data)))
+        lines.extend(_summarize(self, ("dataflow", "observation_dimension")))
 
-        return '\n  '.join(lines)
+        return "\n  ".join(lines)

@@ -1,4 +1,5 @@
 from itertools import chain
+from typing import Set, Union
 
 import numpy as np
 import pandas as pd
@@ -11,23 +12,23 @@ from sdmx.model import (
     DataSet,
     Dimension,
     DimensionComponent,
+    Item,
     Observation,
     SeriesKey,
     TimeDimension,
 )
-from sdmx.writer.base import BaseWriter
 from sdmx.util import DictLike
-
+from sdmx.writer.base import BaseWriter
 
 #: Default return type for :func:`write_dataset` and similar methods. Either
 #: 'compat' or 'rows'. See the ref:`HOWTO <howto-rtype>`.
-DEFAULT_RTYPE = 'rows'
+DEFAULT_RTYPE = "rows"
 
 
-Writer = BaseWriter('pandas')
+Writer = BaseWriter("pandas")
 
 
-def write(obj, *args, **kwargs):
+def to_pandas(obj, *args, **kwargs):
     """Convert an SDMX *obj* to :mod:`pandas` object(s).
 
     See :ref:`sdmx.writer.pandas <writer-pandas>`.
@@ -37,28 +38,31 @@ def write(obj, *args, **kwargs):
 
 # Functions for Python containers
 @Writer.register
-def _(obj: list, *args, **kwargs):
+def _list(obj: list, *args, **kwargs):
     """Convert a :class:`list` of SDMX objects."""
     if isinstance(obj[0], Observation):
         return write_dataset(obj, *args, **kwargs)
     elif isinstance(obj[0], DataSet) and len(obj) == 1:
-        return write(obj[0], *args, **kwargs)
+        return Writer.recurse(obj[0], *args, **kwargs)
     elif isinstance(obj[0], SeriesKey):
-        return write_serieskeys(obj, *args, **kwargs)
+        assert len(args) == len(kwargs) == 0
+        return write_serieskeys(obj)
     else:
-        return [write(item, *args, **kwargs) for item in obj]
+        return [Writer.recurse(item, *args, **kwargs) for item in obj]
 
 
 @Writer.register
-def _(obj: dict, *args, **kwargs):
+def _dict(obj: dict, *args, **kwargs):
     """Convert mappings."""
-    result = {k: write(v, *args, **kwargs) for k, v in obj.items()}
+    result = {k: Writer.recurse(v, *args, **kwargs) for k, v in obj.items()}
 
     result_type = set(type(v) for v in result.values())
 
     if result_type <= {pd.Series, pd.DataFrame}:
-        if (len(set(map(lambda s: s.index.name, result.values()))) == 1 and
-                len(result) > 1):
+        if (
+            len(set(map(lambda s: s.index.name, result.values()))) == 1
+            and len(result) > 1
+        ):
             # Can safely concatenate these to a pd.MultiIndex'd Series.
             return pd.concat(result)
         else:
@@ -77,9 +81,9 @@ def _(obj: dict, *args, **kwargs):
 
 
 @Writer.register
-def _(obj: set, *args, **kwargs):
+def _set(obj: set, *args, **kwargs):
     """Convert :class:`set`."""
-    result = {write(o, *args, **kwargs) for o in obj}
+    result = {Writer.recurse(o, *args, **kwargs) for o in obj}
     return result
 
 
@@ -104,23 +108,22 @@ def write_datamessage(obj: message.DataMessage, *args, rtype=None, **kwargs):
         if `obj` has more than one data set.
     """
     # Pass the message's DSD to assist datetime handling
-    kwargs.setdefault('dsd', obj.dataflow.structure)
+    kwargs.setdefault("dsd", obj.dataflow.structure)
 
     # Pass the return type and associated information
-    kwargs['_rtype'] = rtype or DEFAULT_RTYPE
-    if kwargs['_rtype'] == 'compat':
-        kwargs['_message_class'] = obj.__class__
-        kwargs['_observation_dimension'] = obj.observation_dimension
+    kwargs["_rtype"] = rtype or DEFAULT_RTYPE
+    if kwargs["_rtype"] == "compat":
+        kwargs["_message_class"] = obj.__class__
+        kwargs["_observation_dimension"] = obj.observation_dimension
 
     if len(obj.data) == 1:
-        return write(obj.data[0], *args, **kwargs)
+        return Writer.recurse(obj.data[0], *args, **kwargs)
     else:
-        return [write(ds, *args, **kwargs) for ds in obj.data]
+        return [Writer.recurse(ds, *args, **kwargs) for ds in obj.data]
 
 
 @Writer.register
-def write_structuremessage(obj: message.StructureMessage, include=None,
-                           **kwargs):
+def write_structuremessage(obj: message.StructureMessage, include=None, **kwargs):
     """Convert :class:`.StructureMessage`.
 
     Parameters
@@ -138,27 +141,27 @@ def write_structuremessage(obj: message.StructureMessage, include=None,
         Keys are StructureMessage attributes; values are pandas objects.
     """
     all_contents = {
-        'category_scheme',
-        'codelist',
-        'concept_scheme',
-        'constraint',
-        'dataflow',
-        'structure',
-        'organisation_scheme',
+        "category_scheme",
+        "codelist",
+        "concept_scheme",
+        "constraint",
+        "dataflow",
+        "structure",
+        "organisation_scheme",
     }
 
     # Handle arguments
     if include is None:
-        attrs = all_contents
+        attr_set = all_contents
     else:
-        attrs = set([include] if isinstance(include, str) else include)
+        attr_set = set([include] if isinstance(include, str) else include)
         # Silently discard invalid names
-        attrs &= all_contents
-    attrs = sorted(attrs)
+        attr_set &= all_contents
+    attrs = sorted(attr_set)
 
-    result = DictLike()
+    result: DictLike[str, Union[pd.Series, pd.DataFrame]] = DictLike()
     for a in attrs:
-        dl = write(getattr(obj, a), **kwargs)
+        dl = Writer.recurse(getattr(obj, a), **kwargs)
         if len(dl):
             # Only add non-empty elements
             result[a] = dl
@@ -168,34 +171,43 @@ def write_structuremessage(obj: message.StructureMessage, include=None,
 
 # Functions for model classes
 
+
 @Writer.register
-def _(obj: model.Component):
+def _c(obj: model.Component):
     """Convert :class:`.Component`."""
-    return str(obj.concept_identity.id)
+    # Raises AttributeError if the concept_identity is missing
+    return str(obj.concept_identity.id)  # type: ignore
 
 
 @Writer.register
-def _(obj: model.ContentConstraint, **kwargs):
+def _cc(obj: model.ContentConstraint, **kwargs):
     """Convert :class:`.ContentConstraint`."""
     if len(obj.data_content_region) != 1:
         raise NotImplementedError
 
-    return write(obj.data_content_region[0], **kwargs)
+    return Writer.recurse(obj.data_content_region[0], **kwargs)
 
 
 @Writer.register
-def _(obj: model.CubeRegion, **kwargs):
+def _cr(obj: model.CubeRegion, **kwargs):
     """Convert :class:`.CubeRegion`."""
-    result = DictLike()
+    result: DictLike[str, pd.Series] = DictLike()
     for dim, memberselection in obj.member.items():
-        result[dim] = pd.Series([mv.value for mv in memberselection.values],
-                                name=dim.id)
+        result[dim.id] = pd.Series(
+            [mv.value for mv in memberselection.values], name=dim.id
+        )
     return result
 
 
 @Writer.register
-def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
-                  constraint=None, datetime=False, **kwargs):
+def write_dataset(
+    obj: model.DataSet,
+    attributes="",
+    dtype=np.float64,
+    constraint=None,
+    datetime=False,
+    **kwargs,
+):
     """Convert :class:`~.DataSet`.
 
     See the :ref:`walkthrough <datetime>` for examples of using the `datetime`
@@ -259,25 +271,24 @@ def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
     """
     # If called directly on a DataSet (rather than a parent DataMessage),
     # cannot determine the "dimension at observation level"
-    rtype = kwargs.setdefault('_rtype', 'rows')
+    rtype = kwargs.setdefault("_rtype", "rows")
 
     # Validate attributes argument
-    attributes = attributes or ''
+    attributes = attributes or ""
     try:
         attributes = attributes.lower()
     except AttributeError:
         raise TypeError("'attributes' argument must be str")
 
-    if rtype == 'compat' and \
-            kwargs['_observation_dimension'] is not AllDimensions:
+    if rtype == "compat" and kwargs["_observation_dimension"] is not AllDimensions:
         # Cannot return attributes in this case
-        attributes = ''
-    elif set(attributes) - {'o', 's', 'g', 'd'}:
+        attributes = ""
+    elif set(attributes) - {"o", "s", "g", "d"}:
         raise ValueError(f"attributes must be in 'osgd'; got {attributes}")
 
     # Iterate on observations
-    result = {}
-    for observation in getattr(obj, 'obs', obj):
+    data = {}
+    for observation in getattr(obj, "obs", obj):
         # Check that the Observation is within the constraint, if any
         key = observation.key.order()
         if constraint and key not in constraint:
@@ -286,20 +297,22 @@ def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
         # Add value and attributes
         row = {}
         if dtype:
-            row['value'] = observation.value
+            row["value"] = observation.value
         if attributes:
             row.update(observation.attrib)
 
-        result[tuple(map(str, key.get_values()))] = row
+        data[tuple(map(str, key.get_values()))] = row
 
-    result = pd.DataFrame.from_dict(result, orient='index')
+    result: Union[pd.Series, pd.DataFrame] = pd.DataFrame.from_dict(
+        data, orient="index"
+    )
 
     if len(result):
         result.index.names = observation.key.order().values.keys()
         if dtype:
-            result['value'] = result['value'].astype(dtype)
+            result["value"] = result["value"].astype(dtype)
             if not attributes:
-                result = result['value']
+                result = result["value"]
 
     # Reshape for compatibility with v0.9
     result, datetime, kwargs = _dataset_compat(result, datetime, kwargs)
@@ -309,13 +322,13 @@ def write_dataset(obj: model.DataSet, attributes='', dtype=np.float64,
 
 def _dataset_compat(df, datetime, kwargs):
     """Helper for :meth:`.write_dataset` 0.9 compatibility."""
-    rtype = kwargs.pop('_rtype')
-    if rtype != 'compat':
+    rtype = kwargs.pop("_rtype")
+    if rtype != "compat":
         return df, datetime, kwargs  # Do nothing
 
     # Remove compatibility arguments from kwargs
-    kwargs.pop('_message_class')
-    obs_dim = kwargs.pop('_observation_dimension')
+    kwargs.pop("_message_class")
+    obs_dim = kwargs.pop("_observation_dimension")
 
     if isinstance(obs_dim, list) and len(obs_dim) == 1:
         # Unwrap a length-1 list
@@ -332,9 +345,11 @@ def _dataset_compat(df, datetime, kwargs):
             datetime = obs_dim
         elif isinstance(datetime, dict):
             # Dict argument; ensure the 'dim' key is the same as obs_dim
-            if datetime.setdefault('dim', obs_dim) != obs_dim:
-                msg = (f"datetime={datetime} conflicts with rtype='compat' and"
-                       f" {obs_dim} at observation level")
+            if datetime.setdefault("dim", obs_dim) != obs_dim:
+                msg = (
+                    f"datetime={datetime} conflicts with rtype='compat' and"
+                    f" {obs_dim} at observation level"
+                )
                 raise ValueError(msg)
         else:
             assert datetime == obs_dim, (datetime, obs_dim)
@@ -368,9 +383,9 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
     # Check argument values
     param = dict(dim=None, axis=0, freq=False)
     if isinstance(arg, str):
-        param['dim'] = arg
+        param["dim"] = arg
     elif isinstance(arg, DimensionComponent):
-        param['dim'] = arg.id
+        param["dim"] = arg.id
     elif isinstance(arg, dict):
         extra_keys = set(arg.keys()) - set(param.keys())
         if extra_keys:
@@ -399,24 +414,24 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
         else:
             return []
 
-    if not param['dim']:
+    if not param["dim"]:
         # Determine time dimension
         dims = _get_dims()
         for dim in dims:
             if isinstance(dim, TimeDimension):
-                param['dim'] = dim
+                param["dim"] = dim
                 break
-        if not param['dim']:
-            raise ValueError(f'no TimeDimension in {dims}')
+        if not param["dim"]:
+            raise ValueError(f"no TimeDimension in {dims}")
 
     # Unstack all but the time dimension and convert
-    other_dims = list(filter(lambda d: d != param['dim'], df.index.names))
+    other_dims = list(filter(lambda d: d != param["dim"], df.index.names))
     df = df.unstack(other_dims)
     df.index = pd.to_datetime(df.index)
 
-    if param['freq']:
+    if param["freq"]:
         # Determine frequency string, Dimension, or Attribute
-        freq = param['freq']
+        freq = param["freq"]
         if isinstance(freq, str) and freq not in pd.offsets.prefix_mapping:
             # ID of a Dimension or Attribute
             for component in chain(_get_dims(), _get_attrs()):
@@ -439,8 +454,9 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
 
             if len(values) > 1:
                 values = sorted(values)
-                raise ValueError('cannot convert to PeriodIndex with '
-                                 f'non-unique freq={values}')
+                raise ValueError(
+                    "cannot convert to PeriodIndex with " f"non-unique freq={values}"
+                )
 
             # Store the unique value
             freq = values.pop()
@@ -452,7 +468,7 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
 
         df.index = df.index.to_period(freq=freq)
 
-    if param['axis'] in {1, 'columns'}:
+    if param["axis"] in {1, "columns"}:
         # Change axis
         df = df.transpose()
 
@@ -460,9 +476,9 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
 
 
 @Writer.register
-def _(obj: model.DimensionDescriptor):
+def _dd(obj: model.DimensionDescriptor):
     """Convert :class:`.DimensionDescriptor`."""
-    return write(obj.components)
+    return Writer.recurse(obj.components)
 
 
 @Writer.register
@@ -479,7 +495,7 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
     pandas.Series
     """
     items = {}
-    seen = set()
+    seen: Set[Item] = set()
 
     def add_item(item):
         """Recursive helper for adding items."""
@@ -490,12 +506,12 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
             seen.add(item)
 
         # Localized name
-        row = {'name': item.name.localized_default(locale)}
+        row = {"name": item.name.localized_default(locale)}
         try:
             # Parent ID
-            row['parent'] = item.parent.id
+            row["parent"] = item.parent.id
         except AttributeError:
-            row['parent'] = ''
+            row["parent"] = ""
 
         items[item.id] = row
 
@@ -507,23 +523,24 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
         add_item(item)
 
     # Convert to DataFrame
-    result = pd.DataFrame.from_dict(items, orient='index', dtype=object) \
-               .rename_axis(obj.id, axis='index')
+    result = pd.DataFrame.from_dict(items, orient="index", dtype=object).rename_axis(
+        obj.id, axis="index"
+    )
 
-    if len(result) and not result['parent'].str.len().any():
+    if len(result) and not result["parent"].str.len().any():
         # 'parent' column is empty; convert to pd.Series and rename
-        result = result['name'].rename(obj.name.localized_default(locale))
+        result = result["name"].rename(obj.name.localized_default(locale))
 
     return result
 
 
 @Writer.register
-def _(obj: model.MemberValue):
+def _mv(obj: model.MemberValue):
     return obj.value
 
 
 @Writer.register
-def _(obj: model.NameableArtefact):
+def _na(obj: model.NameableArtefact):
     return str(obj.name)
 
 

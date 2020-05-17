@@ -50,6 +50,7 @@ Top-level methods and classes
 
 SDMX-ML
 :::::::
+
 .. currentmodule:: sdmx.reader.sdmxml
 
 :mod:`sdmx` supports the several types of SDMX-ML messages.
@@ -68,6 +69,18 @@ SDMX-JSON
     :undoc-members:
 
 
+Reader API
+::::::::::
+
+.. currentmodule:: sdmx.reader
+
+.. automodule:: sdmx.reader
+   :members:
+
+.. autoclass:: sdmx.reader.base.BaseReader
+   :members:
+
+
 ``writer``: Convert ``sdmx`` objects to other formats
 -----------------------------------------------------
 
@@ -84,7 +97,7 @@ SDMX-JSON
 
 :func:`.to_pandas` implements a dispatch pattern according to the type of *obj*.
 Some of the internal methods take specific arguments and return varying values.
-These arguments can be passed to :meth:`to_pandas` when `obj` is of the appropriate type:
+These arguments can be passed to :func:`.to_pandas` when `obj` is of the appropriate type:
 
 .. autosummary::
    sdmx.writer.pandas.write_dataset
