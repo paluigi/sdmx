@@ -28,7 +28,7 @@ DEFAULT_RTYPE = "rows"
 Writer = BaseWriter("pandas")
 
 
-def write(obj, *args, **kwargs):
+def to_pandas(obj, *args, **kwargs):
     """Convert an SDMX *obj* to :mod:`pandas` object(s).
 
     See :ref:`sdmx.writer.pandas <writer-pandas>`.
@@ -43,18 +43,18 @@ def _list(obj: list, *args, **kwargs):
     if isinstance(obj[0], Observation):
         return write_dataset(obj, *args, **kwargs)
     elif isinstance(obj[0], DataSet) and len(obj) == 1:
-        return write(obj[0], *args, **kwargs)
+        return Writer.recurse(obj[0], *args, **kwargs)
     elif isinstance(obj[0], SeriesKey):
         assert len(args) == len(kwargs) == 0
         return write_serieskeys(obj)
     else:
-        return [write(item, *args, **kwargs) for item in obj]
+        return [Writer.recurse(item, *args, **kwargs) for item in obj]
 
 
 @Writer.register
 def _dict(obj: dict, *args, **kwargs):
     """Convert mappings."""
-    result = {k: write(v, *args, **kwargs) for k, v in obj.items()}
+    result = {k: Writer.recurse(v, *args, **kwargs) for k, v in obj.items()}
 
     result_type = set(type(v) for v in result.values())
 
@@ -83,7 +83,7 @@ def _dict(obj: dict, *args, **kwargs):
 @Writer.register
 def _set(obj: set, *args, **kwargs):
     """Convert :class:`set`."""
-    result = {write(o, *args, **kwargs) for o in obj}
+    result = {Writer.recurse(o, *args, **kwargs) for o in obj}
     return result
 
 
@@ -117,9 +117,9 @@ def write_datamessage(obj: message.DataMessage, *args, rtype=None, **kwargs):
         kwargs["_observation_dimension"] = obj.observation_dimension
 
     if len(obj.data) == 1:
-        return write(obj.data[0], *args, **kwargs)
+        return Writer.recurse(obj.data[0], *args, **kwargs)
     else:
-        return [write(ds, *args, **kwargs) for ds in obj.data]
+        return [Writer.recurse(ds, *args, **kwargs) for ds in obj.data]
 
 
 @Writer.register
@@ -161,7 +161,7 @@ def write_structuremessage(obj: message.StructureMessage, include=None, **kwargs
 
     result: DictLike[str, Union[pd.Series, pd.DataFrame]] = DictLike()
     for a in attrs:
-        dl = write(getattr(obj, a), **kwargs)
+        dl = Writer.recurse(getattr(obj, a), **kwargs)
         if len(dl):
             # Only add non-empty elements
             result[a] = dl
@@ -185,7 +185,7 @@ def _cc(obj: model.ContentConstraint, **kwargs):
     if len(obj.data_content_region) != 1:
         raise NotImplementedError
 
-    return write(obj.data_content_region[0], **kwargs)
+    return Writer.recurse(obj.data_content_region[0], **kwargs)
 
 
 @Writer.register
@@ -478,7 +478,7 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
 @Writer.register
 def _dd(obj: model.DimensionDescriptor):
     """Convert :class:`.DimensionDescriptor`."""
-    return write(obj.components)
+    return Writer.recurse(obj.components)
 
 
 @Writer.register

@@ -16,7 +16,7 @@ def Element(name, *args, **kwargs):
 Writer = BaseWriter("XML")
 
 
-def write(obj, **kwargs):
+def to_xml(obj, **kwargs):
     """Convert an SDMX *obj* to SDMX-ML.
 
     Parameters
