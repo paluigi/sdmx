@@ -87,6 +87,7 @@ PARSE = {k: None for k in product(to_tags(SKIP), ["start", "end"])}
 
 
 def start(*args, only=True):
+    """Decorator for a function that parses "start" events for XML elements."""
     def decorator(func):
         for tag in to_tags(*args):
             PARSE[tag, "start"] = func
@@ -98,6 +99,7 @@ def start(*args, only=True):
 
 
 def end(*args, only=True):
+    """Decorator for a function that parses "end" events for XML elements."""
     def decorator(func):
         for tag in to_tags(*args):
             PARSE[tag, "end"] = func
@@ -107,6 +109,8 @@ def end(*args, only=True):
 
     return decorator
 
+
+# filter() conditions; see get_unique() and pop_single()
 
 def matching_class(cls):
     return lambda item: isinstance(item, type) and issubclass(item, cls)
@@ -123,11 +127,14 @@ class NotReference(Exception):
 class Reference:
     """Temporary class for references.
 
-    - id, cls, and version are always the ID for a MaintainableArtefact.
-    - If the target is maintainable, child_id and child_cls are identical to id
-      and version, respectively. Otherwise, they describe the targeted object.
-    """
+    - `cls`, `id`, `version`, and `agency_id` are always for a MaintainableArtefact.
+    - If the reference target is a MaintainableArtefact (`maintainable` is True),
+      `target_cls` and `target_id` are identical to `cls` and `id`, respectively.
+    - If the target is not maintainable, `target_cls` and `target_id` describe it.
 
+    `cls_hint` is an optional hint for when the object is instantiated, i.e. a more
+    specific override for `cls`/`target_cls`.
+    """
     def __init__(self, elem, cls_hint=None):
         try:
             # Use the first child
@@ -135,96 +142,133 @@ class Reference:
         except IndexError:
             raise NotReference
 
-        if cls_hint:
-            cls_hint = get_sdmx_class(cls_hint)
-
+        # Extract information from the XML element
         if elem.tag == "Ref":
-            match = None
-            child_id = elem.attrib["id"]
-            id = elem.attrib.get("maintainableParentID", None)
+            # Element attributes give target_id, id, and version
+            target_id = elem.attrib["id"]
+            agency_id = elem.attrib.get("agencyID", None)
+            id = elem.attrib.get("maintainableParentID", target_id)
             version = elem.attrib.get("maintainableParentVersion", None)
 
-            try:
-                child_cls = get_sdmx_class(
-                    elem.attrib["class"], elem.attrib["package"],
-                )
-            except KeyError:
-                try:
-                    child_cls = get_sdmx_class(elem.getparent())
-                except KeyError:
-                    child_cls = cls_hint
-
+            # Arguments to try with get_sdmx_class()
+            get_class_args = [
+                # Attributes of the element itself, if any
+                (elem.attrib.get("class", None), elem.attrib.get("package", None)),
+                # The parent XML element
+                (elem.getparent(),),
+            ]
         elif elem.tag == "URN":
             match = sdmx.urn.match(elem.text)
-            child_cls = get_sdmx_class(match["class"], match["package"])
-            child_id = match["id"]
+
+            # If the URN doesn't specify an item ID, it is probably a reference to a
+            # MaintainableArtefact, so target_id and id are the same
+            target_id = match["item_id"] or match["id"]
+
+            agency_id = match["agency"]
             id = match["id"]
             version = match["version"]
+
+            get_class_args = [(match["class"], match["package"])]
         else:
             raise NotReference
 
-        if cls_hint and issubclass(cls_hint, child_cls):
-            child_cls = cls_hint
+        # Find the target class
+        for args in get_class_args:
+            try:
+                target_cls = get_sdmx_class(*args)
+            except KeyError:  # Arguments didn't work
+                continue
+            else:  # Found a result; don't try others from `get_class_args`
+                break
 
-        self.maintainable = issubclass(child_cls, model.MaintainableArtefact)
+        try:
+            # Get the hinted class
+            hinted_cls = get_sdmx_class(cls_hint)
+
+            if issubclass(hinted_cls, target_cls):
+                # Hinted class is more specific than target_cls; use this instead
+                target_cls = hinted_cls
+            else:
+                raise ValueError(
+                    f"{hinted_cls} is not a subclass of referenced {target_cls}"
+                )
+        except KeyError:  # cls_hint was None
+            pass
+        except UnboundLocalError:
+            # Failed to find anything from get_class_args, above; use the hinted class
+            target_cls = hinted_cls
+
+        self.maintainable = issubclass(target_cls, model.MaintainableArtefact)
 
         if self.maintainable:
-            cls, id = child_cls, child_id
+            # MaintainableArtefact is the same as the target
+            cls, id = target_cls, target_id
         else:
-            # Non-maintainable child of a MaintainableArtefact
-            cls = model.parent_class(child_cls)
-
-            if match:
-                # Use the ID of the item from the URN
-                child_id = match["item_id"]
+            # Get the class for the parent MaintainableArtefact
+            cls = model.parent_class(target_cls)
 
         # Store
-        self.child_cls = child_cls
-        self.child_id = child_id
         self.cls = cls
+        self.agency = agency_id if agency_id is None else model.Agency(id=agency_id)
         self.id = id
         self.version = version
+        self.target_cls = target_cls
+        self.target_id = target_id
 
     def __str__(self):
-        return "{0.cls} {0.id} {0.version} / {0.child_cls} {0.child_id}".format(self)
+        return (
+            f"{self.cls.__name__}={self.agency.id}:{self.id}({self.version}) → "
+            f"{self.target_cls.__name__}={self.target_id}"
+        )
 
 
 class Reader(BaseReader):
-    _ss_missing_dsd = False
-
     def read_message(self, source, dsd=None):
+        # Initialize stacks
         self.stack = defaultdict(list)
 
-        self._ss_missing_dsd = False
-
+        # If calling code provided a DSD, add it to a stack
         self.ignore = set([id(dsd)])
 
+        # Let it be ignored when parsing is complete
         self.push(dsd)
 
         try:
+            # Use the etree event-driven parser
             for event, element in etree.iterparse(source, events=("start", "end")):
                 try:
+                    # Retrieve the parsing function for this element & event
                     func = PARSE[element.tag, event]
                 except KeyError:
-                    # Fail immediately
+                    # Don't know what to do for this (element, event)
                     raise NotImplementedError(element.tag, event) from None
 
                 try:
+                    # Parse the element
                     result = func(self, element)
                 except TypeError:
-                    if func is None:
-                        continue
-                    else:
+                    if func is None:  # Explicitly no parser for this (element, event)
+                        continue      # Skip
+                    else:             # Some other TypeError
                         raise
                 else:
+                    # Store the result
                     self.push(result)
+
                     if event == "end":
-                        element.clear()
+                        element.clear()  # Free memory
 
         except Exception as exc:
+            # Parsing failed; display some diagnostic information
             self._dump()
+            print(etree.tostring(element, pretty_print=True).decode())
             raise XMLParseError from exc
-            # raise
+
+        # Parsing complete
+
+        # Remove some internal items
+        self.pop_single("SS without DSD")
+        self.pop_single("DataSetClass")
 
         # Count only non-ignored items
         uncollected = -1
@@ -235,9 +279,10 @@ class Reader(BaseReader):
             self._dump()
             raise RuntimeError(f"{uncollected} uncollected items")
 
-        return self.get_unique(message.Message)
+        return self.get_single(message.Message)
 
     def _clean(self):
+        """Remove empty stacks."""
         for key in list(self.stack.keys()):
             if len(self.stack[key]) == 0:
                 self.stack.pop(key)
@@ -246,34 +291,51 @@ class Reader(BaseReader):
         self._clean()
         print("\n\n")
         for key, values in self.stack.items():
-            print(key, values)
+            print(f"--- {key} ---", values, sep="\n", end="\n\n")
 
-    def push(self, *args):
-        """Push an object into the appropriate stack."""
-        if args[0] is None:
+    def push(self, stack_or_obj, obj=None):
+        """Push an object onto a stack."""
+        if stack_or_obj is None:
             return
 
-        if len(args) == 1:
-            args = (args[0].__class__, args[0])
-        elif len(args) == 2 and isinstance(args[0], etree._Element):
-            args = (QName(args[0]).localname, args[1])
-        elif len(args) > 2:
-            raise ValueError(args)
+        if obj is None:
+            # Add the object to a stack based on its class
+            self.stack[stack_or_obj.__class__].append(stack_or_obj)
+        else:
+            # Add to stack with a string name
+            stack = (
+                stack_or_obj
+                if isinstance(stack_or_obj, str)
+                # Element; use its local name
+                else QName(stack_or_obj).localname
+            )
+            self.stack[stack].append(obj)
 
-        self.stack[args[0]].append(args[1])
-
-    def stash(self, *keys):
-        self.stack["_stash"].append({k: self.pop_all(k, strict=True) for k in keys})
+    def stash(self, *stacks):
+        """Temporarily hide all objects in the given `stacks`."""
+        self.stack["_stash"].append({s: self.pop_all(s, strict=True) for s in stacks})
 
     def unstash(self):
+        """Restore the objects hidden by the last stash() call to their stacks."""
         try:
             for key, values in self.stack["_stash"].pop(-1).items():
                 self.stack[key].extend(values)
-        except IndexError:
+        except IndexError:  # No stashes
             pass
 
-    def get_unique(self, cls_or_name, id=None, strict=False):
-        if isinstance(cls_or_name, str) or strict:
+    def get_single(self, cls_or_name, id=None, strict=False):
+        """Return a reference to an object while leaving it in its stack.
+
+        Always returns 1 object. Returns None if no matching object exists, or if 2 or
+        more objects match.
+
+        If `id` is given, only return an IdentifiableArtefact with the matching ID.
+
+        If `cls_or_name` is a class and `strict` is False; all objects in *any* stack
+        that are instances of `cls_or_name` *or any a subclass* are collected and
+        checked. If `strict` is True, only the corresponding stack is checked.
+        """
+        if strict or isinstance(cls_or_name, str):
             results = self.stack.get(cls_or_name, [])
         else:
             results = chain(
@@ -284,21 +346,20 @@ class Reader(BaseReader):
             )
 
         if id:
-            for obj in results:
-                if obj.id == id:
-                    return obj
+            results = [obj for obj in results if obj.id == id]
         else:
             results = list(results)
-            return None if len(results) != 1 else results[0]
+
+        return None if len(results) != 1 else results[0]
 
     def pop_all(self, cls_or_name, strict=False):
-        """Remove all instances of *cls_or_name* from the stack and return.
+        """Pop all objects from stack *cls_or_name* and return.
 
-        Returns
-        -------
-        list
+        If `cls_or_name` is a class and `strict` is False; all objects in *any* stack
+        that are instances of `cls_or_name` *or any a subclass* are collected and
+        returned. If `strict` is True, only the corresponding stack is checked.
         """
-        if isinstance(cls_or_name, str):
+        if strict or isinstance(cls_or_name, str):
             return self.stack.pop(cls_or_name, [])
         else:
             cond = matching_class(cls_or_name)
@@ -312,64 +373,64 @@ class Reader(BaseReader):
             )
 
     def pop_single(self, cls_or_name):
+        """Pop a single object from the stack for `cls_or_name` and return."""
         try:
             return self.stack[cls_or_name].pop(-1)
         except (IndexError, KeyError):
             return None
 
-    def get_top(self, cls_or_name):
+    def peek(self, cls_or_name):
+        """Get the object at the top of stack `cls_or_name` without removing it."""
         try:
             return self.stack[cls_or_name][-1]
         except (IndexError, KeyError):
             return None
 
-    def pop_resolved_ref(self, cls, cls_or_name=None):
-        return self.resolve(cls, self.pop_single(cls_or_name or cls))
+    def pop_resolved_ref(self, cls_or_name):
+        """Pop a reference to `cls_or_name` and resolve it."""
+        return self.resolve(self.pop_single(cls_or_name))
 
-    def resolve(self, cls, ref):
+    def resolve(self, ref):
+        """Resolve the Reference instance `ref`, returning the referred object."""
         if not isinstance(ref, Reference):
+            # None, already resolved, or not a Reference
             return ref
 
-        assert issubclass(ref.cls, cls) or issubclass(ref.child_cls, cls)
-
-        # log.info(f"Resolving {ref}")
-
         # Try to get the target directly
-        result = self.get_unique(ref.child_cls, ref.child_id)
+        target = self.get_single(ref.target_cls, ref.target_id)
 
-        if result:
-            # Success
-            # log.info(f"Internal ref to {repr(result)}")
-            pass
-        elif not ref.maintainable:
-            # Retrieve the parent MaintainableArtefact or create a reference
-            parent = self.get_unique(ref.cls, ref.id)
+        if target:
+            return target
 
-            if parent is None:
-                parent = self.maintainable(
-                    ref.cls, None, id=ref.id, is_external_reference=True,
-                )
-                self.push(parent)
+        # MaintainableArtefact with is_external_reference=True; either a new object, or
+        # reference to an existing object
+        target_or_parent = self.maintainable(
+            ref.cls, None, id=ref.id, maintainer=ref.agency, version=ref.version,
+        )
 
-            if parent.is_external_reference:
-                result = None
-                log.info(
-                    f"Parent {repr(ref.id)} is external; cannot resolve child "
-                    f"{repr(ref.child_id)}"
-                )
-            else:
-                result = parent[ref.child_id]
-                # log.info(
-                #     f"Internal ref to child {repr(ref.child_id)} of {repr(ref.id)}"
-                # )
+        if ref.maintainable:
+            # `target_or_parent` is the target
+            return target_or_parent
+
+        # At this point, trying to resolve a reference to a child object of a parent
+        # MaintainableArtefact; `target_or_parent` is the parent
+        parent = target_or_parent
+
+        if parent.is_external_reference:
+            # Create the child
+            # log.info(
+            #     f"Child {repr(ref.target_id)} of externally referenced parent "
+            #     f"{repr(parent)} may be incomplete"
+            # )
+            return parent.setdefault(id=ref.target_id)
         else:
-            # log.info(f"External ref to {repr(ref.id)}")
-            result = self.maintainable(
-                ref.cls, None, id=ref.id, is_external_reference=True,
-            )
-            self.push(result)
-
-        return result
+            try:
+                # Access the child. Mismatch here will raise KeyError
+                return parent[ref.target_id]
+            except KeyError:
+                if isinstance(parent, model.ItemScheme):
+                    return parent.get_hierarchical(ref.target_id)
+                raise
 
     def annotable(self, cls, elem, **kwargs):
         """Create a AnnotableArtefact of `cls` from `elem` and `kwargs`.
@@ -404,19 +465,52 @@ class Reader(BaseReader):
         return self.nameable(cls, elem, **kwargs)
 
     def maintainable(self, cls, elem, **kwargs):
-        """Create a MaintainableArtefact of `cls` from `elem` and `kwargs`.
+        """Create or retrieve a MaintainableArtefact of `cls` from `elem` and `kwargs`.
 
         Following the SDMX-IM class hierachy, :meth:`maintainable` calls
         :meth:`versionable`, which in turn calls :meth:`nameable`, etc.
         For all of these methods:
 
-        - Already-parsed items are only removed from the stack if `elem` is not
+        - Already-parsed items are removed from the stack only if `elem` is not
           :obj:`None`.
-        - `kwargs` (e.g. 'id') take precedences over values retrieved from attributes
-           of `elem`.
+        - `kwargs` (e.g. 'id') take precedence over any values retrieved from
+          attributes of `elem`.
+
+        If `elem` is None, :meth:`maintainable` returns a MaintainableArtefact with
+        the is_external_reference attribute set to :obj:`True`. Subsequent calls with
+        the same object ID will return references to the same object.
         """
+        kwargs.setdefault("is_external_reference", elem is None)
         setdefault_attrib(kwargs, elem, "isExternalReference", "isFinal", "uri", "urn")
-        return self.versionable(cls, elem, **kwargs)
+
+        # Create a candidate object
+        obj = self.versionable(cls, elem, **kwargs)
+
+        # Maybe retrieve an existing object of the same class and ID
+        existing = self.get_single(cls, obj.id, strict=True)
+
+        if existing:
+            if elem is not None:
+                # Previously an external reference, now concrete
+                existing.is_external_reference = False
+
+                if not existing.identical(obj):
+                    log.warning(
+                        f"Mismatch between referred {repr(existing)} and concrete "
+                        f"{repr(obj)}"
+                    )
+
+                # Update `existing` from `obj` to preserve references
+                for attr in kwargs:
+                    log.info(f"Updating {attr}")
+                    setattr(existing, attr, getattr(obj, attr))
+
+            obj = existing
+        elif obj.is_external_reference:
+            # Push a new external reference onto the stack to be located by next calls
+            self.push(obj)
+
+        return obj
 
 
 @start(*[f"mes:{k}" for k in MESSAGE.keys() if k != "Structure"])
@@ -428,17 +522,24 @@ def _message(reader, elem):
     if getattr(elem.getparent(), "tag", None) == qname("mes", "Header"):
         return
 
+    ss_without_dsd = False
+
     # With 'dsd' argument, the message should be structure-specific
     if (
         "StructureSpecific" in elem.tag
-        and reader.get_unique(model.DataStructureDefinition) is None
+        and reader.get_single(model.DataStructureDefinition) is None
     ):
         log.warning(f"sdmxml.Reader got no dsd=… argument for {QName(elem).localname}")
-        reader._ss_missing_dsd = True
-    elif "StructureSpecific" not in elem.tag and reader.get_unique(
+        ss_without_dsd = True
+    elif "StructureSpecific" not in elem.tag and reader.get_single(
         model.DataStructureDefinition
     ):
         log.warning("Ambiguous: dsd=… argument for non–structure-specific message")
+
+    # Store values for other methods
+    reader.push("SS without DSD", ss_without_dsd)
+    if "Data" in elem.tag:
+        reader.push("DataSetClass", get_sdmx_class(f"{QName(elem).localname}Set"))
 
     # Instantiate the message object
     cls = MESSAGE[QName(elem).localname]
@@ -452,21 +553,22 @@ def _header_structure(reader, elem):
     if elem.getparent() is None:
         return
 
-    msg = reader.get_unique(message.Message)
+    msg = reader.get_single(message.Message)
 
     # Retrieve a DSD supplied to the parser, e.g. for a structure specific message
-    provided_dsd = reader.get_unique(model.DataStructureDefinition)
+    provided_dsd = reader.get_single(model.DataStructureDefinition)
 
     # Resolve the <com:Structure> child to a DSD, maybe is_external_reference=True
-    header_dsd = reader.pop_resolved_ref(model.DataStructureDefinition, "Structure")
+    header_dsd = reader.pop_resolved_ref("Structure")
     # Resolve the <str:StructureUsage> child, if any, and remove it from the stack
-    header_su = reader.pop_resolved_ref(object, "StructureUsage")
+    header_su = reader.pop_resolved_ref("StructureUsage")
     reader.pop_single(model.StructureUsage)
 
     if provided_dsd:
         dsd = provided_dsd
     else:
         if header_su:
+            # The header gives a StructureUsage object, but it really refers to a DSD
             su_dsd = reader.maintainable(
                 model.DataStructureDefinition,
                 None,
@@ -524,23 +626,23 @@ def _header_structure(reader, elem):
 
 @start("mes:DataSet", only=False)
 def _ds_start(reader, elem):
-    ds = model.DataSet()
+    ds = reader.peek("DataSetClass")()
 
     # Store a reference to the DSD that structures the data set
     id = elem.attrib.get("structureRef", None) or elem.attrib.get(
         qname("data:structureRef"), None
     )
     if id:
-        ds.structured_by = reader.get_unique(id)
+        ds.structured_by = reader.get_single(id)
     else:
         log.info("No DSD when creating DataSet {reader.stack}")
 
-    return ds
+    reader.push("DataSet", ds)
 
 
 @end("mes:DataSet", only=False)
 def _ds_end(reader, elem):
-    ds = reader.pop_single(model.DataSet)
+    ds = reader.pop_single("DataSet")
 
     # Collect observations not grouped by SeriesKey
     ds.add_obs(reader.pop_all(model.Observation))
@@ -550,12 +652,12 @@ def _ds_end(reader, elem):
         ds._add_group_refs(obs)
 
     # Add the data set to the message
-    reader.get_unique(message.Message).data.append(ds)
+    reader.get_single(message.Message).data.append(ds)
 
 
 @end("gen:Series")
 def _series(reader, elem):
-    ds = reader.get_unique(model.DataSet)
+    ds = reader.get_single("DataSet")
     sk = reader.pop_single(model.SeriesKey)
     sk.attrib.update(reader.pop_single("Attributes") or {})
     ds.add_obs(reader.pop_all(model.Observation), sk)
@@ -563,7 +665,7 @@ def _series(reader, elem):
 
 @end("gen:Group")
 def _group(reader, elem):
-    ds = reader.get_unique(model.DataSet)
+    ds = reader.get_single("DataSet")
 
     gk = reader.pop_single(model.GroupKey)
     gk.attrib.update(reader.pop_single("Attributes") or {})
@@ -574,7 +676,7 @@ def _group(reader, elem):
 
 @end("gen:Attributes")
 def _avs(reader, elem):
-    ad = reader.get_unique(model.DataSet).structured_by.attributes
+    ad = reader.get_single("DataSet").structured_by.attributes
 
     result = {}
     for e in elem.iterchildren():
@@ -586,8 +688,8 @@ def _avs(reader, elem):
 
 @end("gen:Obs")
 def _obs(reader, elem):
-    dim_at_obs = reader.get_unique(message.Message).observation_dimension
-    dsd = reader.get_unique(model.DataSet).structured_by
+    dim_at_obs = reader.get_single(message.Message).observation_dimension
+    dsd = reader.get_single("DataSet").structured_by
 
     args = dict()
 
@@ -619,10 +721,10 @@ def _obs_ss(reader, elem):
     value = attrib.pop("OBS_VALUE", None)
 
     # Use the DSD to separate dimensions and attributes
-    dsd = reader.get_unique(model.DataStructureDefinition)
+    dsd = reader.get_single(model.DataStructureDefinition)
 
     # Extend the DSD if the user failed to provide it
-    key = dsd.make_key(model.Key, attrib, extend=reader._ss_missing_dsd)
+    key = dsd.make_key(model.Key, attrib, extend=reader.peek("SS without DSD"))
 
     # Remove attributes from the Key to be attached to the Observation
     aa = key.attrib
@@ -637,20 +739,20 @@ def _key(reader, elem):
 
     kv = {e.attrib["id"]: e.attrib["value"] for e in elem.iterchildren()}
 
-    dsd = reader.get_unique(model.DataSet).structured_by
+    dsd = reader.get_single("DataSet").structured_by
 
     return dsd.make_key(cls, kv, extend=True)
 
 
 @end(":Group")
 def _group_ss(reader, elem):
-    ds = reader.get_unique(model.DataSet)
+    ds = reader.get_single("DataSet")
     attrib = copy(elem.attrib)
 
     group_id = attrib.pop(qname("xsi", "type"), None)
 
     gk = ds.structured_by.make_key(
-        model.GroupKey, attrib, extend=reader._ss_missing_dsd,
+        model.GroupKey, attrib, extend=reader.peek("SS without DSD"),
     )
 
     if group_id:
@@ -662,7 +764,7 @@ def _group_ss(reader, elem):
         try:
             gk.described_by = ds.structured_by.group_dimensions[group_id]
         except KeyError:
-            if not reader._ss_missing_dsd:
+            if not reader.peek("SS without DSD"):
                 raise
 
     ds.group[gk] = []
@@ -670,11 +772,11 @@ def _group_ss(reader, elem):
 
 @end(":Series")
 def _series_ss(reader, elem):
-    ds = reader.get_unique(model.DataSet)
+    ds = reader.get_single("DataSet")
     ds.add_obs(
         reader.pop_all(model.Observation),
         ds.structured_by.make_key(
-            model.SeriesKey, elem.attrib, extend=reader._ss_missing_dsd,
+            model.SeriesKey, elem.attrib, extend=reader.peek("SS without DSD"),
         ),
     )
 
@@ -687,14 +789,14 @@ def _footer(reader, elem):
     if "code" in args:
         args["code"] = int(args["code"])
 
-    reader.get_unique(message.Message).footer = message.Footer(
+    reader.get_single(message.Message).footer = message.Footer(
         text=list(map(model.InternationalString, reader.pop_all("Text"))), **args,
     )
 
 
 @end("mes:Structures")
 def _structures(reader, elem):
-    msg = reader.get_unique(message.Message)
+    msg = reader.get_single(message.Message)
 
     # Populate dictionaries by ID
     for attr, name in (
@@ -746,9 +848,16 @@ def _item(reader, elem):
             item.append_child(reader.pop_single(cls))
 
     # (2) through <str:Parent>
-    parent = reader.pop_resolved_ref(cls, "Parent")
+    parent = reader.pop_resolved_ref("Parent")
     if parent:
         parent.append_child(item)
+
+    # Agency only
+    try:
+        item.contact = reader.pop_all(model.Contact)
+    except ValueError:
+        # NB this is a ValueError from pydantic, rather than AttributeError from Python
+        pass
 
     reader.unstash()
     return item
@@ -764,7 +873,7 @@ def _concept(reader, elem):
 @end("str:CoreRepresentation str:LocalRepresentation")
 def _rep(reader, elem):
     return model.Representation(
-        enumerated=reader.pop_resolved_ref(model.ItemScheme, "Enumeration"),
+        enumerated=reader.pop_resolved_ref("Enumeration"),
         non_enumerated=(
             reader.pop_all("EnumerationFormat") + reader.pop_all("TextFormat")
         ),
@@ -835,7 +944,7 @@ def _header(reader, elem):
     )
     add_localizations(header.source, reader.pop_all("Source"))
 
-    reader.get_unique(message.Message).header = header
+    reader.get_single(message.Message).header = header
 
     # TODO check whether these occur anywhere besides footer.xml
     reader.pop_all("Timezone")
@@ -845,8 +954,8 @@ def _header(reader, elem):
 
 @end(
     "mes:DataSetAction mes:DataSetID mes:ID mes:Prepared mes:Test mes:Timezone "
-    "com:AnnotationType com:AnnotationTitle com:AnnotationURL com:Email com:None "
-    "com:Telephone com:URI com:URN com:Value"
+    "com:AnnotationType com:AnnotationTitle com:AnnotationURL com:None com:URN "
+    "com:Value str:Email str:Telephone str:URI"
 )
 def _text(reader, elem):
     reader.push(elem, elem.text)
@@ -858,8 +967,8 @@ def _header_org(reader, elem):
 
 
 @end(
-    "com:AnnotationText com:Name com:Department com:Description com:Role com:Text "
-    "mes:Source"
+    "com:AnnotationText com:Name com:Description com:Text mes:Source str:Department "
+    "str:Role"
 )
 def _localization(reader, elem):
     reader.push(
@@ -867,14 +976,23 @@ def _localization(reader, elem):
     )
 
 
+@end("str:Contact")
+def _contact(reader, elem):
+    contact = model.Contact(
+        telephone=reader.pop_single("Telephone"),
+        uri=reader.pop_all("URI"),
+        email=reader.pop_all("Email"),
+    )
+    add_localizations(contact.name, reader.pop_all("Name"))
+    add_localizations(contact.org_unit, reader.pop_all("Department"))
+    add_localizations(contact.responsibility, reader.pop_all("Role"))
+    return contact
+
+
 @end(
-    # in <mes:Header> of structure-specific data message
-    "com:Structure "
-    # in <mes:Header>/<mes:Structure> of generic data message
-    "com:StructureUsage str:AttachmentGroup str:ConceptIdentity str:DimensionReference"
-    " str:Parent str:Source "
-    # In e.g. <str:Dataflow>
-    "str:Structure str:Target str:Enumeration"
+    "com:Structure com:StructureUsage str:AttachmentGroup str:ConceptIdentity "
+    "str:DimensionReference str:Parent str:Source str:Structure str:StructureUsage "
+    "str:Target str:Enumeration"
 )
 def _ref(reader, elem):
     localname = QName(elem).localname
@@ -905,7 +1023,7 @@ def _component(reader, elem):
     cls = get_sdmx_class(elem)
 
     args = dict(
-        concept_identity=reader.pop_resolved_ref(model.Concept, "ConceptIdentity"),
+        concept_identity=reader.pop_resolved_ref("ConceptIdentity"),
         local_representation=reader.pop_single(model.Representation),
     )
     try:
@@ -925,30 +1043,31 @@ def _component(reader, elem):
 @end("str:AttributeRelationship")
 def _ar(reader, elem):
     # Retrieve the current DSD
-    dsd = reader.get_top(model.DataStructureDefinition)
+    dsd = reader.peek(model.DataStructureDefinition)
 
     if "None" in elem[0].tag:
         return model.NoSpecifiedRelationship()
 
-    # Iterate over the stack of parsed references
+    # Iterate over parsed references to Components
     args = dict(dimensions=list())
     for ref in reader.pop_all(Reference, strict=True):
         # Use the <Ref id="..."> to retrieve a Component from the DSD
-        try:
-            if issubclass(ref.child_cls, model.DimensionComponent):
-                component = dsd.dimensions.get(ref.child_id)
-                args["dimensions"].append(component)
-            elif issubclass(ref.child_cls, model.PrimaryMeasure):
-                component = dsd.measures.get(ref.child_id)
-                assert False
-            elif ref.child_cls is model.GroupDimensionDescriptor:
-                args["group_key"] = dsd.group_dimensions[ref.child_id]
-        except KeyError:
-            log.warning(f"Not implemented: forward ref to {str(ref)}")
+        if issubclass(ref.target_cls, model.DimensionComponent):
+            component = dsd.dimensions.get(ref.target_id)
+            args["dimensions"].append(component)
+        elif ref.target_cls is model.PrimaryMeasure:
+            # Since <str:AttributeList> occurs before <str:MeasureList>, this is
+            # usually a forward reference. We *could* eventually resolve it to confirm
+            # consistency (the referenced ID is same as the PrimaryMeasure.id), but
+            # that doesn't affect the returned value, since PrimaryMeasureRelationship
+            # has no attributes.
+            return model.PrimaryMeasureRelationship()
+        elif ref.target_cls is model.GroupDimensionDescriptor:
+            args["group_key"] = dsd.group_dimensions[ref.target_id]
 
     ref = reader.pop_single("AttachmentGroup")
     if ref:
-        args["group_key"] = dsd.group_dimensions[ref.child_id]
+        args["group_key"] = dsd.group_dimensions[ref.target_id]
 
     if len(args["dimensions"]):
         return model.DimensionRelationship(**args)
@@ -966,9 +1085,8 @@ def _cl(reader, elem):
         pass
 
     # Retrieve the DSD
-    dsd = reader.get_top(model.DataStructureDefinition)
-    if dsd is None:
-        assert False
+    dsd = reader.peek(model.DataStructureDefinition)
+    assert dsd is not None
 
     # Retrieve the components
     args = dict(components=reader.pop_all(model.Component))
@@ -986,7 +1104,7 @@ def _cl(reader, elem):
 
     # GroupDimensionDescriptor only
     for ref in reader.pop_all("DimensionReference"):
-        args["components"].append(dsd.dimensions.get(ref.child_id))
+        args["components"].append(dsd.dimensions.get(ref.target_id))
 
     cl = reader.identifiable(get_sdmx_class(cls_name), elem, **args)
 
@@ -996,7 +1114,9 @@ def _cl(reader, elem):
     except AttributeError:
         pass
 
-    # Assign to the DSD eagerly for reference by next ComponentLists
+    # Assign to the DSD eagerly (instead of in _dsd_end()) for reference by next
+    # ComponentList e.g. so that AttributeRelationship can reference the
+    # DimensionDescriptor
     attr = {
         model.DimensionDescriptor: "dimensions",
         model.AttributeDescriptor: "attributes",
@@ -1011,21 +1131,21 @@ def _cl(reader, elem):
 
 @start("str:DataStructure", only=False)
 def _dsd_start(reader, elem):
-    # Get an external reference, possibly created earlier
-    ext_dsd = reader.get_unique(model.DataStructureDefinition)
-
+    # Get any external reference created earlier, or instantiate a new object.
     # Children are not parsed at this point
-    candidate = reader.maintainable(model.DataStructureDefinition, elem)
+    dsd = reader.maintainable(model.DataStructureDefinition, elem)
 
-    if candidate != ext_dsd:
-        reader.push(candidate)
+    if dsd not in reader.stack[model.DataStructureDefinition]:
+        # A new object was created
+        reader.push(dsd)
 
 
 @end("str:DataStructure", only=False)
 def _dsd_end(reader, elem):
-    dsd = reader.get_top(model.DataStructureDefinition)
-    # TODO also handle annotations etc.
+    dsd = reader.peek(model.DataStructureDefinition)
     add_localizations(dsd.name, reader.pop_all("Name"))
+    add_localizations(dsd.description, reader.pop_all("Description"))
+    # TODO also handle annotations etc.
 
 
 @end("str:Dataflow")
@@ -1036,7 +1156,7 @@ def _dfd(reader, elem):
     except NotReference:
         pass
 
-    structure = reader.pop_resolved_ref(model.DataStructureDefinition, "Structure")
+    structure = reader.pop_resolved_ref("Structure")
     if structure is None:
         log.warning(
             "Not implemented: forward reference to:\n" + etree.tostring(elem).decode()
@@ -1054,8 +1174,8 @@ def _cat(reader, elem):
     return reader.maintainable(
         model.Categorisation,
         elem,
-        artefact=reader.pop_resolved_ref(model.IdentifiableArtefact, "Source"),
-        category=reader.pop_resolved_ref(model.Category, "Target"),
+        artefact=reader.pop_resolved_ref("Source"),
+        category=reader.pop_resolved_ref("Target"),
     )
 
 
@@ -1065,12 +1185,9 @@ def _cc(reader, elem):
 
     content = set()
     for ref in reader.pop_all(Reference):
-        resolved = reader.resolve(model.ConstrainableArtefact, ref)
+        resolved = reader.resolve(ref)
         if resolved is None:
-            log.warning(
-                f"Unable to resolve Content.Constraint.content reference:\n  "
-                + str(ref)
-            )
+            log.warning(f"Unable to resolve ContentConstraint.content ref:\n  {ref}")
         else:
             content.add(resolved)
 
@@ -1107,14 +1224,14 @@ def _ms(reader, elem):
         # has an Attribute- or DimensionDescriptor
         cc_content = reader.stack[Reference]
         assert len(cc_content) == 1
-        dfd = reader.resolve(model.ConstrainableArtefact, cc_content[0])
+        dfd = reader.resolve(cc_content[0])
         cl = getattr(dfd.structure, kind[0])
     except AttributeError:
         # Failed because the ContentConstraint is attached to something,
         # e.g. DataProvider, that does not provide an association to a DSD.
         # Try to get a Component from the current scope with matching ID.
         cl = None
-        component = reader.get_unique(kind[1], id=elem.attrib["id"])
+        component = reader.get_single(kind[1], id=elem.attrib["id"])
     else:
         # Get the Component
         component = cl.get(elem.attrib["id"])
@@ -1127,7 +1244,6 @@ def _ms(reader, elem):
             f"{cl} has no {kind[1].__name__} with ID {elem.attrib['id']}; XML element "
             "ignored and MemberValues discarded"
         )
-        # Values are discarded
         return None
 
     return model.MemberSelection(values_for=component, values=list(values))
@@ -1136,8 +1252,7 @@ def _ms(reader, elem):
 @end("str:DataKeySet")
 def _dks(reader, elem):
     return model.DataKeySet(
-        included=elem.attrib["isIncluded"],
-        keys=reader.pop_all(model.DataKey)
+        included=elem.attrib["isIncluded"], keys=reader.pop_all(model.DataKey)
     )
 
 
@@ -1148,8 +1263,18 @@ def _dk(reader, elem):
         # Convert MemberSelection/MemberValue from _ms() to ComponentValue
         key_value={
             ms.values_for: model.ComponentValue(
-                value_for=ms.values_for,
-                value=ms.values.pop().value,
-            ) for ms in reader.pop_all(model.MemberSelection)
+                value_for=ms.values_for, value=ms.values.pop().value,
+            )
+            for ms in reader.pop_all(model.MemberSelection)
         },
+    )
+
+
+@end("str:ProvisionAgreement")
+def _pa(reader, elem):
+    return reader.maintainable(
+        model.ProvisionAgreement,
+        elem,
+        structure_usage=reader.pop_resolved_ref("StructureUsage"),
+        data_provider=reader.pop_resolved_ref(Reference),
     )
