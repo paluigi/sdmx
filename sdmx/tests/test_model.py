@@ -213,7 +213,7 @@ def test_itemscheme():
     assert len(is0) == 1
 
     # __repr__
-    assert repr(is0) == "<ItemScheme: 'is0', 1 items>"
+    assert repr(is0) == "<ItemScheme is0 (1 items)>"
 
     # __iter__
     assert all(i is foo0 for i in is0)

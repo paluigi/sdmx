@@ -25,6 +25,7 @@ Details of the implementation:
 # - For convenience:
 #   - Guess URNs using the standard format.
 
+from collections import ChainMap
 from collections.abc import Collection
 from collections.abc import Iterable as IterableABC
 from copy import copy
@@ -254,12 +255,15 @@ class NameableArtefact(IdentifiableArtefact):
     #: Multi-lingual description of the object.
     description: InternationalString = InternationalString()
 
-    def __repr__(self):
-        return "<{} {}:{}>".format(
-            self.__class__.__name__,
-            self.id,
-            (" " + str(self.name)) if len(self.name.localizations) else "",
+    def _repr_kw(self):
+        return dict(
+            cls=self.__class__.__name__,
+            id=self.id,
+            name=f": {self.name}" if len(self.name.localizations) else "",
         )
+
+    def __repr__(self):
+        return "<{cls} {id}{name}>".format(**self._repr_kw())
 
 
 class VersionableArtefact(NameableArtefact):
@@ -269,6 +273,15 @@ class VersionableArtefact(NameableArtefact):
     valid_from: Optional[str] = None
     #: Date from which the version is superseded.
     valid_to: Optional[str] = None
+
+    def identical(self, other):
+        return super().__eq__(other) and self.version == other.version
+
+    def _repr_kw(self) -> Mapping:
+        return ChainMap(
+            super()._repr_kw(),
+            dict(version=f"({self.version})" if self.version else ""),
+        )
 
 
 class MaintainableArtefact(VersionableArtefact):
@@ -284,6 +297,18 @@ class MaintainableArtefact(VersionableArtefact):
     structure_url: Optional[str] = None
     #: Association to the Agency responsible for maintaining the object.
     maintainer: Optional["Agency"] = None
+
+    def identical(self, other):
+        return super().identical(other) and self.maintainer is other.maintainer
+
+    def _repr_kw(self):
+        return ChainMap(
+            super()._repr_kw(),
+            dict(maint="f{self.maintainer}:" if self.maintainer else ""),
+        )
+
+    def __repr__(self):
+        return "<{cls} {maint}{id}{version}{name}>".format(**self._repr_kw())
 
 
 # 3.4: Data Types
@@ -460,8 +485,8 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         self.items[item.id] = item
 
     def __repr__(self):
-        return "<{}: '{}', {} items>".format(
-            self.__class__.__name__, self.id, len(self.items)
+        return "<{cls} {maint}{id}{version} ({N} items){name}>".format(
+            **self._repr_kw(), N=len(self.items)
         )
 
     def setdefault(self, obj=None, **kwargs) -> IT:
