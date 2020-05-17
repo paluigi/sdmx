@@ -18,6 +18,7 @@ from sdmx.exceptions import HTTPError
 from sdmx.source import DataContentType, sources
 
 from .data import BASE_PATH as TEST_DATA_PATH
+from .data import specimen
 
 log = logging.getLogger(__name__)
 
@@ -297,8 +298,11 @@ class TestISTAT(DataSourceTest):
 
         df_id = "47_850"
 
-        # Reported Dataflow query works
-        df = req.dataflow(df_id).dataflow[df_id]
+        # # Reported Dataflow query works
+        # df = req.dataflow(df_id).dataflow[df_id]
+
+        with specimen("47_850-structure") as f:
+            df = sdmx.read_sdmx(f).dataflow[df_id]
 
         # dict() key for the query
         data_key = dict(

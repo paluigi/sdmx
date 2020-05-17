@@ -69,6 +69,7 @@ TEST_FILES.extend(
         ("INSEE", "CNA-2010-CONSO-SI-A17-structure.xml"),
         ("INSEE", "dataflow.xml"),
         ("INSEE", "IPI-2010-A21-structure.xml"),
+        ("ISTAT", "47_850-structure.xml"),
         ("UNSD", "codelist_partial.xml"),
         ("SGR", "common-structure.xml"),
     ]
