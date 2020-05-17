@@ -88,6 +88,7 @@ PARSE = {k: None for k in product(to_tags(SKIP), ["start", "end"])}
 
 def start(*args, only=True):
     """Decorator for a function that parses "start" events for XML elements."""
+
     def decorator(func):
         for tag in to_tags(*args):
             PARSE[tag, "start"] = func
@@ -100,6 +101,7 @@ def start(*args, only=True):
 
 def end(*args, only=True):
     """Decorator for a function that parses "end" events for XML elements."""
+
     def decorator(func):
         for tag in to_tags(*args):
             PARSE[tag, "end"] = func
@@ -111,6 +113,7 @@ def end(*args, only=True):
 
 
 # filter() conditions; see get_unique() and pop_single()
+
 
 def matching_class(cls):
     return lambda item: isinstance(item, type) and issubclass(item, cls)
@@ -135,6 +138,7 @@ class Reference:
     `cls_hint` is an optional hint for when the object is instantiated, i.e. a more
     specific override for `cls`/`target_cls`.
     """
+
     def __init__(self, elem, cls_hint=None):
         try:
             # Use the first child
@@ -248,8 +252,8 @@ class Reader(BaseReader):
                     result = func(self, element)
                 except TypeError:
                     if func is None:  # Explicitly no parser for this (element, event)
-                        continue      # Skip
-                    else:             # Some other TypeError
+                        continue  # Skip
+                    else:  # Some other TypeError
                         raise
                 else:
                     # Store the result

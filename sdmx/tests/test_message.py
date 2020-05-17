@@ -1,3 +1,4 @@
+from operator import itemgetter
 import re
 
 import pytest
@@ -71,7 +72,9 @@ EXPECTED = [
 ]
 
 
-@pytest.mark.parametrize("pattern, expected", EXPECTED, ids=range(len(EXPECTED)))
+@pytest.mark.parametrize(
+    "pattern, expected", EXPECTED, ids=list(map(itemgetter(0), EXPECTED))
+)
 def test_message_repr(pattern, expected):
     with specimen(pattern) as f:
         msg = sdmx.read_sdmx(f)
