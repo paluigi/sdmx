@@ -328,13 +328,13 @@ class MaintainableArtefact(VersionableArtefact):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         try:
-            if self.maintainer.id != self.urn_group["agency"]:
+            if self.maintainer and self.maintainer.id != self.urn_group["agency"]:
                 raise ValueError(
                     f"Maintainer {self.maintainer} does not match URN {self.urn}"
                 )
             else:
                 self.maintainer = Agency(id=self.urn_group["agency"])
-        except (AttributeError, KeyError):
+        except KeyError:
             pass
 
     def identical(self, other):
