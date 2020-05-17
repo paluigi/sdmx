@@ -227,6 +227,22 @@ class IdentifiableArtefact(AnnotableArtefact):
     #: objects have a URN.
     urn: Optional[str] = None
 
+    urn_group: Dict = dict()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.urn:
+            import sdmx.urn
+
+            self.urn_group = sdmx.urn.match(self.urn)
+
+        try:
+            if self.id not in (self.urn_group["item_id"] or self.urn_group["id"]):
+                raise ValueError(f"ID {self.id} does not match URN {self.urn}")
+        except KeyError:
+            pass
+
     def __eq__(self, other):
         """Equality comparison.
 
@@ -274,6 +290,18 @@ class VersionableArtefact(NameableArtefact):
     #: Date from which the version is superseded.
     valid_to: Optional[str] = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            if self.version and self.version != self.urn_group["version"]:
+                raise ValueError(
+                    f"Version {self.version} does not match URN {self.urn}"
+                )
+            else:
+                self.version = self.urn_group["version"]
+        except KeyError:
+            pass
+
     def identical(self, other):
         return super().__eq__(other) and self.version == other.version
 
@@ -297,6 +325,18 @@ class MaintainableArtefact(VersionableArtefact):
     structure_url: Optional[str] = None
     #: Association to the Agency responsible for maintaining the object.
     maintainer: Optional["Agency"] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            if self.maintainer.id != self.urn_group["agency"]:
+                raise ValueError(
+                    f"Maintainer {self.maintainer} does not match URN {self.urn}"
+                )
+            else:
+                self.maintainer = Agency(id=self.urn_group["agency"])
+        except (AttributeError, KeyError):
+            pass
 
     def identical(self, other):
         return super().identical(other) and self.maintainer is other.maintainer

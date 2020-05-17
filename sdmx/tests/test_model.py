@@ -1,8 +1,10 @@
 # TODO test str() and repr() implementations
 
 import pydantic
+import pytest
 from pytest import raises
 
+from sdmx import model
 from sdmx.model import (
     DEFAULT_LOCALE,
     AttributeDescriptor,
@@ -93,7 +95,13 @@ def test_dimensiondescriptor():
 
 
 def test_identifiable():
-    """IdentifiableArtefact is hashable."""
+    urn = "urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=IT1:VARIAB_ALL(9.6)"
+    urn_pat = urn.replace("(", r"\(").replace(")", r"\)")
+
+    with pytest.raises(ValueError, match=f"ID BAD_URN does not match URN {urn_pat}"):
+        model.IdentifiableArtefact(id="BAD_URN", urn=urn)
+
+    # IdentifiableArtefact is hashable
     ia = IdentifiableArtefact()
     assert hash(ia) == id(ia)
 
@@ -103,6 +111,25 @@ def test_identifiable():
     # Subclass is hashable
     ad = AttributeDescriptor()
     assert hash(ad) == id(ad)
+
+
+def test_maintainable():
+    urn = "urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=IT1:VARIAB_ALL(9.6)"
+    ma = model.MaintainableArtefact(id="VARIAB_ALL", urn=urn)
+
+    # Version is parsed from URN
+    assert ma.version == "9.6"
+
+    # Mismatch raises an exception
+    with pytest.raises(ValueError, match="Version 9.7 does not match URN"):
+        model.MaintainableArtefact(version="9.7", urn=urn)
+
+    # Maintainer is parsed from URN
+    assert ma.maintainer == model.Agency(id="IT1")
+
+    # Mismatch raises an exception
+    with pytest.raises(ValueError, match="Maintainer FOO does not match URN"):
+        model.MaintainableArtefact(maintainer=model.Agency(id="FOO"), urn=urn)
 
 
 def test_internationalstring():
