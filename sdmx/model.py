@@ -18,12 +18,8 @@ Details of the implementation:
   appear out of order so that dependent classes are defined first.
 
 """
-# TODO:
-# - For a complete implementation of the spec:
-#   - Enforce TimeKeyValue (instead of KeyValue) for
-#     {Generic,StructureSpecific} TimeSeriesDataSet.
-# - For convenience:
-#   - Guess URNs using the standard format.
+# TODO for complete implementation of the IM, enforce TimeKeyValue (instead of
+#      KeyValue) for {Generic,StructureSpecific} TimeSeriesDataSet.
 
 from collections import ChainMap
 from collections.abc import Collection
@@ -55,7 +51,7 @@ from sdmx.util import BaseModel, DictLike, validate_dictlike, validator
 DEFAULT_LOCALE = "en"
 
 
-# 3.2: Base structures
+# §3.2: Base structures
 
 
 class InternationalString:
@@ -350,7 +346,7 @@ class MaintainableArtefact(VersionableArtefact):
         return "<{cls} {maint}{id}{version}{name}>".format(**self._repr_kw())
 
 
-# 3.4: Data Types
+# §3.4: Data Types
 
 ActionType = Enum("ActionType", "delete replace append information")
 
@@ -376,7 +372,7 @@ FacetValueType = Enum(
 ConstraintRoleType = Enum("ConstraintRoleType", "allowable actual")
 
 
-# 3.5: Item Scheme
+# §3.5: Item Scheme
 
 
 class Item(NameableArtefact):
@@ -578,7 +574,7 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         return obj
 
 
-# 3.6: Structure
+# §3.6: Structure
 
 
 class FacetType(BaseModel):
@@ -640,7 +636,7 @@ class Representation(BaseModel):
         )
 
 
-# 4.4: Concept Scheme
+# §4.4: Concept Scheme
 
 
 class ISOConceptReference(BaseModel):
@@ -666,7 +662,7 @@ class ConceptScheme(ItemScheme[Concept]):
     _Item = Concept
 
 
-# 3.3: Basic Inheritance
+# §3.3: Basic Inheritance
 
 
 class Component(IdentifiableArtefact):
@@ -782,7 +778,7 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         return super().__hash__()
 
 
-# 4.3: Codelist
+# §4.3: Codelist
 
 
 class Code(Item):
@@ -793,7 +789,7 @@ class Codelist(ItemScheme[Code]):
     _Item = Code
 
 
-# 4.5: Category Scheme
+# §4.5: Category Scheme
 
 
 class Category(Item):
@@ -811,7 +807,7 @@ class Categorisation(MaintainableArtefact):
     artefact: Optional[IdentifiableArtefact] = None
 
 
-# 4.6: Organisations
+# §4.6: Organisations
 
 
 class Contact(BaseModel):
@@ -851,6 +847,7 @@ class Agency(Organisation):
 
 # DataProvider delayed until after ConstrainableArtefact, below
 
+
 # Update forward references to 'Agency'
 for cls in list(locals().values()):
     if isclass(cls) and issubclass(cls, MaintainableArtefact):
@@ -867,7 +864,8 @@ class AgencyScheme(ItemScheme[Agency], OrganisationScheme):
 
 # DataProviderScheme delayed until after DataProvider, below
 
-# 10.2: Constraint inheritance
+
+# §10.2: Constraint inheritance
 
 
 class ConstrainableArtefact(BaseModel):
@@ -882,7 +880,7 @@ class DataProviderScheme(ItemScheme[DataProvider], OrganisationScheme):
     _Item = DataProvider
 
 
-# 10.3: Constraints
+# §10.3: Constraints
 
 
 class ConstraintRole(BaseModel):
@@ -1022,7 +1020,7 @@ class AttachmentConstraint(Constraint):
     attachment: Set[ConstrainableArtefact] = set()
 
 
-# 5.2: Data Structure Definition
+# §5.2: Data Structure Definition
 
 
 class DimensionComponent(Component):
@@ -1072,8 +1070,8 @@ class DimensionRelationship(AttributeRelationship):
     group_key: Optional["GroupDimensionDescriptor"] = None
 
 
-# 'Retained for compatibility reasons' in SDMX 2.1; not used by pandaSDMX
 class GroupRelationship(AttributeRelationship):
+    # 'Retained for compatibility reasons' in SDMX 2.1; not used by pandaSDMX.
     #:
     group_key: Optional["GroupDimensionDescriptor"] = None
 
@@ -1371,7 +1369,7 @@ class DataflowDefinition(StructureUsage, ConstrainableArtefact):
     structure: DataStructureDefinition = DataStructureDefinition()
 
 
-# 5.4: Data Set
+# §5.4: Data Set
 
 
 def value_for_dsd_ref(kind, args, kwargs):
@@ -1782,7 +1780,7 @@ class _AllDimensions:
 AllDimensions = _AllDimensions()
 
 
-# 11. Data Provisioning
+# §11: Data Provisioning
 
 
 class Datasource(BaseModel):

@@ -13,10 +13,10 @@ from warnings import warn
 import requests
 
 from sdmx import remote
+from sdmx.reader import get_reader_for_content_type
 
 from .message import Message
 from .model import DataStructureDefinition, MaintainableArtefact
-from sdmx.reader import get_reader_for_content_type
 from .source import NoSource, list_sources, sources
 from .util import Resource
 

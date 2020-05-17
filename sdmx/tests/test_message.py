@@ -1,5 +1,5 @@
-from operator import itemgetter
 import re
+from operator import itemgetter
 
 import pytest
 

@@ -1,6 +1,6 @@
-from io import BytesIO
 import json
 import logging
+from io import BytesIO
 
 import pandas as pd
 import pytest

@@ -19,6 +19,7 @@ from sdmx.reader.base import BaseReader
 
 class Reader(BaseReader):
     """Read SDMXJSON 2.1 and expose it as instances from :mod:`sdmx.model`."""
+
     content_types = [
         "application/vnd.sdmx.draft-sdmx-json+json",
         # For e.g. OECD
