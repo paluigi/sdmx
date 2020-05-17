@@ -50,7 +50,6 @@ from warnings import warn
 
 from sdmx.util import BaseModel, DictLike, validate_dictlike, validator
 
-
 # TODO read this from the environment, or use any value set in the SDMX XML
 # spec. Currently set to 'en' because test_dsd.py expects it
 DEFAULT_LOCALE = "en"
@@ -413,6 +412,19 @@ class Item(NameableArtefact):
             yield c
             yield from iter(c)
 
+    @property
+    def hierarchical_id(self):
+        """Construct the ID of an Item in a hierarchical ItemScheme.
+
+        Returns, for example, 'A.B.C' for an Item with id 'C' that is the child of an
+        item with id 'B', which is the child of a root Item with id 'A'.
+
+        See also
+        --------
+        .ItemScheme.get_hierarchical
+        """
+        return (f"{self.parent.hierarchical_id}." if self.parent else "") + self.id
+
     def append_child(self, other):
         if other not in self.child:
             self.child.append(other)
@@ -485,6 +497,16 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
 
     def __getitem__(self, name: str) -> IT:
         return self.items[name]
+
+    def get_hierarchical(self, id: str) -> IT:
+        """Get an Item by its :attr:`~.Item.hierarchical_id`."""
+        if "." not in id:
+            return self.items[id]
+        else:
+            for item in self.items.values():
+                if item.hierarchical_id == id:
+                    return item
+        raise KeyError(id)
 
     def __contains__(self, item: Union[str, IT]) -> bool:
         """Check containment.

@@ -216,6 +216,9 @@ def test_item():
     with raises(ValueError):
         items[0].get_child("Foo 2")
 
+    # Hierarchical IDs constructed automatically
+    assert items[0].child[0].hierarchical_id == "Bar 2.Foo 0.Foo 1"
+
 
 def test_itemscheme():
     is0 = ItemScheme(id="is0")
@@ -273,7 +276,10 @@ def test_itemscheme():
         is0.setdefault(foo0, id="bar")
 
     is0.setdefault(id="bar1", parent="foo0")
-    is0.setdefault(id="bar1", parent=foo0)
+    bar1 = is0.setdefault(id="bar1", parent=foo0)
+
+    # get_hierarchical()
+    assert is0.get_hierarchical("foo0.bar1") == bar1
 
 
 def test_key():
