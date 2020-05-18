@@ -30,7 +30,10 @@ def make(obj, maintainable_parent=None):
         ma = obj
         extra_id = ""
 
-    assert isinstance(ma, MaintainableArtefact)
+    if not isinstance(ma, MaintainableArtefact):
+        raise ValueError(
+            f"Neither {repr(obj)} nor {repr(maintainable_parent)} are maintainable"
+        )
 
     return _BASE.format(
         package=PACKAGE[obj.__class__], obj=obj, ma=ma, extra_id=extra_id

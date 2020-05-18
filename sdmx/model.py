@@ -45,7 +45,7 @@ from typing import (
 )
 from warnings import warn
 
-from sdmx.util import BaseModel, DictLike, validate_dictlike, validator
+from sdmx.util import BaseModel, DictLike, compare, validate_dictlike, validator
 
 
 log = logging.getLogger(__name__)
@@ -257,16 +257,12 @@ class IdentifiableArtefact(AnnotableArtefact):
         elif isinstance(other, str):
             return self.id == other
 
-    def identical(self, other):
-        if self.id != other.id:
-            log.info("Not identical: id " + repr([self.id, other.id]))
-        elif self.uri != other.uri:
-            log.info("Not identical: uri " + repr([self.uri, other.uri]))
-        elif self.urn != other.urn:
-            log.info("Not identical: urn " + repr([self.urn, other.urn]))
-        else:
-            return True
-        return False
+    def compare(self, other, strict=True):
+        return (
+            compare("id", self, other, strict)
+            and compare("uri", self, other, strict)
+            and compare("urn", self, other, strict)
+        )
 
     def __hash__(self):
         return id(self) if self.id == MissingID else hash(self.id)
@@ -284,14 +280,14 @@ class NameableArtefact(IdentifiableArtefact):
     #: Multi-lingual description of the object.
     description: InternationalString = InternationalString()
 
-    def identical(self, other):
-        if not super().identical(other):
+    def compare(self, other, strict=True):
+        if not super().compare(other, strict):
             pass
         elif self.name != other.name:
-            log.info("Not identical: name" + repr([self.name, other.name]))
+            log.info("Not identical: name=" + repr([self.name, other.name]))
         elif self.description != other.description:
             log.info(
-                "Not identical: description"
+                "Not identical: description="
                 + repr([self.description, other.description])
             )
         else:
@@ -329,14 +325,11 @@ class VersionableArtefact(NameableArtefact):
         except KeyError:
             pass
 
-    def identical(self, other):
-        if not super().identical(other):
-            pass
-        elif self.version != other.version:
-            log.info("Not identical: version " + repr([self.version, other.version]))
-        else:
-            return True
-        return False
+    def compare(self, other, strict=True):
+        return (
+            super().compare(other, strict)
+            and compare("version", self, other, strict)
+        )
 
     def _repr_kw(self) -> Mapping:
         return ChainMap(
@@ -371,17 +364,11 @@ class MaintainableArtefact(VersionableArtefact):
         except KeyError:
             pass
 
-    def identical(self, other):
-        if not super().identical(other):
-            pass
-        elif self.maintainer != other.maintainer:
-            log.info(
-                "Not identical: maintainer "
-                + repr([self.maintainer, other.maintainer])
-            )
-        else:
-            return True
-        return False
+    def compare(self, other, strict=True):
+        return (
+            super().compare(other, strict)
+            and compare("maintainer", self, other, strict)
+        )
 
     def _repr_kw(self):
         return ChainMap(
@@ -589,14 +576,14 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         """
         self.items[item.id] = item
 
-    def identical(self, other):
-        if not super().identical(other):
+    def compare(self, other, strict=True):
+        if not super().compare(other, strict):
             pass
         elif set(self.items) != set(other.items):
             log.info(repr([set(self.items), set(other.items)]))
         else:
             for id, item in self.items.items():
-                if not item.identical(other.items[id]):
+                if not item.compare(other.items[id], strict):
                     log.info(repr([item, other.items[id]]))
                     return False
             return True
@@ -837,6 +824,12 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
     # Must be reset because __eq__ is defined
     def __hash__(self):
         return super().__hash__()
+
+    def compare(self, other, strict=True):
+        return (
+            super().compare(other, strict)
+            and all(c.compare(other.get(c.id), strict) for c in self.components)
+        )
 
 
 # §4.3: Codelist
@@ -1423,6 +1416,12 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         key.values.update({kv.id: kv for _, kv in sorted(keyvalues)})
 
         return key
+
+    def compare(self, other, strict=True):
+        return all(
+            getattr(self, attr).compare(getattr(other, attr), strict)
+            for attr in ("attributes", "dimensions", "measures", "group_dimensions")
+        )
 
 
 class DataflowDefinition(StructureUsage, ConstrainableArtefact):

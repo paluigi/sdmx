@@ -119,21 +119,14 @@ class StructureMessage(Message):
     #: Collection of :class:`.ProvisionAgreement`.
     provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
 
-    def identical(self, other):
-        for attr in (
-            "category_scheme", "codelist", "concept_scheme", "constraint",
-            "dataflow", "structure", "organisation_scheme", "provisionagreement",
-        ):
-            other_attr = getattr(other, attr)
-            for key, value in getattr(self, attr).items():
-                if not value.identical(other_attr[key]):
-                    log.info(
-                        f"Not identical: {attr}s "
-                        + repr([value, other_attr[key]])
-                    )
-                    return False
-
-        return True
+    def compare(self, other, strict=True):
+        return all(
+            getattr(self, attr).compare(getattr(other, attr), strict)
+            for attr in (
+                "category_scheme", "codelist", "concept_scheme", "constraint",
+                "dataflow", "structure", "organisation_scheme", "provisionagreement",
+            )
+        )
 
     def __repr__(self):
         """String representation."""
