@@ -15,7 +15,6 @@ from requests import Response
 from sdmx import model
 from sdmx.util import BaseModel, DictLike, summarize_dictlike
 
-
 log = logging.getLogger(__name__)
 
 
@@ -123,8 +122,14 @@ class StructureMessage(Message):
         return all(
             getattr(self, attr).compare(getattr(other, attr), strict)
             for attr in (
-                "category_scheme", "codelist", "concept_scheme", "constraint",
-                "dataflow", "structure", "organisation_scheme", "provisionagreement",
+                "category_scheme",
+                "codelist",
+                "concept_scheme",
+                "constraint",
+                "dataflow",
+                "structure",
+                "organisation_scheme",
+                "provisionagreement",
             )
         )
 

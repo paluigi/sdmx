@@ -11,9 +11,8 @@ from lxml.builder import ElementMaker
 
 import sdmx.urn
 from sdmx import message, model
-from sdmx.format.xml import CLS_TAG, NS, qname
+from sdmx.format.xml import NS, qname, tag_for_class
 from sdmx.writer.base import BaseWriter
-
 
 _element_maker = ElementMaker(nsmap={k: v for k, v in NS.items() if v is not None})
 
@@ -21,6 +20,9 @@ writer = BaseWriter("XML")
 
 
 def Element(name, *args, **kwargs):
+    # Remove None
+    kwargs = dict(filter(lambda kv: kv[1] is not None, kwargs.items()))
+
     return _element_maker(qname(name), *args, **kwargs)
 
 
@@ -42,28 +44,32 @@ def to_xml(obj, **kwargs):
     return etree.tostring(writer.recurse(obj), **kwargs)
 
 
-def reference(obj, tag=None, style="URN"):
+def reference(obj, parent=None, tag=None, style="URN"):
     """Write a reference to `obj`."""
-    if not tag:
-        tag = "str:" + CLS_TAG.get(obj.__class__.__name__, obj.__class__.__name__)
+    tag = tag or tag_for_class(obj.__class__)
 
     elem = Element(tag)
 
     if style == "URN":
         ref = Element(":URN", obj.urn)
     elif style == "Ref":
-        cls_arg = {
-            'class': CLS_TAG.get(obj.__class__.__name__, obj.__class__.__name__),
+        if isinstance(obj, model.MaintainableArtefact):
+            ma = obj
+        else:
+            # TODO handle references to non-maintainable children of parent objects
+            assert parent, f"Cannot write reference to {repr(obj)} without parent"
+            ma = parent
+
+        args = {
+            "id": obj.id,
+            "maintainableParentID": ma.id if parent else None,
+            "agencyID": getattr(ma.maintainer, "id", None),
+            "version": ma.version,
+            "package": model.PACKAGE[obj.__class__],
+            "class": etree.QName(tag_for_class(obj.__class__)).localname,
         }
 
-        ref = Element(
-            ":Ref",
-            id=obj.id,
-            agencyID=obj.maintainer.id,
-            version=obj.version,
-            package=model.PACKAGE[obj.__class__],
-            **cls_arg,
-        )
+        ref = Element(":Ref", **args)
     else:
         raise ValueError(style)
 
@@ -146,11 +152,7 @@ def _a(obj: model.Annotation):
 
 
 def annotable(obj, **kwargs):
-    tag_name = kwargs.pop(
-        "_tag",
-        "str:" + CLS_TAG.get(obj.__class__.__name__, obj.__class__.__name__),
-    )
-    elem = Element(tag_name, **kwargs)
+    elem = Element(kwargs.pop("_tag", tag_for_class(obj.__class__)), **kwargs)
 
     if len(obj.annotations):
         e_anno = Element("com:Annotations")
@@ -186,6 +188,7 @@ def maintainable(obj, **kwargs):
 
 # §3.5: Item Scheme
 
+
 @writer
 def _i(obj: model.Item, **kwargs):
     elem = nameable(obj, **kwargs)
@@ -211,14 +214,14 @@ def _is(obj: model.ItemScheme):
 
 @writer
 def _facet(obj: model.Facet):
-    return Element("str:TextFormat", textType=obj.value_type.name)
+    return Element("str:TextFormat", textType=getattr(obj.value_type, "name", None))
 
 
 @writer
 def _rep(obj: model.Representation, tag):
     elem = Element(f"str:{tag}")
     if obj.enumerated:
-        elem.append(reference(obj.enumerated, "str:Enumeration", "URN"))
+        elem.append(reference(obj.enumerated, tag="str:Enumeration", style="URN"))
     if obj.non_enumerated:
         elem.extend(writer.recurse(facet) for facet in obj.non_enumerated)
     return elem
@@ -241,9 +244,23 @@ def _concept(obj: model.Concept, parent):
 
 
 @writer
+def _component(obj: model.Component):
+    elem = identifiable(obj)
+    if obj.concept_identity:
+        # TODO find a reference to the parent ConceptScheme
+        # elem.append(reference(obj.concept_identity, style="Ref"))
+        elem.append(Element("str:ConceptIdentity", "(not implemented)"))
+        raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
+    if obj.local_representation:
+        elem.append(writer.recurse(obj.local_representation, "LocalRepresentation"))
+    return elem
+
+
+@writer
 def _cl(obj: model.ComponentList):
     elem = identifiable(obj)
     raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
+    elem.extend(writer.recurse(c) for c in obj.components)
     return elem
 
 
@@ -260,8 +277,7 @@ def _cr(obj: model.CubeRegion):
 @writer
 def _cc(obj: model.ContentConstraint):
     elem = maintainable(
-        obj,
-        type=obj.role.role.name.replace("allowable", "allowed").title()
+        obj, type=obj.role.role.name.replace("allowable", "allowed").title()
     )
 
     # Constraint attachment
@@ -287,4 +303,6 @@ def _dsd(obj: model.DataStructureDefinition):
 
 @writer
 def _dfd(obj: model.DataflowDefinition):
-    return maintainable(obj)
+    elem = maintainable(obj)
+    elem.append(reference(obj.structure, style="Ref"))
+    return elem

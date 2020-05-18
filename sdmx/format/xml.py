@@ -1,8 +1,13 @@
+import logging
 from functools import lru_cache
+from operator import itemgetter
 
 from lxml.etree import QName
 
-from sdmx import message
+from sdmx import message, model
+
+log = logging.getLogger(__name__)
+
 
 # XML Namespaces
 _base_ns = "http://www.sdmx.org/resources/sdmxml/schemas/v2_1"
@@ -22,31 +27,73 @@ NS = {
 @lru_cache()
 def qname(ns_or_name, name=None):
     """Return a fully-qualified tag *name* in namespace *ns*."""
-    ns, name = ns_or_name.split(":") if name is None else (ns_or_name, name)
-    return QName(NS[ns], name)
+    if isinstance(ns_or_name, QName):
+        # Already a QName; do nothing
+        return ns_or_name
+    else:
+        ns, name = ns_or_name.split(":") if name is None else (ns_or_name, name)
+        return QName(NS[ns], name)
 
 
-# Mapping tag names → Message classes
-MESSAGE = {
-    "Structure": message.StructureMessage,
-    "GenericData": message.DataMessage,
-    "GenericTimeSeriesData": message.DataMessage,
-    "StructureSpecificData": message.DataMessage,
-    "StructureSpecificTimeSeriesData": message.DataMessage,
-    "Error": message.ErrorMessage,
-}
+# Correspondence of message and model classes with XML tag names
+_CLS_TAG = [
+    (message.DataMessage, qname("mes:GenericData")),
+    (message.DataMessage, qname("mes:GenericTimeSeriesData")),
+    (message.DataMessage, qname("mes:StructureSpecificData")),
+    (message.DataMessage, qname("mes:StructureSpecificTimeSeriesData")),
+    (message.ErrorMessage, qname("mes:Error")),
+    (message.StructureMessage, qname("mes:Structure")),
+    (model.Agency, qname("str:Agency")),
+    (model.Agency, qname("mes:Receiver")),
+    (model.Agency, qname("mes:Sender")),
+    (model.AttributeDescriptor, qname("str:AttributeList")),
+    (model.DataAttribute, qname("str:Attribute")),
+    (model.DataflowDefinition, qname("str:Dataflow")),
+    (model.DataStructureDefinition, qname("str:DataStructure")),
+    (model.DataStructureDefinition, qname("com:Structure")),
+    (model.DataStructureDefinition, qname("str:Structure")),
+    (model.Dimension, qname("str:Dimension")),
+    (model.Dimension, qname("str:DimensionReference")),
+    (model.Dimension, qname("str:GroupDimension")),
+    (model.DimensionDescriptor, qname("str:DimensionList")),
+    (model.GroupDimensionDescriptor, qname("str:AttachmentGroup")),
+    (model.GroupKey, qname("gen:GroupKey")),
+    (model.Key, qname("gen:ObsKey")),
+    (model.MeasureDescriptor, qname("str:MeasureList")),
+    (model.SeriesKey, qname("gen:SeriesKey")),
+    (model.StructureUsage, qname("com:StructureUsage")),
+] + [
+    (getattr(model, name), qname("str", name))
+    for name in (
+        "AgencyScheme",
+        "Category",
+        "CategoryScheme",
+        "Code",
+        "Codelist",
+        "Concept",
+        "ConceptScheme",
+        "DataProviderScheme",
+        "PrimaryMeasure",
+        "TimeDimension",
+    )
+]
 
 
-# Mapping from model class names → XML tag names
-# TODO generalize to include MESSAGE, and use in reader.sdmxml.get_sdmx_class and
-#      elsewhere
-CLS_TAG = {
-    "AttributeDescriptor": "AttributeList",
-    "DataAttribute": "Attribute",
-    "DataflowDefinition": "Dataflow",
-    "DataStructureDefinition": "DataStructure",
-    "Dimension": "GroupDimension",
-    "DimensionDescriptor": "DimensionList",
-    "Key": "ObsKey",
-    "MeasureDescriptor": "MeasureList",
-}
+@lru_cache()
+def class_for_tag(tag):
+    """Return a message or model class for an XML tag."""
+    results = map(itemgetter(0), filter(lambda ct: ct[1] == tag, _CLS_TAG))
+    try:
+        return next(results)
+    except StopIteration:
+        return None
+
+
+@lru_cache()
+def tag_for_class(cls):
+    """Return an XML tag for a message or model class."""
+    results = map(itemgetter(1), filter(lambda ct: ct[0] is cls, _CLS_TAG))
+    try:
+        return next(results)
+    except StopIteration:
+        return None

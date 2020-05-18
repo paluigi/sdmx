@@ -47,7 +47,6 @@ from warnings import warn
 
 from sdmx.util import BaseModel, DictLike, compare, validate_dictlike, validator
 
-
 log = logging.getLogger(__name__)
 
 # TODO read this from the environment, or use any value set in the SDMX XML
@@ -326,9 +325,8 @@ class VersionableArtefact(NameableArtefact):
             pass
 
     def compare(self, other, strict=True):
-        return (
-            super().compare(other, strict)
-            and compare("version", self, other, strict)
+        return super().compare(other, strict) and compare(
+            "version", self, other, strict
         )
 
     def _repr_kw(self) -> Mapping:
@@ -365,9 +363,8 @@ class MaintainableArtefact(VersionableArtefact):
             pass
 
     def compare(self, other, strict=True):
-        return (
-            super().compare(other, strict)
-            and compare("maintainer", self, other, strict)
+        return super().compare(other, strict) and compare(
+            "maintainer", self, other, strict
         )
 
     def _repr_kw(self):
@@ -826,9 +823,8 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         return super().__hash__()
 
     def compare(self, other, strict=True):
-        return (
-            super().compare(other, strict)
-            and all(c.compare(other.get(c.id), strict) for c in self.components)
+        return super().compare(other, strict) and all(
+            c.compare(other.get(c.id), strict) for c in self.components
         )
 
 
@@ -1884,18 +1880,24 @@ for package, classes in _PACKAGE_CLASS.items():
     PACKAGE.update({cls: package for cls in classes})
 
 
-def get_class(cls, package=None):
+def get_class(name, package=None):
     """Return a class object for string *cls* and *package* names."""
-    cls = globals()[cls]
+    name = {"Dataflow": "DataflowDefinition",}.get(name, name)
 
-    if package and package != PACKAGE[cls]:
-        raise ValueError(f"Package {repr(package)} invalid for {cls}")
+    try:
+        cls = globals()[name]
+    except KeyError:
+        return None
+    else:
+        if package and package != PACKAGE[cls]:
+            raise ValueError(f"Package {repr(package)} invalid for {name}")
 
-    return cls
+        return cls
 
 
 def parent_class(cls):
     return {
+        Agency: AgencyScheme,
         Category: CategoryScheme,
         Code: Codelist,
         Concept: ConceptScheme,

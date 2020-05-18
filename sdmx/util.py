@@ -1,5 +1,5 @@
-import logging
 import collections
+import logging
 import typing
 from enum import Enum
 from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
@@ -246,9 +246,8 @@ def compare(attr, a, b, strict: bool) -> bool:
 
     If strict is :obj:`False`, :obj:`None` is permissible as `a` or `b`.
     """
-    result = (
-        getattr(a, attr) == getattr(b, attr)
-        or (not strict and None in (getattr(a, attr), getattr(b, attr)))
+    result = getattr(a, attr) == getattr(b, attr) or (
+        not strict and None in (getattr(a, attr), getattr(b, attr))
     )
     if not result:
         log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")

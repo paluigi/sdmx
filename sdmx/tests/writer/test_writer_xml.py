@@ -6,7 +6,6 @@ import sdmx
 from sdmx.message import DataMessage
 from sdmx.tests.data import specimen
 
-
 log = logging.getLogger(__name__)
 
 
@@ -37,15 +36,20 @@ def test_structuremessage(tmp_path, structuremessage):
     assert msg.compare(structuremessage, strict=False)
 
 
-@pytest.mark.parametrize('specimen_id, strict', [
-    pytest.param(
-        'ECB_EXR/1/structure-full.xml', False, marks=pytest.mark.xfail(
-            raises=NotImplementedError,
-            match="Write AttributeDescriptor to XML")
-    ),
-    # ('ISTAT/47_850-structure.xml', True),
-    ('SGR/common-structure.xml', True),
-])
+@pytest.mark.parametrize(
+    "specimen_id, strict",
+    [
+        pytest.param(
+            "ECB_EXR/1/structure-full.xml",
+            False,
+            marks=pytest.mark.xfail(
+                raises=NotImplementedError, match="Write AttributeDescriptor to XML",
+            ),
+        ),
+        # ('ISTAT/47_850-structure.xml', True),
+        ("SGR/common-structure.xml", True),
+    ],
+)
 def test_structure_roundtrip(specimen_id, strict, tmp_path):
     # Read a specimen file
     with specimen(specimen_id) as f:
