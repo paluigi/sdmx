@@ -52,8 +52,8 @@ def i11lstring(obj, name):
     return elems
 
 
-def annotable(obj, name, *args, **kwargs):
-    elem = Element(name, *args, **kwargs)
+def annotable(obj, **kwargs):
+    elem = Element(f"str:{obj.__class__.__name__}", **kwargs)
 
     if len(obj.annotations):
         e_anno = Element("com:Annotations")
@@ -63,20 +63,23 @@ def annotable(obj, name, *args, **kwargs):
     return elem
 
 
-def identifiable(obj, name, *args, **kwargs):
-    return annotable(obj, name, *args, id=obj.id, **kwargs)
+def identifiable(obj, **kwargs):
+    kwargs.setdefault("id", obj.id)
+    kwargs.setdefault("urn", obj.urn or sdmx.urn.make(obj, kwargs.pop("parent", None)))
+    return annotable(obj, **kwargs)
 
 
-def nameable(obj, name, *args, **kwargs):
-    elem = identifiable(obj, name, *args, **kwargs)
+def nameable(obj, **kwargs):
+    elem = identifiable(obj, **kwargs)
     elem.extend(i11lstring(obj.name, "com:Name"))
+    # TODO add description
     return elem
 
 
-def maintainable(obj, parent=None):
-    return nameable(
-        obj, f"str:{obj.__class__.__name__}", urn=sdmx.urn.make(obj, parent)
-    )
+def maintainable(obj, **kwargs):
+    elem = nameable(obj, **kwargs)
+    # TODO add maintainer, version, etc.
+    return elem
 
 
 @Writer.register
@@ -105,7 +108,7 @@ def _is(obj: model.ItemScheme):
 
 @Writer.register
 def _i(obj: model.Item, parent):
-    elem = maintainable(obj, parent=parent)
+    elem = nameable(obj, parent=parent)
 
     if obj.parent:
         # Reference to parent code
