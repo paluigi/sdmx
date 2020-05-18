@@ -4,7 +4,7 @@
 
 2. Test-build and check the source and binary packages::
 
-    $ rm -r build dist
+    $ rm -rf build dist
     $ python setup.py bdist_wheel sdist
     $ twine check dist/*
 
@@ -22,15 +22,12 @@
 
    If not, modify the code and repeat from step 2.
 
-5. Push the commit and tag to Github::
+5. Upload to PyPI::
+
+    $ twine upload dist/*
+
+6. Push the commit and tag to Github::
 
     $ git push --tags
 
-6. Build the source and binary packages::
-
-    $ rm -r build dist
-    $ python setup.py bdist_wheel sdist
-
-7. Upload to PyPI::
-
-    $ twine upload dist/*
+7. Edit doc/whatsnew.rst, adding a new heading for the next release.
