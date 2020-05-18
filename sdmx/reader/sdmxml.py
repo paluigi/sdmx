@@ -472,22 +472,16 @@ class Reader(BaseReader):
         # Maybe retrieve an existing object of the same class and ID
         existing = self.get_single(cls, obj.id, strict=True)
 
-        if existing:
-            if elem is not None:
-                # Previously an external reference, now concrete
-                existing.is_external_reference = False
+        if existing and elem is not None and existing.compare(obj, strict=True):
+            # Previously an external reference, now concrete
+            existing.is_external_reference = False
 
-                if not existing.compare(obj, strict=True):
-                    log.warning(
-                        f"Mismatch between referred {repr(existing)} and concrete "
-                        f"{repr(obj)}"
-                    )
+            # Update `existing` from `obj` to preserve references
+            for attr in kwargs:
+                log.info(f"Updating {attr}")
+                setattr(existing, attr, getattr(obj, attr))
 
-                # Update `existing` from `obj` to preserve references
-                for attr in kwargs:
-                    log.info(f"Updating {attr}")
-                    setattr(existing, attr, getattr(obj, attr))
-
+            # Discard the candidate
             obj = existing
         elif obj.is_external_reference:
             # Push a new external reference onto the stack to be located by next calls

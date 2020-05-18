@@ -1868,7 +1868,7 @@ class ProvisionAgreement(MaintainableArtefact, ConstrainableArtefact):
 PACKAGE = dict()
 
 _PACKAGE_CLASS: Dict[str, set] = {
-    "base": {Agency, AgencyScheme, DataProvider},
+    "base": {Agency, AgencyScheme, DataProvider, DataProviderScheme},
     "categoryscheme": {Category, Categorisation, CategoryScheme},
     "codelist": {Code, Codelist},
     "conceptscheme": {Concept, ConceptScheme},
@@ -1882,7 +1882,7 @@ for package, classes in _PACKAGE_CLASS.items():
 
 def get_class(name, package=None):
     """Return a class object for string *cls* and *package* names."""
-    name = {"Dataflow": "DataflowDefinition",}.get(name, name)
+    name = {"Dataflow": "DataflowDefinition"}.get(name, name)
 
     try:
         cls = globals()[name]

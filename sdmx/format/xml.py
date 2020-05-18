@@ -72,6 +72,7 @@ _CLS_TAG = [
         "Codelist",
         "Concept",
         "ConceptScheme",
+        "DataProvider",
         "DataProviderScheme",
         "PrimaryMeasure",
         "TimeDimension",
