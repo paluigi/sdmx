@@ -188,6 +188,11 @@ def test_internationalstring():
     )
     assert i4.name["FR"] == "Banque centrale européenne"
 
+    # Compares equal with same contents
+    is1 = model.InternationalString(en="Foo", fr="Le foo")
+    is2 = model.InternationalString(en="Foo", fr="Le foo")
+    assert is1 == is2
+
 
 def test_item():
     # Add a tree of 10 items

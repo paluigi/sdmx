@@ -7,12 +7,16 @@
 :mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data
 returned by data sources.
 """
+import logging
 from typing import List, Optional, Text, Union
 
 from requests import Response
 
 from sdmx import model
 from sdmx.util import BaseModel, DictLike, summarize_dictlike
+
+
+log = logging.getLogger(__name__)
 
 
 def _summarize(obj, fields):
@@ -114,6 +118,22 @@ class StructureMessage(Message):
     organisation_scheme: DictLike[str, model.AgencyScheme] = DictLike()
     #: Collection of :class:`.ProvisionAgreement`.
     provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
+
+    def identical(self, other):
+        for attr in (
+            "category_scheme", "codelist", "concept_scheme", "constraint",
+            "dataflow", "structure", "organisation_scheme", "provisionagreement",
+        ):
+            other_attr = getattr(other, attr)
+            for key, value in getattr(self, attr).items():
+                if not value.identical(other_attr[key]):
+                    log.info(
+                        f"Not identical: {attr}s "
+                        + repr([value, other_attr[key]])
+                    )
+                    return False
+
+        return True
 
     def __repr__(self):
         """String representation."""

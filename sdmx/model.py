@@ -21,6 +21,7 @@ Details of the implementation:
 # TODO for complete implementation of the IM, enforce TimeKeyValue (instead of
 #      KeyValue) for {Generic,StructureSpecific} TimeSeriesDataSet.
 
+import logging
 from collections import ChainMap
 from collections.abc import Collection
 from collections.abc import Iterable as IterableABC
@@ -45,6 +46,9 @@ from typing import (
 from warnings import warn
 
 from sdmx.util import BaseModel, DictLike, validate_dictlike, validator
+
+
+log = logging.getLogger(__name__)
 
 # TODO read this from the environment, or use any value set in the SDMX XML
 # spec. Currently set to 'en' because test_dsd.py expects it
@@ -159,6 +163,9 @@ class InternationalString:
             ["{}: {}".format(*kv) for kv in sorted(self.localizations.items())]
         )
 
+    def __eq__(self, other):
+        return self.localizations == other.localizations
+
     @classmethod
     def __get_validators__(cls):
         yield cls.__validate
@@ -250,6 +257,17 @@ class IdentifiableArtefact(AnnotableArtefact):
         elif isinstance(other, str):
             return self.id == other
 
+    def identical(self, other):
+        if self.id != other.id:
+            log.info("Not identical: id " + repr([self.id, other.id]))
+        elif self.uri != other.uri:
+            log.info("Not identical: uri " + repr([self.uri, other.uri]))
+        elif self.urn != other.urn:
+            log.info("Not identical: urn " + repr([self.urn, other.urn]))
+        else:
+            return True
+        return False
+
     def __hash__(self):
         return id(self) if self.id == MissingID else hash(self.id)
 
@@ -265,6 +283,20 @@ class NameableArtefact(IdentifiableArtefact):
     name: InternationalString = InternationalString()
     #: Multi-lingual description of the object.
     description: InternationalString = InternationalString()
+
+    def identical(self, other):
+        if not super().identical(other):
+            pass
+        elif self.name != other.name:
+            log.info("Not identical: name" + repr([self.name, other.name]))
+        elif self.description != other.description:
+            log.info(
+                "Not identical: description"
+                + repr([self.description, other.description])
+            )
+        else:
+            return True
+        return False
 
     def _repr_kw(self):
         return dict(
@@ -298,7 +330,13 @@ class VersionableArtefact(NameableArtefact):
             pass
 
     def identical(self, other):
-        return super().__eq__(other) and self.version == other.version
+        if not super().identical(other):
+            pass
+        elif self.version != other.version:
+            log.info("Not identical: version " + repr([self.version, other.version]))
+        else:
+            return True
+        return False
 
     def _repr_kw(self) -> Mapping:
         return ChainMap(
@@ -334,12 +372,21 @@ class MaintainableArtefact(VersionableArtefact):
             pass
 
     def identical(self, other):
-        return super().identical(other) and self.maintainer is other.maintainer
+        if not super().identical(other):
+            pass
+        elif self.maintainer != other.maintainer:
+            log.info(
+                "Not identical: maintainer "
+                + repr([self.maintainer, other.maintainer])
+            )
+        else:
+            return True
+        return False
 
     def _repr_kw(self):
         return ChainMap(
             super()._repr_kw(),
-            dict(maint="f{self.maintainer}:" if self.maintainer else ""),
+            dict(maint=f"{self.maintainer}:" if self.maintainer else ""),
         )
 
     def __repr__(self):
@@ -541,6 +588,20 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
             Item to add.
         """
         self.items[item.id] = item
+
+    def identical(self, other):
+        if not super().identical(other):
+            pass
+        elif set(self.items) != set(other.items):
+            log.info(repr([set(self.items), set(other.items)]))
+        else:
+            for id, item in self.items.items():
+                if not item.identical(other.items[id]):
+                    log.info(repr([item, other.items[id]]))
+                    return False
+            return True
+
+        return False
 
     def __repr__(self):
         return "<{cls} {maint}{id}{version} ({N} items){name}>".format(
