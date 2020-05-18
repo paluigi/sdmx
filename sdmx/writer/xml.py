@@ -11,7 +11,7 @@ from lxml.builder import ElementMaker
 
 import sdmx.urn
 from sdmx import message, model
-from sdmx.format.xml import NS, qname
+from sdmx.format.xml import CLS_TAG, NS, qname
 from sdmx.writer.base import BaseWriter
 
 
@@ -42,15 +42,36 @@ def to_xml(obj, **kwargs):
     return etree.tostring(writer.recurse(obj), **kwargs)
 
 
-def reference(obj, tag, style="URN"):
+def reference(obj, tag=None, style="URN"):
     """Write a reference to `obj`."""
+    if not tag:
+        tag = "str:" + CLS_TAG.get(obj.__class__.__name__, obj.__class__.__name__)
+
     elem = Element(tag)
+
     if style == "URN":
-        elem.append(Element(":URN", obj.urn))
+        ref = Element(":URN", obj.urn)
+    elif style == "Ref":
+        cls_arg = {
+            'class': CLS_TAG.get(obj.__class__.__name__, obj.__class__.__name__),
+        }
+
+        ref = Element(
+            ":Ref",
+            id=obj.id,
+            agencyID=obj.maintainer.id,
+            version=obj.version,
+            package=model.PACKAGE[obj.__class__],
+            **cls_arg,
+        )
+    else:
+        raise ValueError(style)
+
+    elem.append(ref)
     return elem
 
 
-# writers for sdmx.message classes
+# Writers for sdmx.message classes
 
 
 @writer
@@ -64,10 +85,15 @@ def _sm(obj: message.StructureMessage):
     elem.append(structures)
 
     for attr, tag in [
+        # Order is important here to avoid forward references
+        ("organisation_scheme", "OrganisationSchemes"),
         ("category_scheme", "CategorySchemes"),
         ("codelist", "Codelists"),
         ("concept_scheme", "Concepts"),
-        # TODO extend
+        ("dataflow", "Dataflows"),
+        ("structure", "DataStructures"),
+        ("constraint", "Constraints"),
+        ("provisionagreement", "ProvisionAgreements"),
     ]:
         container = Element(f"str:{tag}")
         container.extend(writer.recurse(s) for s in getattr(obj, attr).values())
@@ -89,7 +115,7 @@ def _header(obj: message.Header):
     return elem
 
 
-# writers for sdmx.model classes
+# Writers for sdmx.model classes
 # §3.2: Base structures
 
 
@@ -120,7 +146,11 @@ def _a(obj: model.Annotation):
 
 
 def annotable(obj, **kwargs):
-    elem = Element(kwargs.pop("_tag", f"str:{obj.__class__.__name__}"), **kwargs)
+    tag_name = kwargs.pop(
+        "_tag",
+        "str:" + CLS_TAG.get(obj.__class__.__name__, obj.__class__.__name__),
+    )
+    elem = Element(tag_name, **kwargs)
 
     if len(obj.annotations):
         e_anno = Element("com:Annotations")
@@ -136,7 +166,7 @@ def identifiable(obj, **kwargs):
         kwargs.setdefault(
             "urn", obj.urn or sdmx.urn.make(obj, kwargs.pop("parent", None))
         )
-    except ValueError:
+    except (AttributeError, ValueError):
         pass
     return annotable(obj, **kwargs)
 
@@ -205,3 +235,56 @@ def _concept(obj: model.Concept, parent):
         elem.append(writer.recurse(obj.core_representation, "CoreRepresentation"))
 
     return elem
+
+
+# §3.3: Basic Inheritance
+
+
+@writer
+def _cl(obj: model.ComponentList):
+    elem = identifiable(obj)
+    raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
+    return elem
+
+
+# §10.3: Constraints
+
+
+@writer
+def _cr(obj: model.CubeRegion):
+    elem = Element("str:CubeRegion", include=str(obj.included).lower())
+    raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
+    return elem
+
+
+@writer
+def _cc(obj: model.ContentConstraint):
+    elem = maintainable(
+        obj,
+        type=obj.role.role.name.replace("allowable", "allowed").title()
+    )
+
+    # Constraint attachment
+    for ca in obj.content:
+        ca_elem = Element("str:ConstraintAttachment")
+        ca_elem.append(reference(ca, style="Ref"))
+        elem.append(ca_elem)
+
+    elem.extend(writer.recurse(dcr) for dcr in obj.data_content_region)
+    return elem
+
+
+# §5.2: Data Structure Definition
+
+
+@writer
+def _dsd(obj: model.DataStructureDefinition):
+    elem = maintainable(obj)
+    for attr in "attributes", "dimensions", "measures":
+        elem.append(writer.recurse(getattr(obj, attr)))
+    return elem
+
+
+@writer
+def _dfd(obj: model.DataflowDefinition):
+    return maintainable(obj)

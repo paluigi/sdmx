@@ -35,3 +35,18 @@ MESSAGE = {
     "StructureSpecificTimeSeriesData": message.DataMessage,
     "Error": message.ErrorMessage,
 }
+
+
+# Mapping from model class names → XML tag names
+# TODO generalize to include MESSAGE, and use in reader.sdmxml.get_sdmx_class and
+#      elsewhere
+CLS_TAG = {
+    "AttributeDescriptor": "AttributeList",
+    "DataAttribute": "Attribute",
+    "DataflowDefinition": "Dataflow",
+    "DataStructureDefinition": "DataStructure",
+    "Dimension": "GroupDimension",
+    "DimensionDescriptor": "DimensionList",
+    "Key": "ObsKey",
+    "MeasureDescriptor": "MeasureList",
+}

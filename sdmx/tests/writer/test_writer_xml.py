@@ -38,7 +38,11 @@ def test_structuremessage(tmp_path, structuremessage):
 
 
 @pytest.mark.parametrize('specimen_id, strict', [
-    # ('ECB_EXR/1/structure-full.xml', False),
+    pytest.param(
+        'ECB_EXR/1/structure-full.xml', False, marks=pytest.mark.xfail(
+            raises=NotImplementedError,
+            match="Write AttributeDescriptor to XML")
+    ),
     # ('ISTAT/47_850-structure.xml', True),
     ('SGR/common-structure.xml', True),
 ])

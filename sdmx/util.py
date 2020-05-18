@@ -207,7 +207,7 @@ class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
 
     def compare(self, other, strict=True):
         if set(self.keys()) != set(other.keys()):
-            log.info("Not identical: {sorted(self.keys())} / {sorted(other.keys())}")
+            log.info(f"Not identical: {sorted(self.keys())} / {sorted(other.keys())}")
             return False
 
         for key, value in self.items():
