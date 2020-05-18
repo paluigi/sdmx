@@ -249,6 +249,6 @@ def compare(attr, a, b, strict: bool) -> bool:
     result = getattr(a, attr) == getattr(b, attr) or (
         not strict and None in (getattr(a, attr), getattr(b, attr))
     )
-    if not result:
-        log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
+    # if not result:
+    #     log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
     return result

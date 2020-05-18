@@ -36,21 +36,34 @@ def test_structuremessage(tmp_path, structuremessage):
     assert msg.compare(structuremessage, strict=False)
 
 
+_xf_ref = pytest.mark.xfail(
+    raises=NotImplementedError, match="Cannot write reference to .* without parent",
+)
+_xf_not_equal = pytest.mark.xfail(raises=AssertionError)
+
+
 @pytest.mark.parametrize(
     "specimen_id, strict",
     [
+        ("ECB/orgscheme.xml", True),
+        ("ECB_EXR/1/structure-full.xml", False),
+        ("ESTAT/apro_mk_cola-structure.xml", True),
         pytest.param(
-            "ECB_EXR/1/structure-full.xml",
-            False,
-            marks=pytest.mark.xfail(
-                raises=NotImplementedError, match="Write AttributeDescriptor to XML",
-            ),
+            "ISTAT/47_850-structure.xml", True, marks=[pytest.mark.skip(reason="Slow")],
         ),
-        # ('ISTAT/47_850-structure.xml', True),
+        pytest.param("IMF/ECOFIN_DSD-structure.xml", True, marks=_xf_ref),
+        pytest.param(
+            "INSEE/CNA-2010-CONSO-SI-A17-structure.xml", False, marks=_xf_not_equal,
+        ),
+        pytest.param("INSEE/dataflow.xml", False, marks=_xf_not_equal),
+        pytest.param("INSEE/IPI-2010-A21-structure.xml", False),
         ("SGR/common-structure.xml", True),
+        ("UNSD/codelist_partial.xml", True),
     ],
 )
 def test_structure_roundtrip(specimen_id, strict, tmp_path):
+    """Test that SDMX-ML StructureMessages can be 'round-tripped'."""
+
     # Read a specimen file
     with specimen(specimen_id) as f:
         msg0 = sdmx.read_sdmx(f)
@@ -63,7 +76,7 @@ def test_structure_roundtrip(specimen_id, strict, tmp_path):
     msg1 = sdmx.read_sdmx(path)
 
     # Contents are identical
-    assert msg0.compare(msg1, strict), path
+    assert msg0.compare(msg1, strict), path.read_text()
 
 
 def test_not_implemented():

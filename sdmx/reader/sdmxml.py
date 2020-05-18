@@ -141,7 +141,9 @@ class Reference:
             target_id = elem.attrib["id"]
             agency_id = elem.attrib.get("agencyID", None)
             id = elem.attrib.get("maintainableParentID", target_id)
-            version = elem.attrib.get("maintainableParentVersion", None)
+            version = elem.attrib.get(
+                "maintainableParentVersion", None
+            ) or elem.attrib.get("version", None)
 
             # Attributes of the element itself, if any
             args = (elem.attrib.get("class", None), elem.attrib.get("package", None))
@@ -427,7 +429,7 @@ class Reader(BaseReader):
 
     def identifiable(self, cls, elem, **kwargs):
         """Create a IdentifiableArtefact of `cls` from `elem` and `kwargs`."""
-        setdefault_attrib(kwargs, elem, "id")
+        setdefault_attrib(kwargs, elem, "id", "urn", "uri")
         return self.annotable(cls, elem, **kwargs)
 
     def nameable(self, cls, elem, **kwargs):
@@ -442,17 +444,13 @@ class Reader(BaseReader):
             add_localizations(obj.description, self.pop_all("Description"))
         return obj
 
-    def versionable(self, cls, elem, **kwargs):
-        """Create a VersionableArtefact of `cls` from `elem` and `kwargs`."""
-        setdefault_attrib(kwargs, elem, "version")
-        return self.nameable(cls, elem, **kwargs)
-
     def maintainable(self, cls, elem, **kwargs):
         """Create or retrieve a MaintainableArtefact of `cls` from `elem` and `kwargs`.
 
         Following the SDMX-IM class hierachy, :meth:`maintainable` calls
-        :meth:`versionable`, which in turn calls :meth:`nameable`, etc.
-        For all of these methods:
+        :meth:`nameable`, which in turn calls :meth:`identifiable`, etc. (Since no
+        concrete class is versionable but not maintainable, no separate method is
+        created, for better performance). For all of these methods:
 
         - Already-parsed items are removed from the stack only if `elem` is not
           :obj:`None`.
@@ -464,22 +462,29 @@ class Reader(BaseReader):
         the same object ID will return references to the same object.
         """
         kwargs.setdefault("is_external_reference", elem is None)
-        setdefault_attrib(kwargs, elem, "isExternalReference", "isFinal", "uri", "urn")
+        setdefault_attrib(kwargs, elem, "isExternalReference", "isFinal", "version")
+        kwargs["is_final"] = kwargs.get("is_final", None) == "true"
 
         # Create a candidate object
-        obj = self.versionable(cls, elem, **kwargs)
+        obj = self.nameable(cls, elem, **kwargs)
 
         # Maybe retrieve an existing object of the same class and ID
         existing = self.get_single(cls, obj.id, strict=True)
 
-        if existing and elem is not None and existing.compare(obj, strict=True):
-            # Previously an external reference, now concrete
-            existing.is_external_reference = False
+        if existing and (
+            existing.compare(obj, strict=True) or existing.urn == sdmx.urn.make(obj)
+        ):
+            if elem is not None:
+                # Previously an external reference, now concrete
+                existing.is_external_reference = False
 
-            # Update `existing` from `obj` to preserve references
-            for attr in kwargs:
-                log.info(f"Updating {attr}")
-                setattr(existing, attr, getattr(obj, attr))
+                # Update `existing` from `obj` to preserve references
+                for attr in list(kwargs.keys()):
+                    # log.info(
+                    #     f"Updating {attr} {getattr(existing, attr)} "
+                    #     f"{getattr(obj, attr)}"
+                    # )
+                    setattr(existing, attr, getattr(obj, attr))
 
             # Discard the candidate
             obj = existing
@@ -535,7 +540,7 @@ def _header(reader, elem):
     header = message.Header(
         id=reader.pop_single("ID") or None,
         prepared=reader.pop_single("Prepared") or None,
-        receiver=reader.pop_single("Receiver"),
+        receiver=reader.pop_single("Receiver") or None,
         sender=reader.pop_single("Sender") or None,
         test=str(reader.pop_single("Test")).lower() == "true",
     )
@@ -727,7 +732,7 @@ def _a(reader, elem):
 # §3.5: Item Scheme
 
 
-@start("str:Agency str:Code str:Category str:DataProvider", only=False)
+@start("str:Agency str:Code str:Category str:Concept str:DataProvider", only=False)
 def _item_start(reader, elem):
     try:
         if not (elem[0].tag in ("Ref", "URN")):
@@ -824,7 +829,7 @@ def _rep(reader, elem):
 # §4.4: Concept Scheme
 
 
-@end("str:Concept", only=True)
+@end("str:Concept", only=False)
 def _concept(reader, elem):
     concept = _item(reader, elem)
     concept.core_representation = reader.pop_single(model.Representation)
@@ -885,16 +890,18 @@ def _cl(reader, elem):
     localname = QName(elem).localname
     if localname == "Group":
         cls = model.GroupDimensionDescriptor
+
+        # Replace components with references
+        args["components"] = [
+            dsd.dimensions.get(ref.target_id)
+            for ref in reader.pop_all("DimensionReference")
+        ]
     else:
         # SDMX-ML spec for, e.g. DimensionList: "The id attribute is
         # provided in this case for completeness. However, its value is
         # fixed to 'DimensionDescriptor'."
         cls = class_for_tag(elem.tag)
         args["id"] = elem.attrib.get("id", cls.__name__)
-
-    # GroupDimensionDescriptor only
-    for ref in reader.pop_all("DimensionReference"):
-        args["components"].append(dsd.dimensions.get(ref.target_id))
 
     cl = reader.identifiable(cls, elem, **args)
 

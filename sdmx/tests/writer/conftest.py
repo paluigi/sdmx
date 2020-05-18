@@ -3,7 +3,6 @@ import pytest
 from sdmx.message import StructureMessage
 from sdmx.model import Agency, Annotation, Code, Codelist
 
-
 CL_ITEMS = [
     dict(id="A", name={"en": "Average of observations through period"}),
     dict(id="B", name={"en": "Beginning of period"}),

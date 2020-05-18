@@ -4,7 +4,7 @@
 # - Utility methods and global variables.
 # - writer functions for sdmx.message classes, in the same order as message.py
 # - writer functions for sdmx.model classes, in the same order as model.py
-
+from typing import cast
 
 from lxml import etree
 from lxml.builder import ElementMaker
@@ -57,12 +57,23 @@ def reference(obj, parent=None, tag=None, style="URN"):
             ma = obj
         else:
             # TODO handle references to non-maintainable children of parent objects
-            assert parent, f"Cannot write reference to {repr(obj)} without parent"
+            if not parent:
+                for is_ in writer._message.concept_scheme.values():
+                    if obj in is_:
+                        parent = is_
+                        break
+
+            if not parent:
+                raise NotImplementedError(
+                    f"Cannot write reference to {repr(obj)} without parent"
+                )
+
             ma = parent
 
         args = {
             "id": obj.id,
             "maintainableParentID": ma.id if parent else None,
+            "maintainableParentVersion": ma.version if parent else None,
             "agencyID": getattr(ma.maintainer, "id", None),
             "version": ma.version,
             "package": model.PACKAGE[obj.__class__],
@@ -82,6 +93,9 @@ def reference(obj, parent=None, tag=None, style="URN"):
 
 @writer
 def _sm(obj: message.StructureMessage):
+    # Store a reference to the overal Message for writing references
+    setattr(writer, "_message", obj)
+
     elem = Element("mes:Structure")
 
     # Empty header element
@@ -93,14 +107,16 @@ def _sm(obj: message.StructureMessage):
     for attr, tag in [
         # Order is important here to avoid forward references
         ("organisation_scheme", "OrganisationSchemes"),
+        ("dataflow", "Dataflows"),
         ("category_scheme", "CategorySchemes"),
         ("codelist", "Codelists"),
         ("concept_scheme", "Concepts"),
-        ("dataflow", "Dataflows"),
         ("structure", "DataStructures"),
         ("constraint", "Constraints"),
         ("provisionagreement", "ProvisionAgreements"),
     ]:
+        if not len(getattr(obj, attr)):
+            continue
         container = Element(f"str:{tag}")
         container.extend(writer.recurse(s) for s in getattr(obj, attr).values())
         structures.append(container)
@@ -118,6 +134,8 @@ def _header(obj: message.Header):
         elem.append(Element("mes:Prepared", obj.prepared))
     if obj.sender:
         elem.append(writer.recurse(obj.sender, _tag="mes:Sender"))
+    if obj.receiver:
+        elem.append(writer.recurse(obj.receiver, _tag="mes:Receiver"))
     return elem
 
 
@@ -152,7 +170,12 @@ def _a(obj: model.Annotation):
 
 
 def annotable(obj, **kwargs):
-    elem = Element(kwargs.pop("_tag", tag_for_class(obj.__class__)), **kwargs)
+    cls = kwargs.pop("_tag", tag_for_class(obj.__class__))
+    try:
+        elem = Element(cls, **kwargs)
+    except AttributeError:
+        print(repr(obj), cls, kwargs)
+        raise
 
     if len(obj.annotations):
         e_anno = Element("com:Annotations")
@@ -181,16 +204,18 @@ def nameable(obj, **kwargs):
 
 
 def maintainable(obj, **kwargs):
-    elem = nameable(obj, **kwargs)
-    # TODO add maintainer, version, etc.
-    return elem
+    kwargs.setdefault("version", obj.version)
+    kwargs.setdefault("isExternalReference", str(obj.is_external_reference).lower())
+    kwargs.setdefault("isFinal", str(obj.is_final).lower())
+    kwargs.setdefault("agencyID", getattr(obj.maintainer, "id", None))
+    return nameable(obj, **kwargs)
 
 
 # §3.5: Item Scheme
 
 
 @writer
-def _i(obj: model.Item, **kwargs):
+def _item(obj: model.Item, **kwargs):
     elem = nameable(obj, **kwargs)
 
     if obj.parent:
@@ -205,7 +230,7 @@ def _i(obj: model.Item, **kwargs):
 @writer
 def _is(obj: model.ItemScheme):
     elem = maintainable(obj)
-    elem.extend(writer.recurse(i, parent=obj) for i in obj.items.values())
+    elem.extend(writer.recurse(i) for i in obj.items.values())
     return elem
 
 
@@ -218,10 +243,10 @@ def _facet(obj: model.Facet):
 
 
 @writer
-def _rep(obj: model.Representation, tag):
+def _rep(obj: model.Representation, tag, style="URN"):
     elem = Element(f"str:{tag}")
     if obj.enumerated:
-        elem.append(reference(obj.enumerated, tag="str:Enumeration", style="URN"))
+        elem.append(reference(obj.enumerated, tag="str:Enumeration", style=style))
     if obj.non_enumerated:
         elem.extend(writer.recurse(facet) for facet in obj.non_enumerated)
     return elem
@@ -231,8 +256,8 @@ def _rep(obj: model.Representation, tag):
 
 
 @writer
-def _concept(obj: model.Concept, parent):
-    elem = _i(obj, parent=parent)
+def _concept(obj: model.Concept, **kwargs):
+    elem = _item(obj, **kwargs)
 
     if obj.core_representation:
         elem.append(writer.recurse(obj.core_representation, "CoreRepresentation"))
@@ -244,22 +269,69 @@ def _concept(obj: model.Concept, parent):
 
 
 @writer
+def _dr(obj: model.DimensionRelationship):
+    elem = Element("str:AttributeRelationship")
+    for dim in obj.dimensions:
+        elem.append(Element("str:Dimension"))
+        elem[-1].append(Element(":Ref", id=dim.id))
+    return elem
+
+
+@writer
+def _gr(obj: model.GroupRelationship):
+    elem = Element("str:AttributeRelationship")
+    elem.append(Element("str:Group"))
+    elem[-1].append(Element(":Ref", id=getattr(obj.group_key, "id", None)))
+    return elem
+
+
+@writer
+def _nsr(obj: model.NoSpecifiedRelationship):
+    elem = Element("str:AttributeRelationship")
+    elem.append(Element("str:None"))
+    return elem
+
+
+@writer
+def _pmr(obj: model.PrimaryMeasureRelationship):
+    elem = Element("str:AttributeRelationship")
+    elem.append(Element("str:PrimaryMeasure"))
+    elem[-1].append(Element(":Ref", id="(not implemented)"))
+    return elem
+
+
+@writer
 def _component(obj: model.Component):
     elem = identifiable(obj)
     if obj.concept_identity:
-        # TODO find a reference to the parent ConceptScheme
-        # elem.append(reference(obj.concept_identity, style="Ref"))
-        elem.append(Element("str:ConceptIdentity", "(not implemented)"))
-        raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
+        elem.append(
+            reference(obj.concept_identity, tag="str:ConceptIdentity", style="Ref",)
+        )
     if obj.local_representation:
-        elem.append(writer.recurse(obj.local_representation, "LocalRepresentation"))
+        elem.append(
+            writer.recurse(obj.local_representation, "LocalRepresentation", style="Ref")
+        )
+    # DataAttribute only
+    try:
+        elem.append(writer.recurse(cast(model.DataAttribute, obj).related_to))
+    except AttributeError:
+        pass
+    return elem
+
+
+@writer
+def _gdd(obj: model.GroupDimensionDescriptor):
+    elem = identifiable(obj)
+    for dim in obj.components:
+        elem.append(Element("str:GroupDimension"))
+        elem[-1].append(Element("str:DimensionReference"))
+        elem[-1][0].append(Element(":Ref", id=dim.id))
     return elem
 
 
 @writer
 def _cl(obj: model.ComponentList):
     elem = identifiable(obj)
-    raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
     elem.extend(writer.recurse(c) for c in obj.components)
     return elem
 
@@ -268,9 +340,16 @@ def _cl(obj: model.ComponentList):
 
 
 @writer
+def _ms(obj: model.MemberSelection):
+    elem = Element("com:KeyValue", id=obj.values_for.id)
+    elem.extend(Element("com:Value", mv.value) for mv in obj.values)
+    return elem
+
+
+@writer
 def _cr(obj: model.CubeRegion):
     elem = Element("str:CubeRegion", include=str(obj.included).lower())
-    raise NotImplementedError(f"Write {obj.__class__.__name__} to XML")
+    elem.extend(writer.recurse(ms) for ms in obj.member.values())
     return elem
 
 
@@ -282,9 +361,8 @@ def _cc(obj: model.ContentConstraint):
 
     # Constraint attachment
     for ca in obj.content:
-        ca_elem = Element("str:ConstraintAttachment")
-        ca_elem.append(reference(ca, style="Ref"))
-        elem.append(ca_elem)
+        elem.append(Element("str:ConstraintAttachment"))
+        elem[-1].append(reference(ca, style="Ref"))
 
     elem.extend(writer.recurse(dcr) for dcr in obj.data_content_region)
     return elem
@@ -296,13 +374,20 @@ def _cc(obj: model.ContentConstraint):
 @writer
 def _dsd(obj: model.DataStructureDefinition):
     elem = maintainable(obj)
-    for attr in "attributes", "dimensions", "measures":
-        elem.append(writer.recurse(getattr(obj, attr)))
+    elem.append(Element("str:DataStructureComponents"))
+
+    # Write in a specific order
+    elem[0].append(writer.recurse(obj.dimensions))
+    for group in obj.group_dimensions.values():
+        elem[0].append(writer.recurse(group))
+    elem[0].append(writer.recurse(obj.attributes))
+    elem[0].append(writer.recurse(obj.measures))
+
     return elem
 
 
 @writer
 def _dfd(obj: model.DataflowDefinition):
     elem = maintainable(obj)
-    elem.append(reference(obj.structure, style="Ref"))
+    elem.append(reference(obj.structure, tag="str:Structure", style="Ref"))
     return elem
