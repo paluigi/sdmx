@@ -61,7 +61,7 @@ class BaseWriter:
 
             return func(obj, *args, **kwargs)
 
-    def register(self, func):
+    def __call__(self, func):
         """Register *func* as a writer for a particular object type."""
         dispatcher = getattr(self, "_dispatcher")
         dispatcher.register(func)

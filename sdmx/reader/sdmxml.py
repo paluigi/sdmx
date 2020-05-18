@@ -46,10 +46,8 @@ SKIP = (
 TO_SNAKE_RE = re.compile("([A-Z]+)")
 
 
-def add_localizations(target, values):
+def add_localizations(target: model.InternationalString, values: list) -> None:
     """Add localized strings from *values* to *target*."""
-    if isinstance(values, tuple) and len(values) == 2:
-        values = [values]
     target.localizations.update({locale: label for locale, label in values})
 
 
@@ -519,7 +517,7 @@ class Reader(BaseReader):
                 # Previously an external reference, now concrete
                 existing.is_external_reference = False
 
-                if not existing.identical(obj):
+                if not existing.compare(obj, strict=True):
                     log.warning(
                         f"Mismatch between referred {repr(existing)} and concrete "
                         f"{repr(obj)}"
@@ -536,6 +534,9 @@ class Reader(BaseReader):
             self.push(obj)
 
         return obj
+
+
+# Parsers for sdmx.message classes
 
 
 @start(*[f"mes:{k}" for k in MESSAGE.keys() if k != "Structure"])
@@ -779,7 +780,7 @@ def _item_start(reader, elem):
         if not (elem[0].tag in ("Ref", "URN")):
             # Avoid stealing the name(s) of the parent ItemScheme from the stack
             # TODO check this works for annotations
-            reader.stash("Name")
+            reader.stash("Name", "Description")
     except IndexError:
         pass
 
@@ -830,7 +831,7 @@ def _itemscheme(reader, elem):
     iter_all = chain(*[iter(item) for item in reader.pop_all(cls._Item)])
     # Set of objects already added to `items`
     seen = dict()
-    # Flatten the list
+    # Flatten the list, with each item appearing only once
     items = [seen.setdefault(i, i) for i in iter_all if i not in seen]
 
     return reader.maintainable(cls, elem, items=items)
