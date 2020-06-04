@@ -7,12 +7,15 @@
 :mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data
 returned by data sources.
 """
+import logging
 from typing import List, Optional, Text, Union
 
 from requests import Response
 
 from sdmx import model
 from sdmx.util import BaseModel, DictLike, summarize_dictlike
+
+log = logging.getLogger(__name__)
 
 
 def _summarize(obj, fields):
@@ -98,6 +101,8 @@ class ErrorMessage(Message):
 
 
 class StructureMessage(Message):
+    #: Collection of :class:`.Categorisation`.
+    categorisation: DictLike[str, model.Categorisation] = DictLike()
     #: Collection of :class:`.CategoryScheme`.
     category_scheme: DictLike[str, model.CategoryScheme] = DictLike()
     #: Collection of :class:`.Codelist`.
@@ -114,6 +119,32 @@ class StructureMessage(Message):
     organisation_scheme: DictLike[str, model.AgencyScheme] = DictLike()
     #: Collection of :class:`.ProvisionAgreement`.
     provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
+
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two StructureMessages compare equal if :meth:`.DictLike.compare` is :obj:`True`
+        for each of the object collection attributes.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :meth:`.DictLike.compare`.
+        """
+        return all(
+            getattr(self, attr).compare(getattr(other, attr), strict)
+            for attr in (
+                "categorisation",
+                "category_scheme",
+                "codelist",
+                "concept_scheme",
+                "constraint",
+                "dataflow",
+                "structure",
+                "organisation_scheme",
+                "provisionagreement",
+            )
+        )
 
     def __repr__(self):
         """String representation."""

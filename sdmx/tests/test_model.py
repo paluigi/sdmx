@@ -113,6 +113,25 @@ def test_identifiable():
     assert hash(ad) == id(ad)
 
 
+def test_nameable(caplog):
+    na1 = model.NameableArtefact(
+        name=dict(en="Name"), description=dict(en="Description"),
+    )
+    na2 = model.NameableArtefact()
+
+    assert not na1.compare(na2)
+    assert caplog.messages[-1] == "Not identical: name=[en: Name, ]"
+
+    na2.name["en"] = "Name"
+
+    assert not na1.compare(na2)
+    assert caplog.messages[-1] == "Not identical: description=[en: Description, ]"
+
+    na2.description["en"] = "Description"
+
+    assert na1.compare(na2)
+
+
 def test_maintainable():
     urn = "urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=IT1:VARIAB_ALL(9.6)"
     ma = model.MaintainableArtefact(id="VARIAB_ALL", urn=urn)
@@ -187,6 +206,11 @@ def test_internationalstring():
         name=[("DE", "Europäische Zentralbank"), ("FR", "Banque centrale européenne")],
     )
     assert i4.name["FR"] == "Banque centrale européenne"
+
+    # Compares equal with same contents
+    is1 = model.InternationalString(en="Foo", fr="Le foo")
+    is2 = model.InternationalString(en="Foo", fr="Le foo")
+    assert is1 == is2
 
 
 def test_item():
@@ -282,6 +306,19 @@ def test_itemscheme():
     assert is0.get_hierarchical("foo0.bar1") == bar1
 
 
+def test_itemscheme_compare(caplog):
+    is0 = model.ItemScheme()
+    is1 = model.ItemScheme()
+
+    is0.append(model.Item(id="foo", name="Foo"))
+    is1.append(model.Item(id="foo", name="Bar"))
+
+    assert not is0.compare(is1)
+
+    # Log shows that items with same ID have different name
+    assert caplog.messages[-1] == "[<Item foo: Foo>, <Item foo: Bar>]"
+
+
 def test_key():
     # Construct with a dict
     k1 = Key({"foo": 1, "bar": 2})
@@ -363,3 +400,8 @@ def test_observation():
     av = AttributeValue(value_for=da, value="baz")
     obs.attached_attribute[da.id] = av
     assert obs.attrib[da.id] == "baz"
+
+
+def test_get_class():
+    with pytest.raises(ValueError, match="Package 'codelist' invalid for Category"):
+        model.get_class(name="Category", package="codelist")

@@ -25,7 +25,7 @@ from sdmx.writer.base import BaseWriter
 DEFAULT_RTYPE = "rows"
 
 
-Writer = BaseWriter("pandas")
+writer = BaseWriter("pandas")
 
 
 def to_pandas(obj, *args, **kwargs):
@@ -33,28 +33,28 @@ def to_pandas(obj, *args, **kwargs):
 
     See :ref:`sdmx.writer.pandas <writer-pandas>`.
     """
-    return Writer.recurse(obj, *args, **kwargs)
+    return writer.recurse(obj, *args, **kwargs)
 
 
 # Functions for Python containers
-@Writer.register
+@writer
 def _list(obj: list, *args, **kwargs):
     """Convert a :class:`list` of SDMX objects."""
     if isinstance(obj[0], Observation):
         return write_dataset(obj, *args, **kwargs)
     elif isinstance(obj[0], DataSet) and len(obj) == 1:
-        return Writer.recurse(obj[0], *args, **kwargs)
+        return writer.recurse(obj[0], *args, **kwargs)
     elif isinstance(obj[0], SeriesKey):
         assert len(args) == len(kwargs) == 0
         return write_serieskeys(obj)
     else:
-        return [Writer.recurse(item, *args, **kwargs) for item in obj]
+        return [writer.recurse(item, *args, **kwargs) for item in obj]
 
 
-@Writer.register
+@writer
 def _dict(obj: dict, *args, **kwargs):
     """Convert mappings."""
-    result = {k: Writer.recurse(v, *args, **kwargs) for k, v in obj.items()}
+    result = {k: writer.recurse(v, *args, **kwargs) for k, v in obj.items()}
 
     result_type = set(type(v) for v in result.values())
 
@@ -80,15 +80,15 @@ def _dict(obj: dict, *args, **kwargs):
         raise ValueError(result_type)
 
 
-@Writer.register
+@writer
 def _set(obj: set, *args, **kwargs):
     """Convert :class:`set`."""
-    result = {Writer.recurse(o, *args, **kwargs) for o in obj}
+    result = {writer.recurse(o, *args, **kwargs) for o in obj}
     return result
 
 
 # Functions for message classes
-@Writer.register
+@writer
 def write_datamessage(obj: message.DataMessage, *args, rtype=None, **kwargs):
     """Convert :class:`.DataMessage`.
 
@@ -117,12 +117,12 @@ def write_datamessage(obj: message.DataMessage, *args, rtype=None, **kwargs):
         kwargs["_observation_dimension"] = obj.observation_dimension
 
     if len(obj.data) == 1:
-        return Writer.recurse(obj.data[0], *args, **kwargs)
+        return writer.recurse(obj.data[0], *args, **kwargs)
     else:
-        return [Writer.recurse(ds, *args, **kwargs) for ds in obj.data]
+        return [writer.recurse(ds, *args, **kwargs) for ds in obj.data]
 
 
-@Writer.register
+@writer
 def write_structuremessage(obj: message.StructureMessage, include=None, **kwargs):
     """Convert :class:`.StructureMessage`.
 
@@ -161,7 +161,7 @@ def write_structuremessage(obj: message.StructureMessage, include=None, **kwargs
 
     result: DictLike[str, Union[pd.Series, pd.DataFrame]] = DictLike()
     for a in attrs:
-        dl = Writer.recurse(getattr(obj, a), **kwargs)
+        dl = writer.recurse(getattr(obj, a), **kwargs)
         if len(dl):
             # Only add non-empty elements
             result[a] = dl
@@ -172,23 +172,23 @@ def write_structuremessage(obj: message.StructureMessage, include=None, **kwargs
 # Functions for model classes
 
 
-@Writer.register
+@writer
 def _c(obj: model.Component):
     """Convert :class:`.Component`."""
     # Raises AttributeError if the concept_identity is missing
     return str(obj.concept_identity.id)  # type: ignore
 
 
-@Writer.register
+@writer
 def _cc(obj: model.ContentConstraint, **kwargs):
     """Convert :class:`.ContentConstraint`."""
     if len(obj.data_content_region) != 1:
         raise NotImplementedError
 
-    return Writer.recurse(obj.data_content_region[0], **kwargs)
+    return writer.recurse(obj.data_content_region[0], **kwargs)
 
 
-@Writer.register
+@writer
 def _cr(obj: model.CubeRegion, **kwargs):
     """Convert :class:`.CubeRegion`."""
     result: DictLike[str, pd.Series] = DictLike()
@@ -199,7 +199,7 @@ def _cr(obj: model.CubeRegion, **kwargs):
     return result
 
 
-@Writer.register
+@writer
 def write_dataset(
     obj: model.DataSet,
     attributes="",
@@ -475,13 +475,13 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
     return df
 
 
-@Writer.register
+@writer
 def _dd(obj: model.DimensionDescriptor):
     """Convert :class:`.DimensionDescriptor`."""
-    return Writer.recurse(obj.components)
+    return writer.recurse(obj.components)
 
 
-@Writer.register
+@writer
 def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
     """Convert :class:`.ItemScheme`.
 
@@ -534,12 +534,12 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
     return result
 
 
-@Writer.register
+@writer
 def _mv(obj: model.MemberValue):
     return obj.value
 
 
-@Writer.register
+@writer
 def _na(obj: model.NameableArtefact):
     return str(obj.name)
 

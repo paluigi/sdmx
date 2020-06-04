@@ -1,4 +1,5 @@
 import collections
+import logging
 import typing
 from enum import Enum
 from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
@@ -18,6 +19,9 @@ except ImportError:
     from typing import _alias  # type: ignore
 
     OrderedDict = _alias(collections.OrderedDict, (KT, VT))
+
+
+log = logging.getLogger(__name__)
 
 
 class Resource(str, Enum):
@@ -201,6 +205,27 @@ class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
         else:
             return result
 
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two DictLike instances are identical if they contain the same set of keys, and
+        corresponding values compare equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`compare` for the values.
+        """
+        if set(self.keys()) != set(other.keys()):
+            log.info(f"Not identical: {sorted(self.keys())} / {sorted(other.keys())}")
+            return False
+
+        for key, value in self.items():
+            if not value.compare(other[key], strict):
+                return False
+
+        return True
+
 
 def summarize_dictlike(dl, maxwidth=72):
     """Return a string summary of the DictLike contents."""
@@ -224,3 +249,16 @@ def validate_dictlike(*fields):
         return cls
 
     return decorator
+
+
+def compare(attr, a, b, strict: bool) -> bool:
+    """Return :obj:`True` if ``a.attr`` == ``b.attr``.
+
+    If strict is :obj:`False`, :obj:`None` is permissible as `a` or `b`; otherwise,
+    """
+    return getattr(a, attr) == getattr(b, attr) or (
+        not strict and None in (getattr(a, attr), getattr(b, attr))
+    )
+    # if not result:
+    #     log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
+    # return result

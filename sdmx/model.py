@@ -21,6 +21,7 @@ Details of the implementation:
 # TODO for complete implementation of the IM, enforce TimeKeyValue (instead of
 #      KeyValue) for {Generic,StructureSpecific} TimeSeriesDataSet.
 
+import logging
 from collections import ChainMap
 from collections.abc import Collection
 from collections.abc import Iterable as IterableABC
@@ -44,7 +45,9 @@ from typing import (
 )
 from warnings import warn
 
-from sdmx.util import BaseModel, DictLike, validate_dictlike, validator
+from sdmx.util import BaseModel, DictLike, compare, validate_dictlike, validator
+
+log = logging.getLogger(__name__)
 
 # TODO read this from the environment, or use any value set in the SDMX XML
 # spec. Currently set to 'en' because test_dsd.py expects it
@@ -159,6 +162,9 @@ class InternationalString:
             ["{}: {}".format(*kv) for kv in sorted(self.localizations.items())]
         )
 
+    def __eq__(self, other):
+        return self.localizations == other.localizations
+
     @classmethod
     def __get_validators__(cls):
         yield cls.__validate
@@ -250,6 +256,23 @@ class IdentifiableArtefact(AnnotableArtefact):
         elif isinstance(other, str):
             return self.id == other
 
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two IdentifiableArtefacts are the same if they have the same :attr:`id`,
+        :attr:`uri`, and :attr:`urn`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare`.
+        """
+        return (
+            compare("id", self, other, strict)
+            and compare("uri", self, other, strict)
+            and compare("urn", self, other, strict)
+        )
+
     def __hash__(self):
         return id(self) if self.id == MissingID else hash(self.id)
 
@@ -265,6 +288,32 @@ class NameableArtefact(IdentifiableArtefact):
     name: InternationalString = InternationalString()
     #: Multi-lingual description of the object.
     description: InternationalString = InternationalString()
+
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two NameableArtefacts are the same if:
+
+        - :meth:`.IdentifiableArtefact.compare` is :obj:`True`, and
+        - they have the same :attr:`name` and :attr:`description`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.IdentifiableArtefact.compare`.
+        """
+        if not super().compare(other, strict):
+            pass
+        elif self.name != other.name:
+            log.info("Not identical: name=" + repr([self.name, other.name]))
+        elif self.description != other.description:
+            log.info(
+                "Not identical: description="
+                + repr([self.description, other.description])
+            )
+        else:
+            return True
+        return False
 
     def _repr_kw(self):
         return dict(
@@ -297,8 +346,22 @@ class VersionableArtefact(NameableArtefact):
         except KeyError:
             pass
 
-    def identical(self, other):
-        return super().__eq__(other) and self.version == other.version
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two VersionableArtefacts are the same if:
+
+        - :meth:`.NameableArtefact.compare` is :obj:`True`, and
+        - they have the same :attr:`version`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.NameableArtefact.compare`.
+        """
+        return super().compare(other, strict) and compare(
+            "version", self, other, strict
+        )
 
     def _repr_kw(self) -> Mapping:
         return ChainMap(
@@ -333,13 +396,27 @@ class MaintainableArtefact(VersionableArtefact):
         except KeyError:
             pass
 
-    def identical(self, other):
-        return super().identical(other) and self.maintainer is other.maintainer
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two MaintainableArtefacts are the same if:
+
+        - :meth:`.VersionableArtefact.compare` is :obj:`True`, and
+        - they have the same :attr:`maintainer`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.VersionableArtefact.compare`.
+        """
+        return super().compare(other, strict) and compare(
+            "maintainer", self, other, strict
+        )
 
     def _repr_kw(self):
         return ChainMap(
             super()._repr_kw(),
-            dict(maint="f{self.maintainer}:" if self.maintainer else ""),
+            dict(maint=f"{self.maintainer}:" if self.maintainer else ""),
         )
 
     def __repr__(self):
@@ -541,6 +618,33 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
             Item to add.
         """
         self.items[item.id] = item
+
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two ItemSchemes are the same if:
+
+        - :meth:`.MaintainableArtefact.compare` is :obj:`True`, and
+        - their :attr:`items` have the same keys, and corresponding
+          :class:`Items <Item>` compare equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.MaintainableArtefact.compare`.
+        """
+        if not super().compare(other, strict):
+            pass
+        elif set(self.items) != set(other.items):
+            log.info(repr([set(self.items), set(other.items)]))
+        else:
+            for id, item in self.items.items():
+                if not item.compare(other.items[id], strict):
+                    log.info(repr([item, other.items[id]]))
+                    return False
+            return True
+
+        return False
 
     def __repr__(self):
         return "<{cls} {maint}{id}{version} ({N} items){name}>".format(
@@ -776,6 +880,23 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
     # Must be reset because __eq__ is defined
     def __hash__(self):
         return super().__hash__()
+
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two ComponentLists are the same if:
+
+        - :meth:`.IdentifiableArtefact.compare` is :obj:`True`, and
+        - corresponding :attr:`components` compare equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.IdentifiableArtefact.compare`.
+        """
+        return super().compare(other, strict) and all(
+            c.compare(other.get(c.id), strict) for c in self.components
+        )
 
 
 # §4.3: Codelist
@@ -1363,6 +1484,23 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
 
         return key
 
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two DataStructureDefinitions are the same if each of :attr:`attributes`,
+        :attr:`dimensions`, :attr:`measures`, and :attr:`group_dimensions` compares
+        equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :meth:`.ComponentList.compare`.
+        """
+        return all(
+            getattr(self, attr).compare(getattr(other, attr), strict)
+            for attr in ("attributes", "dimensions", "measures", "group_dimensions")
+        )
+
 
 class DataflowDefinition(StructureUsage, ConstrainableArtefact):
     #:
@@ -1812,7 +1950,7 @@ class ProvisionAgreement(MaintainableArtefact, ConstrainableArtefact):
 PACKAGE = dict()
 
 _PACKAGE_CLASS: Dict[str, set] = {
-    "base": {Agency, AgencyScheme, DataProvider},
+    "base": {Agency, AgencyScheme, DataProvider, DataProviderScheme},
     "categoryscheme": {Category, Categorisation, CategoryScheme},
     "codelist": {Code, Codelist},
     "conceptscheme": {Concept, ConceptScheme},
@@ -1823,19 +1961,31 @@ _PACKAGE_CLASS: Dict[str, set] = {
 for package, classes in _PACKAGE_CLASS.items():
     PACKAGE.update({cls: package for cls in classes})
 
+del cls
 
-def get_class(cls, package=None):
+
+def get_class(name, package=None):
     """Return a class object for string *cls* and *package* names."""
-    cls = globals()[cls]
+    name = {"Dataflow": "DataflowDefinition"}.get(name, name)
 
-    if package and package != PACKAGE[cls]:
-        raise ValueError(f"Package {repr(package)} invalid for {cls}")
+    try:
+        cls = globals()[name]
+    except KeyError:
+        return None
+    else:
+        if package and package != PACKAGE[cls]:
+            raise ValueError(f"Package {repr(package)} invalid for {name}")
 
-    return cls
+        return cls
 
 
 def parent_class(cls):
+    """Return the class that contains objects of type `cls`.
+
+    E.g. if `cls` is :class:`.PrimaryMeasure`, returns :class:`.MeasureDescriptor`.
+    """
     return {
+        Agency: AgencyScheme,
         Category: CategoryScheme,
         Code: Codelist,
         Concept: ConceptScheme,

@@ -13,7 +13,6 @@ from copy import copy
 from itertools import chain, product
 from operator import itemgetter
 from sys import maxsize
-from typing import Union
 
 from lxml import etree
 from lxml.etree import QName
@@ -21,7 +20,7 @@ from lxml.etree import QName
 import sdmx.urn
 from sdmx import message, model
 from sdmx.exceptions import XMLParseError  # noqa: F401
-from sdmx.format.xml import MESSAGE, qname
+from sdmx.format.xml import class_for_tag, qname
 from sdmx.reader.base import BaseReader
 
 log = logging.getLogger(__name__)
@@ -46,29 +45,9 @@ SKIP = (
 TO_SNAKE_RE = re.compile("([A-Z]+)")
 
 
-def add_localizations(target, values):
+def add_localizations(target: model.InternationalString, values: list) -> None:
     """Add localized strings from *values* to *target*."""
-    if isinstance(values, tuple) and len(values) == 2:
-        values = [values]
     target.localizations.update({locale: label for locale, label in values})
-
-
-def get_sdmx_class(elem_or_name: Union[etree.Element, str], package=None):
-    try:
-        name = QName(elem_or_name).localname
-    except ValueError:
-        name = elem_or_name
-    name = {
-        "Attribute": "DataAttribute",
-        "Dataflow": "DataflowDefinition",
-        "DataStructure": "DataStructureDefinition",
-        "GroupDimension": "Dimension",
-        "ObsKey": "Key",
-        "Receiver": "Agency",
-        "Sender": "Agency",
-        "Source": "Agency",
-    }.get(name, name)
-    return model.get_class(name, package)
 
 
 # filter() conditions; see get_unique() and pop_single()
@@ -135,6 +114,9 @@ class NotReference(Exception):
     pass
 
 
+_NO_AGENCY = model.Agency()
+
+
 class Reference:
     """Temporary class for references.
 
@@ -148,6 +130,8 @@ class Reference:
     """
 
     def __init__(self, elem, cls_hint=None):
+        parent_tag = elem.tag
+
         try:
             # Use the first child
             elem = elem[0]
@@ -160,15 +144,12 @@ class Reference:
             target_id = elem.attrib["id"]
             agency_id = elem.attrib.get("agencyID", None)
             id = elem.attrib.get("maintainableParentID", target_id)
-            version = elem.attrib.get("maintainableParentVersion", None)
+            version = elem.attrib.get(
+                "maintainableParentVersion", None
+            ) or elem.attrib.get("version", None)
 
-            # Arguments to try with get_sdmx_class()
-            get_class_args = [
-                # Attributes of the element itself, if any
-                (elem.attrib.get("class", None), elem.attrib.get("package", None)),
-                # The parent XML element
-                (elem.getparent(),),
-            ]
+            # Attributes of the element itself, if any
+            args = (elem.attrib.get("class", None), elem.attrib.get("package", None))
         elif elem.tag == "URN":
             match = sdmx.urn.match(elem.text)
 
@@ -180,35 +161,21 @@ class Reference:
             id = match["id"]
             version = match["version"]
 
-            get_class_args = [(match["class"], match["package"])]
+            args = (match["class"], match["package"])
         else:
             raise NotReference
 
         # Find the target class
-        for args in get_class_args:
-            try:
-                target_cls = get_sdmx_class(*args)
-            except KeyError:  # Arguments didn't work
-                continue
-            else:  # Found a result; don't try others from `get_class_args`
-                break
+        target_cls = model.get_class(*args)
 
-        try:
-            # Get the hinted class
-            hinted_cls = get_sdmx_class(cls_hint)
+        if target_cls is None:
+            # Try the parent tag name
+            target_cls = class_for_tag(parent_tag)
 
-            if issubclass(hinted_cls, target_cls):
-                # Hinted class is more specific than target_cls; use this instead
-                target_cls = hinted_cls
-            else:
-                raise ValueError(
-                    f"{hinted_cls} is not a subclass of referenced {target_cls}"
-                )
-        except KeyError:  # cls_hint was None
-            pass
-        except UnboundLocalError:
-            # Failed to find anything from get_class_args, above; use the hinted class
-            target_cls = hinted_cls
+        if cls_hint and (target_cls is None or issubclass(cls_hint, target_cls)):
+            # Hinted class is more specific than target_cls, or failed to find a target
+            # class above
+            target_cls = cls_hint
 
         self.maintainable = issubclass(target_cls, model.MaintainableArtefact)
 
@@ -221,13 +188,13 @@ class Reference:
 
         # Store
         self.cls = cls
-        self.agency = agency_id if agency_id is None else model.Agency(id=agency_id)
+        self.agency = model.Agency(id=agency_id) if agency_id else _NO_AGENCY
         self.id = id
         self.version = version
         self.target_cls = target_cls
         self.target_id = target_id
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return (
             f"{self.cls.__name__}={self.agency.id}:{self.id}({self.version}) → "
             f"{self.target_cls.__name__}={self.target_id}"
@@ -264,7 +231,7 @@ class Reader(BaseReader):
                 try:
                     # Retrieve the parsing function for this element & event
                     func = PARSE[element.tag, event]
-                except KeyError:
+                except KeyError:  # pragma: no cover
                     # Don't know what to do for this (element, event)
                     raise NotImplementedError(element.tag, event) from None
 
@@ -274,7 +241,7 @@ class Reader(BaseReader):
                 except TypeError:
                     if func is None:  # Explicitly no parser for this (element, event)
                         continue  # Skip
-                    else:  # Some other TypeError
+                    else:  # pragma: no cover
                         raise
                 else:
                     # Store the result
@@ -300,19 +267,19 @@ class Reader(BaseReader):
         for key, objects in self.stack.items():
             uncollected += sum([1 if id(o) not in self.ignore else 0 for o in objects])
 
-        if uncollected > 0:
+        if uncollected > 0:  # pragma: no cover
             self._dump()
             raise RuntimeError(f"{uncollected} uncollected items")
 
         return self.get_single(message.Message)
 
-    def _clean(self):
+    def _clean(self):  # pragma: no cover
         """Remove empty stacks."""
         for key in list(self.stack.keys()):
             if len(self.stack[key]) == 0:
                 self.stack.pop(key)
 
-    def _dump(self):
+    def _dump(self):  # pragma: no cover
         self._clean()
         print("\n\n")
         for key, values in self.stack.items():
@@ -408,7 +375,7 @@ class Reader(BaseReader):
         """Get the object at the top of stack `cls_or_name` without removing it."""
         try:
             return self.stack[cls_or_name][-1]
-        except (IndexError, KeyError):
+        except IndexError:  # pragma: no cover
             return None
 
     def pop_resolved_ref(self, cls_or_name):
@@ -443,10 +410,6 @@ class Reader(BaseReader):
 
         if parent.is_external_reference:
             # Create the child
-            # log.info(
-            #     f"Child {repr(ref.target_id)} of externally referenced parent "
-            #     f"{repr(parent)} may be incomplete"
-            # )
             return parent.setdefault(id=ref.target_id)
         else:
             try:
@@ -469,7 +432,7 @@ class Reader(BaseReader):
 
     def identifiable(self, cls, elem, **kwargs):
         """Create a IdentifiableArtefact of `cls` from `elem` and `kwargs`."""
-        setdefault_attrib(kwargs, elem, "id")
+        setdefault_attrib(kwargs, elem, "id", "urn", "uri")
         return self.annotable(cls, elem, **kwargs)
 
     def nameable(self, cls, elem, **kwargs):
@@ -484,17 +447,13 @@ class Reader(BaseReader):
             add_localizations(obj.description, self.pop_all("Description"))
         return obj
 
-    def versionable(self, cls, elem, **kwargs):
-        """Create a VersionableArtefact of `cls` from `elem` and `kwargs`."""
-        setdefault_attrib(kwargs, elem, "version")
-        return self.nameable(cls, elem, **kwargs)
-
     def maintainable(self, cls, elem, **kwargs):
         """Create or retrieve a MaintainableArtefact of `cls` from `elem` and `kwargs`.
 
         Following the SDMX-IM class hierachy, :meth:`maintainable` calls
-        :meth:`versionable`, which in turn calls :meth:`nameable`, etc.
-        For all of these methods:
+        :meth:`nameable`, which in turn calls :meth:`identifiable`, etc. (Since no
+        concrete class is versionable but not maintainable, no separate method is
+        created, for better performance). For all of these methods:
 
         - Already-parsed items are removed from the stack only if `elem` is not
           :obj:`None`.
@@ -506,30 +465,31 @@ class Reader(BaseReader):
         the same object ID will return references to the same object.
         """
         kwargs.setdefault("is_external_reference", elem is None)
-        setdefault_attrib(kwargs, elem, "isExternalReference", "isFinal", "uri", "urn")
+        setdefault_attrib(kwargs, elem, "isExternalReference", "isFinal", "version")
+        kwargs["is_final"] = kwargs.get("is_final", None) == "true"
 
         # Create a candidate object
-        obj = self.versionable(cls, elem, **kwargs)
+        obj = self.nameable(cls, elem, **kwargs)
 
         # Maybe retrieve an existing object of the same class and ID
         existing = self.get_single(cls, obj.id, strict=True)
 
-        if existing:
+        if existing and (
+            existing.compare(obj, strict=True) or existing.urn == sdmx.urn.make(obj)
+        ):
             if elem is not None:
                 # Previously an external reference, now concrete
                 existing.is_external_reference = False
 
-                if not existing.identical(obj):
-                    log.warning(
-                        f"Mismatch between referred {repr(existing)} and concrete "
-                        f"{repr(obj)}"
-                    )
-
                 # Update `existing` from `obj` to preserve references
-                for attr in kwargs:
-                    log.info(f"Updating {attr}")
+                for attr in list(kwargs.keys()):
+                    # log.info(
+                    #     f"Updating {attr} {getattr(existing, attr)} "
+                    #     f"{getattr(obj, attr)}"
+                    # )
                     setattr(existing, attr, getattr(obj, attr))
 
+            # Discard the candidate
             obj = existing
         elif obj.is_external_reference:
             # Push a new external reference onto the stack to be located by next calls
@@ -538,7 +498,13 @@ class Reader(BaseReader):
         return obj
 
 
-@start(*[f"mes:{k}" for k in MESSAGE.keys() if k != "Structure"])
+# Parsers for sdmx.message classes
+
+
+@start(
+    "mes:Error mes:GenericData mes:GenericTimeSeriesData mes:StructureSpecificData "
+    "mes:StructureSpecificTimeSeriesData"
+)
 @start("mes:Structure", only=False)
 def _message(reader, elem):
     """Start of a Message."""
@@ -564,10 +530,10 @@ def _message(reader, elem):
     # Store values for other methods
     reader.push("SS without DSD", ss_without_dsd)
     if "Data" in elem.tag:
-        reader.push("DataSetClass", get_sdmx_class(f"{QName(elem).localname}Set"))
+        reader.push("DataSetClass", model.get_class(f"{QName(elem).localname}Set"))
 
     # Instantiate the message object
-    cls = MESSAGE[QName(elem).localname]
+    cls = class_for_tag(elem.tag)
     return cls()
 
 
@@ -577,7 +543,7 @@ def _header(reader, elem):
     header = message.Header(
         id=reader.pop_single("ID") or None,
         prepared=reader.pop_single("Prepared") or None,
-        receiver=reader.pop_single("Receiver"),
+        receiver=reader.pop_single("Receiver") or None,
         sender=reader.pop_single("Sender") or None,
         test=str(reader.pop_single("Test")).lower() == "true",
     )
@@ -593,7 +559,7 @@ def _header(reader, elem):
 
 @end("mes:Receiver mes:Sender")
 def _header_org(reader, elem):
-    reader.push(elem, reader.nameable(get_sdmx_class(elem), elem))
+    reader.push(elem, reader.nameable(class_for_tag(elem.tag), elem))
 
 
 @end("mes:Structure", only=False)
@@ -610,6 +576,7 @@ def _header_structure(reader, elem):
 
     # Resolve the <com:Structure> child to a DSD, maybe is_external_reference=True
     header_dsd = reader.pop_resolved_ref("Structure")
+
     # Resolve the <str:StructureUsage> child, if any, and remove it from the stack
     header_su = reader.pop_resolved_ref("StructureUsage")
     reader.pop_single(model.StructureUsage)
@@ -694,21 +661,18 @@ def _structures(reader, elem):
 
     # Populate dictionaries by ID
     for attr, name in (
-        ("dataflow", model.DataflowDefinition),
-        ("codelist", model.Codelist),
-        ("constraint", model.ContentConstraint),
-        ("structure", model.DataStructureDefinition),
+        ("categorisation", model.Categorisation),
         ("category_scheme", model.CategoryScheme),
+        ("codelist", model.Codelist),
         ("concept_scheme", model.ConceptScheme),
+        ("constraint", model.ContentConstraint),
+        ("dataflow", model.DataflowDefinition),
         ("organisation_scheme", model.OrganisationScheme),
         ("provisionagreement", model.ProvisionAgreement),
+        ("structure", model.DataStructureDefinition),
     ):
         for obj in reader.pop_all(name):
             getattr(msg, attr)[obj.id] = obj
-
-    # Check, but do not store, categorizations
-    for c in reader.pop_all(model.Categorisation):
-        log.info(" ".join(map(repr, [c, c.artefact, c.category])))
 
 
 # Parsers for sdmx.model classes
@@ -740,17 +704,12 @@ def _localization(reader, elem):
     "str:Target str:Enumeration"
 )
 def _ref(reader, elem):
-    localname = QName(elem).localname
+    cls_hint = None
+    if "Parent" in elem.tag:
+        # Use the *grand*-parent of the <Ref> or <URN> for a class hint
+        cls_hint = class_for_tag(elem.getparent().tag)
 
-    # Certain XML elements always point to certain classes
-    cls_hint = {
-        "AttachmentGroup": "GroupDimensionDescriptor",
-        "DimensionReference": "Dimension",
-        "Parent": QName(elem.getparent()).localname,
-        "Structure": "DataStructureDefinition",
-    }.get(localname, None)
-
-    reader.push(localname, Reference(elem, cls_hint))
+    reader.push(QName(elem).localname, Reference(elem, cls_hint))
 
 
 @end("com:Annotation")
@@ -773,15 +732,20 @@ def _a(reader, elem):
 # §3.5: Item Scheme
 
 
-@start("str:Agency str:Code str:Category str:DataProvider", only=False)
+@start("str:Agency str:Code str:Category str:Concept str:DataProvider", only=False)
 def _item_start(reader, elem):
+    # Avoid stealing the name & description of the parent ItemScheme from the stack
+    # TODO check this works for annotations
+
     try:
-        if not (elem[0].tag in ("Ref", "URN")):
-            # Avoid stealing the name(s) of the parent ItemScheme from the stack
-            # TODO check this works for annotations
-            reader.stash("Name")
+        if elem[0].tag in ("Ref", "URN"):
+            # `elem` is a reference, so it has no name/etc.; don't stash
+            return
     except IndexError:
+        # No child elements; stash() anyway, but it will be a no-op
         pass
+
+    reader.stash("Name", "Description")
 
 
 @end("str:Agency str:Code str:Category str:DataProvider", only=False)
@@ -792,7 +756,7 @@ def _item(reader, elem):
     except NotReference:
         pass
 
-    cls = get_sdmx_class(elem)
+    cls = class_for_tag(elem.tag)
     item = reader.nameable(cls, elem)
 
     # Hierarchy is stored in two ways
@@ -824,13 +788,13 @@ def _item(reader, elem):
     "str:DataProviderScheme",
 )
 def _itemscheme(reader, elem):
-    cls = get_sdmx_class(elem)
+    cls = class_for_tag(elem.tag)
 
     # Iterate over all Item objects *and* their children
     iter_all = chain(*[iter(item) for item in reader.pop_all(cls._Item)])
     # Set of objects already added to `items`
     seen = dict()
-    # Flatten the list
+    # Flatten the list, with each item appearing only once
     items = [seen.setdefault(i, i) for i in iter_all if i not in seen]
 
     return reader.maintainable(cls, elem, items=items)
@@ -870,7 +834,7 @@ def _rep(reader, elem):
 # §4.4: Concept Scheme
 
 
-@end("str:Concept", only=True)
+@end("str:Concept", only=False)
 def _concept(reader, elem):
     concept = _item(reader, elem)
     concept.core_representation = reader.pop_single(model.Representation)
@@ -892,7 +856,7 @@ def _component(reader, elem):
         pass
 
     # Object class: {,Measure,Time}Dimension or DataAttribute
-    cls = get_sdmx_class(elem)
+    cls = class_for_tag(elem.tag)
 
     args = dict(
         concept_identity=reader.pop_resolved_ref("ConceptIdentity"),
@@ -916,7 +880,7 @@ def _component(reader, elem):
 def _cl(reader, elem):
     try:
         # <str:Group> may be a reference
-        return Reference(elem, cls_hint="GroupDimensionDescriptor")
+        return Reference(elem, cls_hint=model.GroupDimensionDescriptor)
     except NotReference:
         pass
 
@@ -930,19 +894,21 @@ def _cl(reader, elem):
     # Determine the class
     localname = QName(elem).localname
     if localname == "Group":
-        cls_name = "GroupDimensionDescriptor"
+        cls = model.GroupDimensionDescriptor
+
+        # Replace components with references
+        args["components"] = [
+            dsd.dimensions.get(ref.target_id)
+            for ref in reader.pop_all("DimensionReference")
+        ]
     else:
         # SDMX-ML spec for, e.g. DimensionList: "The id attribute is
         # provided in this case for completeness. However, its value is
         # fixed to 'DimensionDescriptor'."
-        cls_name = elem.attrib.get("id", localname.replace("List", "Descriptor"))
-        args["id"] = cls_name
+        cls = class_for_tag(elem.tag)
+        args["id"] = elem.attrib.get("id", cls.__name__)
 
-    # GroupDimensionDescriptor only
-    for ref in reader.pop_all("DimensionReference"):
-        args["components"].append(dsd.dimensions.get(ref.target_id))
-
-    cl = reader.identifiable(get_sdmx_class(cls_name), elem, **args)
+    cl = reader.identifiable(cls, elem, **args)
 
     try:
         # DimensionDescriptor only
@@ -1184,7 +1150,7 @@ def _avs(reader, elem):
 
 @end("gen:ObsKey gen:GroupKey gen:SeriesKey")
 def _key(reader, elem):
-    cls = get_sdmx_class(elem)
+    cls = class_for_tag(elem.tag)
 
     kv = {e.attrib["id"]: e.attrib["value"] for e in elem.iterchildren()}
 
@@ -1298,16 +1264,17 @@ def _obs_ss(reader, elem):
 
 @start("mes:DataSet", only=False)
 def _ds_start(reader, elem):
+    # Create an instance of a DataSet subclass
     ds = reader.peek("DataSetClass")()
 
     # Store a reference to the DSD that structures the data set
     id = elem.attrib.get("structureRef", None) or elem.attrib.get(
         qname("data:structureRef"), None
     )
-    if id:
-        ds.structured_by = reader.get_single(id)
-    else:
-        log.info("No DSD when creating DataSet {reader.stack}")
+    ds.structured_by = reader.get_single(id)
+
+    if not ds.structured_by:  # pragma: no cover
+        raise RuntimeError("No DSD when creating DataSet")
 
     reader.push("DataSet", ds)
 

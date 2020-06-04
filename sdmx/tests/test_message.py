@@ -19,6 +19,7 @@ EXPECTED = [
     sender: <Agency FR1: Institut national de la statistique et des études économiques>
     source: fr: Banque de données macro-économiques
     test: False
+  Categorisation (1): CAT_IPI-2010_IPI-2010-A21
   CategoryScheme (1): CLASSEMENT_DATAFLOWS
   Codelist (7): CL_FREQ CL_NAF2_A21 CL_NATURE CL_UNIT CL_AREA CL_TIME_C...
   ConceptScheme (1): CONCEPTS_INSEE

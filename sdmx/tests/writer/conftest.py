@@ -3,6 +3,12 @@ import pytest
 from sdmx.message import StructureMessage
 from sdmx.model import Agency, Annotation, Code, Codelist
 
+CL_ITEMS = [
+    dict(id="A", name={"en": "Average of observations through period"}),
+    dict(id="B", name={"en": "Beginning of period"}),
+    dict(id="B1", name={"en": "Child code of B"}),
+]
+
 
 @pytest.fixture
 def codelist():
@@ -18,11 +24,14 @@ def codelist():
         name={"en": "Collection indicator code list"},
     )
 
-    cl.items["A"] = Code(id="A", name={"en": "Average of observations through period"})
-    cl.items["B"] = Code(id="B", name={"en": "Beginning of period"})
-    cl.items["B1"] = Code(id="B1", name={"en": "Child code of B"})
+    # Add items
+    for info in CL_ITEMS:
+        cl.items[info["id"]] = Code(**info)
+
+    # Add a hierarchical relationship
     cl.items["B"].append_child(cl.items["B1"])
 
+    # Add an annotation
     cl.items["A"].annotations.append(
         Annotation(id="A1", type="NOTE", text={"en": "Text annotation on Code A."})
     )
