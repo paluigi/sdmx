@@ -121,6 +121,16 @@ class StructureMessage(Message):
     provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two StructureMessages compare equal if :meth:`.DictLike.compare` is :obj:`True`
+        for each of the object collection attributes.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :meth:`.DictLike.compare`.
+        """
         return all(
             getattr(self, attr).compare(getattr(other, attr), strict)
             for attr in (

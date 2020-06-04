@@ -257,6 +257,16 @@ class IdentifiableArtefact(AnnotableArtefact):
             return self.id == other
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two IdentifiableArtefacts are the same if they have the same :attr:`id`,
+        :attr:`uri`, and :attr:`urn`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare`.
+        """
         return (
             compare("id", self, other, strict)
             and compare("uri", self, other, strict)
@@ -280,6 +290,18 @@ class NameableArtefact(IdentifiableArtefact):
     description: InternationalString = InternationalString()
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two NameableArtefacts are the same if:
+
+        - :meth:`.IdentifiableArtefact.compare` is :obj:`True`, and
+        - they have the same :attr:`name` and :attr:`description`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.IdentifiableArtefact.compare`.
+        """
         if not super().compare(other, strict):
             pass
         elif self.name != other.name:
@@ -325,6 +347,18 @@ class VersionableArtefact(NameableArtefact):
             pass
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two VersionableArtefacts are the same if:
+
+        - :meth:`.NameableArtefact.compare` is :obj:`True`, and
+        - they have the same :attr:`version`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.NameableArtefact.compare`.
+        """
         return super().compare(other, strict) and compare(
             "version", self, other, strict
         )
@@ -363,6 +397,18 @@ class MaintainableArtefact(VersionableArtefact):
             pass
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two MaintainableArtefacts are the same if:
+
+        - :meth:`.VersionableArtefact.compare` is :obj:`True`, and
+        - they have the same :attr:`maintainer`.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.VersionableArtefact.compare`.
+        """
         return super().compare(other, strict) and compare(
             "maintainer", self, other, strict
         )
@@ -574,6 +620,19 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         self.items[item.id] = item
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two ItemSchemes are the same if:
+
+        - :meth:`.MaintainableArtefact.compare` is :obj:`True`, and
+        - their :attr:`items` have the same keys, and corresponding
+          :class:`Items <Item>` compare equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.MaintainableArtefact.compare`.
+        """
         if not super().compare(other, strict):
             pass
         elif set(self.items) != set(other.items):
@@ -823,6 +882,18 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         return super().__hash__()
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two ComponentLists are the same if:
+
+        - :meth:`.IdentifiableArtefact.compare` is :obj:`True`, and
+        - corresponding :attr:`components` compare equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare` and :meth:`.IdentifiableArtefact.compare`.
+        """
         return super().compare(other, strict) and all(
             c.compare(other.get(c.id), strict) for c in self.components
         )
@@ -1414,6 +1485,17 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         return key
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two DataStructureDefinitions are the same if each of :attr:`attributes`,
+        :attr:`dimensions`, :attr:`measures`, and :attr:`group_dimensions` compares
+        equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :meth:`.ComponentList.compare`.
+        """
         return all(
             getattr(self, attr).compare(getattr(other, attr), strict)
             for attr in ("attributes", "dimensions", "measures", "group_dimensions")
@@ -1879,6 +1961,8 @@ _PACKAGE_CLASS: Dict[str, set] = {
 for package, classes in _PACKAGE_CLASS.items():
     PACKAGE.update({cls: package for cls in classes})
 
+del cls
+
 
 def get_class(name, package=None):
     """Return a class object for string *cls* and *package* names."""
@@ -1896,6 +1980,10 @@ def get_class(name, package=None):
 
 
 def parent_class(cls):
+    """Return the class that contains objects of type `cls`.
+
+    E.g. if `cls` is :class:`.PrimaryMeasure`, returns :class:`.MeasureDescriptor`.
+    """
     return {
         Agency: AgencyScheme,
         Category: CategoryScheme,

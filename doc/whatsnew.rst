@@ -6,6 +6,12 @@ What's new?
 Next release (vX.Y.0)
 =====================
 
+New features
+------------
+
+- Methods like :meth:`.IdentifiableArtefact.compare` are added for recursive comparison of :mod:`.model` objects (:pull:`6`).
+- :func:`.to_xml` covers a larger subset of SDMX-ML, including almost all contents of a :class:`.StructureMessage` (:pull:`6`).
+
 
 v1.1.0 (2020-05-18)
 ===================

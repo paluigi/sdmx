@@ -486,7 +486,7 @@ If given, the response from the web service is written to the specified file, *a
 
 .. versionadded:: 0.2.1
 
-:func:`.read_sdmx` can be used to load SDMX messages stored in local files:
+:func:`~.sdmx.read_sdmx` can be used to load SDMX messages stored in local files:
 
 .. ipython:: python
 

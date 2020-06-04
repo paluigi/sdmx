@@ -206,6 +206,16 @@ class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
             return result
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two DictLike instances are identical if they contain the same set of keys, and
+        corresponding values compare equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`compare` for the values.
+        """
         if set(self.keys()) != set(other.keys()):
             log.info(f"Not identical: {sorted(self.keys())} / {sorted(other.keys())}")
             return False
@@ -242,13 +252,13 @@ def validate_dictlike(*fields):
 
 
 def compare(attr, a, b, strict: bool) -> bool:
-    """Return :obj:`True` if a == b.
+    """Return :obj:`True` if ``a.attr`` == ``b.attr``.
 
-    If strict is :obj:`False`, :obj:`None` is permissible as `a` or `b`.
+    If strict is :obj:`False`, :obj:`None` is permissible as `a` or `b`; otherwise,
     """
-    result = getattr(a, attr) == getattr(b, attr) or (
+    return getattr(a, attr) == getattr(b, attr) or (
         not strict and None in (getattr(a, attr), getattr(b, attr))
     )
     # if not result:
     #     log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
-    return result
+    # return result
