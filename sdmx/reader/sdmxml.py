@@ -114,6 +114,9 @@ class NotReference(Exception):
     pass
 
 
+_NO_AGENCY = model.Agency()
+
+
 class Reference:
     """Temporary class for references.
 
@@ -185,7 +188,7 @@ class Reference:
 
         # Store
         self.cls = cls
-        self.agency = agency_id if agency_id is None else model.Agency(id=agency_id)
+        self.agency = model.Agency(id=agency_id) if agency_id else _NO_AGENCY
         self.id = id
         self.version = version
         self.target_cls = target_cls
