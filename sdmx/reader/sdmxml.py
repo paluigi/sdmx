@@ -658,21 +658,18 @@ def _structures(reader, elem):
 
     # Populate dictionaries by ID
     for attr, name in (
-        ("dataflow", model.DataflowDefinition),
-        ("codelist", model.Codelist),
-        ("constraint", model.ContentConstraint),
-        ("structure", model.DataStructureDefinition),
+        ("categorisation", model.Categorisation),
         ("category_scheme", model.CategoryScheme),
+        ("codelist", model.Codelist),
         ("concept_scheme", model.ConceptScheme),
+        ("constraint", model.ContentConstraint),
+        ("dataflow", model.DataflowDefinition),
         ("organisation_scheme", model.OrganisationScheme),
         ("provisionagreement", model.ProvisionAgreement),
+        ("structure", model.DataStructureDefinition),
     ):
         for obj in reader.pop_all(name):
             getattr(msg, attr)[obj.id] = obj
-
-    # Check, but do not store, categorizations
-    for c in reader.pop_all(model.Categorisation):
-        log.info(" ".join(map(repr, [c, c.artefact, c.category])))
 
 
 # Parsers for sdmx.model classes
@@ -734,13 +731,18 @@ def _a(reader, elem):
 
 @start("str:Agency str:Code str:Category str:Concept str:DataProvider", only=False)
 def _item_start(reader, elem):
+    # Avoid stealing the name & description of the parent ItemScheme from the stack
+    # TODO check this works for annotations
+
     try:
-        if not (elem[0].tag in ("Ref", "URN")):
-            # Avoid stealing the name(s) of the parent ItemScheme from the stack
-            # TODO check this works for annotations
-            reader.stash("Name", "Description")
+        if elem[0].tag in ("Ref", "URN"):
+            # `elem` is a reference, so it has no name/etc.; don't stash
+            return
     except IndexError:
+        # No child elements; stash() anyway, but it will be a no-op
         pass
+
+    reader.stash("Name", "Description")
 
 
 @end("str:Agency str:Code str:Category str:DataProvider", only=False)

@@ -4,6 +4,7 @@
 # - Utility methods and global variables.
 # - writer functions for sdmx.message classes, in the same order as message.py
 # - writer functions for sdmx.model classes, in the same order as model.py
+from itertools import chain
 from typing import cast
 
 from lxml import etree
@@ -56,9 +57,13 @@ def reference(obj, parent=None, tag=None, style="URN"):
         if isinstance(obj, model.MaintainableArtefact):
             ma = obj
         else:
-            # TODO handle references to non-maintainable children of parent objects
+            # TODO handle references to non-maintainable children of parent
+            #      objects
             if not parent:
-                for is_ in writer._message.concept_scheme.values():
+                for is_ in chain(
+                    writer._message.concept_scheme.values(),
+                    writer._message.category_scheme.values(),
+                ):
                     if obj in is_:
                         parent = is_
                         break
@@ -109,6 +114,7 @@ def _sm(obj: message.StructureMessage):
         ("organisation_scheme", "OrganisationSchemes"),
         ("dataflow", "Dataflows"),
         ("category_scheme", "CategorySchemes"),
+        ("categorisation", "Categorisations"),
         ("codelist", "Codelists"),
         ("concept_scheme", "Concepts"),
         ("structure", "DataStructures"),
@@ -239,6 +245,7 @@ def _is(obj: model.ItemScheme):
 
 @writer
 def _facet(obj: model.Facet):
+    # TODO textType should be CamelCase
     return Element("str:TextFormat", textType=getattr(obj.value_type, "name", None))
 
 
@@ -336,6 +343,19 @@ def _cl(obj: model.ComponentList):
     return elem
 
 
+# §4.5: CategoryScheme
+
+
+@writer
+def _cat(obj: model.Categorisation):
+    elem = maintainable(obj)
+    elem.extend([
+        reference(obj.artefact, tag="str:Source", style="Ref"),
+        reference(obj.category, tag="str:Target", style="Ref"),
+    ])
+    return elem
+
+
 # §10.3: Constraints
 
 
@@ -377,11 +397,11 @@ def _dsd(obj: model.DataStructureDefinition):
     elem.append(Element("str:DataStructureComponents"))
 
     # Write in a specific order
-    elem[0].append(writer.recurse(obj.dimensions))
+    elem[-1].append(writer.recurse(obj.dimensions))
     for group in obj.group_dimensions.values():
-        elem[0].append(writer.recurse(group))
-    elem[0].append(writer.recurse(obj.attributes))
-    elem[0].append(writer.recurse(obj.measures))
+        elem[-1].append(writer.recurse(group))
+    elem[-1].append(writer.recurse(obj.attributes))
+    elem[-1].append(writer.recurse(obj.measures))
 
     return elem
 

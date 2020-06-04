@@ -47,6 +47,7 @@ _CLS_TAG = [
     (model.Agency, qname("mes:Receiver")),
     (model.Agency, qname("mes:Sender")),
     (model.AttributeDescriptor, qname("str:AttributeList")),
+    (model.Categorisation, qname("str:Categorisation")),
     (model.DataAttribute, qname("str:Attribute")),
     (model.DataflowDefinition, qname("str:Dataflow")),
     (model.DataStructureDefinition, qname("str:DataStructure")),

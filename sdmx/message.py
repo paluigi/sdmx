@@ -101,6 +101,8 @@ class ErrorMessage(Message):
 
 
 class StructureMessage(Message):
+    #: Collection of :class:`.Categorisation`.
+    categorisation: DictLike[str, model.Categorisation] = DictLike()
     #: Collection of :class:`.CategoryScheme`.
     category_scheme: DictLike[str, model.CategoryScheme] = DictLike()
     #: Collection of :class:`.Codelist`.
@@ -122,6 +124,7 @@ class StructureMessage(Message):
         return all(
             getattr(self, attr).compare(getattr(other, attr), strict)
             for attr in (
+                "categorisation",
                 "category_scheme",
                 "codelist",
                 "concept_scheme",

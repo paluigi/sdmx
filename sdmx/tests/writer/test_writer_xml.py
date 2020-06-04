@@ -52,16 +52,14 @@ _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
             "ISTAT/47_850-structure.xml", True, marks=[pytest.mark.skip(reason="Slow")],
         ),
         pytest.param("IMF/ECOFIN_DSD-structure.xml", True, marks=_xf_ref),
-        pytest.param(
-            "INSEE/CNA-2010-CONSO-SI-A17-structure.xml", False, marks=_xf_not_equal,
-        ),
+        ("INSEE/CNA-2010-CONSO-SI-A17-structure.xml", False),
+        ("INSEE/IPI-2010-A21-structure.xml", False),
         pytest.param("INSEE/dataflow.xml", False, marks=_xf_not_equal),
-        pytest.param("INSEE/IPI-2010-A21-structure.xml", False),
         ("SGR/common-structure.xml", True),
         ("UNSD/codelist_partial.xml", True),
     ],
 )
-def test_structure_roundtrip(specimen_id, strict, tmp_path):
+def test_structure_roundtrip(pytestconfig, specimen_id, strict, tmp_path):
     """Test that SDMX-ML StructureMessages can be 'round-tripped'."""
 
     # Read a specimen file
@@ -76,7 +74,9 @@ def test_structure_roundtrip(specimen_id, strict, tmp_path):
     msg1 = sdmx.read_sdmx(path)
 
     # Contents are identical
-    assert msg0.compare(msg1, strict), path.read_text()
+    assert msg0.compare(msg1, strict), (
+        path.read_text() if pytestconfig.getoption("verbose") else path
+    )
 
 
 def test_not_implemented():
