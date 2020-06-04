@@ -86,7 +86,7 @@ def reference(obj, parent=None, tag=None, style="URN"):
         }
 
         ref = Element(":Ref", **args)
-    else:
+    else:  # pragma: no cover
         raise ValueError(style)
 
     elem.append(ref)
@@ -179,7 +179,7 @@ def annotable(obj, **kwargs):
     cls = kwargs.pop("_tag", tag_for_class(obj.__class__))
     try:
         elem = Element(cls, **kwargs)
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         print(repr(obj), cls, kwargs)
         raise
 
