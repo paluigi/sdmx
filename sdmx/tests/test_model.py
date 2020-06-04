@@ -115,8 +115,7 @@ def test_identifiable():
 
 def test_nameable(caplog):
     na1 = model.NameableArtefact(
-        name=dict(en="Name"),
-        description=dict(en="Description"),
+        name=dict(en="Name"), description=dict(en="Description"),
     )
     na2 = model.NameableArtefact()
 

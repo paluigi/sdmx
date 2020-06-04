@@ -4,6 +4,7 @@
 # - Utility methods and global variables.
 # - writer functions for sdmx.message classes, in the same order as message.py
 # - writer functions for sdmx.model classes, in the same order as model.py
+
 from itertools import chain
 from typing import cast
 
@@ -276,38 +277,6 @@ def _concept(obj: model.Concept, **kwargs):
 
 
 @writer
-def _dr(obj: model.DimensionRelationship):
-    elem = Element("str:AttributeRelationship")
-    for dim in obj.dimensions:
-        elem.append(Element("str:Dimension"))
-        elem[-1].append(Element(":Ref", id=dim.id))
-    return elem
-
-
-@writer
-def _gr(obj: model.GroupRelationship):
-    elem = Element("str:AttributeRelationship")
-    elem.append(Element("str:Group"))
-    elem[-1].append(Element(":Ref", id=getattr(obj.group_key, "id", None)))
-    return elem
-
-
-@writer
-def _nsr(obj: model.NoSpecifiedRelationship):
-    elem = Element("str:AttributeRelationship")
-    elem.append(Element("str:None"))
-    return elem
-
-
-@writer
-def _pmr(obj: model.PrimaryMeasureRelationship):
-    elem = Element("str:AttributeRelationship")
-    elem.append(Element("str:PrimaryMeasure"))
-    elem[-1].append(Element(":Ref", id="(not implemented)"))
-    return elem
-
-
-@writer
 def _component(obj: model.Component):
     elem = identifiable(obj)
     if obj.concept_identity:
@@ -327,16 +296,6 @@ def _component(obj: model.Component):
 
 
 @writer
-def _gdd(obj: model.GroupDimensionDescriptor):
-    elem = identifiable(obj)
-    for dim in obj.components:
-        elem.append(Element("str:GroupDimension"))
-        elem[-1].append(Element("str:DimensionReference"))
-        elem[-1][0].append(Element(":Ref", id=dim.id))
-    return elem
-
-
-@writer
 def _cl(obj: model.ComponentList):
     elem = identifiable(obj)
     elem.extend(writer.recurse(c) for c in obj.components)
@@ -349,10 +308,12 @@ def _cl(obj: model.ComponentList):
 @writer
 def _cat(obj: model.Categorisation):
     elem = maintainable(obj)
-    elem.extend([
-        reference(obj.artefact, tag="str:Source", style="Ref"),
-        reference(obj.category, tag="str:Target", style="Ref"),
-    ])
+    elem.extend(
+        [
+            reference(obj.artefact, tag="str:Source", style="Ref"),
+            reference(obj.category, tag="str:Target", style="Ref"),
+        ]
+    )
     return elem
 
 
@@ -392,6 +353,48 @@ def _cc(obj: model.ContentConstraint):
 
 
 @writer
+def _nsr(obj: model.NoSpecifiedRelationship):
+    elem = Element("str:AttributeRelationship")
+    elem.append(Element("str:None"))
+    return elem
+
+
+@writer
+def _pmr(obj: model.PrimaryMeasureRelationship):
+    elem = Element("str:AttributeRelationship")
+    elem.append(Element("str:PrimaryMeasure"))
+    elem[-1].append(Element(":Ref", id="(not implemented)"))
+    return elem
+
+
+@writer
+def _dr(obj: model.DimensionRelationship):
+    elem = Element("str:AttributeRelationship")
+    for dim in obj.dimensions:
+        elem.append(Element("str:Dimension"))
+        elem[-1].append(Element(":Ref", id=dim.id))
+    return elem
+
+
+@writer
+def _gr(obj: model.GroupRelationship):
+    elem = Element("str:AttributeRelationship")
+    elem.append(Element("str:Group"))
+    elem[-1].append(Element(":Ref", id=getattr(obj.group_key, "id", None)))
+    return elem
+
+
+@writer
+def _gdd(obj: model.GroupDimensionDescriptor):
+    elem = identifiable(obj)
+    for dim in obj.components:
+        elem.append(Element("str:GroupDimension"))
+        elem[-1].append(Element("str:DimensionReference"))
+        elem[-1][0].append(Element(":Ref", id=dim.id))
+    return elem
+
+
+@writer
 def _dsd(obj: model.DataStructureDefinition):
     elem = maintainable(obj)
     elem.append(Element("str:DataStructureComponents"))
@@ -411,3 +414,7 @@ def _dfd(obj: model.DataflowDefinition):
     elem = maintainable(obj)
     elem.append(reference(obj.structure, tag="str:Structure", style="Ref"))
     return elem
+
+
+# §5.4: Data Set
+# TODO implement
