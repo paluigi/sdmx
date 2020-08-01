@@ -35,7 +35,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 BASE_PATH = Path(__file__).parent
 
 # List of specimen files.

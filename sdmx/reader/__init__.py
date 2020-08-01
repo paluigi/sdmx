@@ -3,7 +3,6 @@ from typing import List, Mapping, Type
 
 from . import sdmxjson, sdmxml
 
-
 #: Reader classes
 READERS: List[Type] = []
 

@@ -1,14 +1,13 @@
+import json
 from enum import Enum
 from importlib import import_module
 from io import TextIOWrapper
-import json
 from typing import Any, Dict, Union
 
 from pkg_resources import resource_stream
 
 from sdmx.model import DataStructureDefinition
 from sdmx.util import BaseModel, Resource, validator
-
 
 sources: Dict[str, "Source"] = {}
 
