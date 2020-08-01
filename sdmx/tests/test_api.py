@@ -75,7 +75,7 @@ def test_request_get_exceptions():
     with pytest.raises(ValueError, match=exc):
         req.get("datastructure", foo="bar")
 
-    exc = "{'foo': 'bar'} supplied with get\(url=...\)"
+    exc = r"{'foo': 'bar'} supplied with get\(url=...\)"
     with pytest.raises(ValueError, match=exc):
         sdmx.read_url("https://example.com", foo="bar")
 

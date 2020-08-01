@@ -5,7 +5,6 @@ To force the data to be retrieved over the Internet, delete this directory.
 """
 # TODO add a pytest argument for clearing this cache in conftest.py
 import logging
-import os
 from typing import Any, Dict, Type
 
 import pytest
@@ -23,13 +22,7 @@ from .data import specimen
 log = logging.getLogger(__name__)
 
 
-pytestmark = pytest.mark.skipif(
-    # Default value in get() ensures that when *not* on Travis, the tests run
-    condition=os.environ.get("TRAVIS_EVENT_TYPE", "cron") != "cron",
-    # For development/debugging, uncomment the following to *always* run
-    # condition=False,
-    reason="Fragile source tests only run on Travis for 'cron' events.",
-)
+pytestmark = pytest.mark.source
 
 
 def pytest_generate_tests(metafunc):
