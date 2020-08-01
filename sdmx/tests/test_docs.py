@@ -112,10 +112,10 @@ def test_doc_usage_structure():
         )
     )
 
-    msg1 = ecb.categoryscheme()
+    msg1 = ecb.categoryscheme(provider="all")
 
     assert msg1.response.url == (
-        "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB/latest"
+        "https://sdw-wsrest.ecb.europa.eu/service/categoryscheme/all/latest"
         "?references=parentsandsiblings"
     )
 
