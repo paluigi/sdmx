@@ -564,9 +564,10 @@ def _header(reader, elem):
 @end("mes:Receiver mes:Sender")
 def _header_org(reader, elem):
     reader.push(
-        elem, reader.nameable(
+        elem,
+        reader.nameable(
             class_for_tag(elem.tag), elem, contact=reader.pop_all(model.Contact)
-        )
+        ),
     )
 
 
