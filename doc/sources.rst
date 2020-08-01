@@ -232,8 +232,18 @@ SDMX-ML —
   in the XML format.
 
 
-``WB``: World Bank Group's “World Integrated Trade Solution”
-------------------------------------------------------------
+``WB``: World Bank Group “World Integrated Trade Solution”
+----------------------------------------------------------
 
 SDMX-ML —
 `Website <wits.worldbank.org>`__
+
+
+``WB_WDI``: World Bank Group “World Development Indicators”
+-----------------------------------------------------------
+
+SDMX-ML —
+`Website <https://datahelpdesk.worldbank.org/knowledgebase/articles/1886701-sdmx-api-queries>`__
+
+- This web service also supports SDMX-JSON.
+  To retrieve messages in this format, pass the HTTP ``Accept:`` header described on the service website.
