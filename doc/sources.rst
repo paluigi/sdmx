@@ -10,15 +10,12 @@ SDMX makes a distinction between data providers and sources:
 - a **data source** is a specific web service that provides access to
   statistical information.
 
-Each data *source* might aggregate and provide data or metadata from multiple
-data *providers*. Or, an agency might operate a data source that only contains
-information they provide themselves; in this case, the source and provider are
-identical.
+Each data *source* might aggregate and provide data or metadata from multiple data *providers*.
+Or, an agency might operate a data source that only contains information they provide themselves; in this case, the source and provider are identical.
 
-:mod:`sdmx` identifies each data source using a string such as ``'ABS'``, and has
-built-in support for a number of data sources. Use :meth:`list_sources` to list
-these. Read the following sections, or the file ``sources.json`` in the
-package source code, for more details.
+:mod:`sdmx` identifies each data source using a string such as ``'ABS'``, and has built-in support for a number of data sources.
+Use :meth:`list_sources` to list these.
+Read the following sections, or the file ``sources.json`` in the package source code, for more details.
 
 :mod:`sdmx` also supports adding other data sources; see :meth:`add_source` and :class:`~.source.Source`.
 
@@ -30,9 +27,7 @@ package source code, for more details.
 Data source limitations
 -----------------------
 
-Each SDMX web service provides a subset of the full SDMX feature set, so the
-same request made to two different sources may yield different results, or an
-error message.
+Each SDMX web service provides a subset of the full SDMX feature set, so the same request made to two different sources may yield different results, or an error message.
 
 A key difference is between sources offering SDMX-ML and SDMX-JSON APIs.
 SDMX-JSON APIs do not support metadata, or structure queries; only data queries.
@@ -58,12 +53,9 @@ In order to anticipate and handle these differences:
         },
       ]
 
-   :mod:`sdmx` will raise :class:`NotImplementedError` on an attempt to query the
-   "datastructure" API endpoint of either of these data sources.
+   :mod:`sdmx` will raise :class:`NotImplementedError` on an attempt to query the "datastructure" API endpoint of either of these data sources.
 
-2. :mod:`sdmx.source` includes adapters (subclasses of
-   :class:`~.source.Source`) with hooks used when querying sources and
-   interpreting their HTTP responses.
+2. :mod:`sdmx.source` includes adapters (subclasses of :class:`~.source.Source`) with hooks used when querying sources and interpreting their HTTP responses.
    These are documented below: ABS_, ESTAT_, and SGR_.
 
 
@@ -89,8 +81,8 @@ SDMX-ML —
 
 - Thousands of dataflows on a wide range of topics.
 - No categorisations available.
-- Long response times are reported. Increase the timeout attribute to avoid
-  timeout exceptions.
+- Long response times are reported.
+  Increase the timeout attribute to avoid timeout exceptions.
 - Does not return DSDs for dataflow requests with the ``references='all'`` query parameter.
 
 .. autoclass:: sdmx.source.estat.Source
@@ -117,13 +109,10 @@ SDMX-ML —
 - :class:`sdmx.source.ilo.Source` handles some particularities of the ILO
   web service. Others that are not handled:
 
-  - Data flow IDs take on the role of a filter. E.g., there are dataflows for
-    individual countries, ages, sexes etc. rather than merely for different
-    indicators.
-  - The service returns 413 Payload Too Large errors for some queries, with
-    messages like: "Too many results, please specify codelist ID". Test for
-    :class:`sdmx.exceptions.HTTPError`
-    (= :class:`requests.exceptions.HTTPError`) and/or specify a ``resource_id``.
+  - Data flow IDs take on the role of a filter.
+    E.g., there are dataflows for individual countries, ages, sexes etc. rather than merely for different indicators.
+  - The service returns 413 Payload Too Large errors for some queries, with messages like: "Too many results, please specify codelist ID".
+    Test for :class:`sdmx.exceptions.HTTPError` (= :class:`requests.exceptions.HTTPError`) and/or specify a ``resource_id``.
 
 - It is highly recommended to read the `API guide <http://www.ilo.org/ilostat/content/conn/ILOSTATContentServer/path/Contribution%20Folders/statistics/web_pages/static_pages/technical_page/ilostat_appl/SDMX_User_Guide.pdf>`_.
 
@@ -161,10 +150,10 @@ SDMX-ML —
 - French name: Institut national de la statistique et des études économiques.
 
 .. warning::
-   An issue has been reported apparently due to a missing pericite codelist
-   in StructureMessages. This may cause crashes. Avoid downloading
-   this type of message. Prepare the key as string using the web interface, and
-   simply download a dataset.
+   An issue has been reported apparently due to a missing pericite codelist in StructureMessages.
+   This may cause crashes.
+   Avoid downloading this type of message.
+   Prepare the key as string using the web interface, and simply download a dataset.
 
 
 ``ISTAT``: National Institute of Statistics (Italy)
@@ -214,8 +203,9 @@ SDMX-ML —
 
 - Supports preview_data and series-key based key validation.
 
-.. warning:: supports categoryscheme even though it offers very few dataflows.  Use this feature with caution. Moreover, it seems that categories confusingly
-  include dataflows which UNSD does not actually provide.
+.. warning:: supports categoryscheme even though it offers very few dataflows.
+   Use this feature with caution.
+   Moreover, it seems that categories confusingly include dataflows which UNSD does not actually provide.
 
 
 ``UNESCO``: UN Educational, Scientific and Cultural Organization
@@ -224,12 +214,10 @@ SDMX-ML —
 SDMX-ML —
 `Website <https://apiportal.uis.unesco.org/getting-started>`__
 
-- Free registration required; user credentials must be provided either as
-  parameter or HTTP header with each request.
+- Free registration required; user credentials must be provided either as parameter or HTTP header with each request.
 
 .. warning:: An issue with structure-specific datasets has been reported.
-  It seems that Series are not recognized due to some oddity
-  in the XML format.
+   It seems that Series are not recognized due to some oddity in the XML format.
 
 
 ``WB``: World Bank Group “World Integrated Trade Solution”
@@ -238,6 +226,8 @@ SDMX-ML —
 SDMX-ML —
 `Website <wits.worldbank.org>`__
 
+
+.. _WB_WDI:
 
 ``WB_WDI``: World Bank Group “World Development Indicators”
 -----------------------------------------------------------
