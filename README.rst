@@ -1,8 +1,8 @@
 sdmx: Statistical data and metadata exchange
 ********************************************
 
-.. image:: https://travis-ci.com/khaeru/sdmx.svg?branch=master
-   :target: https://travis-ci.com/khaeru/sdmx
+.. image:: https://github.com/khaeru/sdmx/workflows/pytest/badge.svg
+   :target: https://github.com/khaeru/sdmx/actions
 .. image:: https://codecov.io/gh/khaeru/sdmx/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/khaeru/sdmx
 .. image:: https://readthedocs.org/projects/sdmx1/badge/?version=latest
