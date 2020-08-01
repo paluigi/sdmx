@@ -12,7 +12,7 @@
             "headers": {}
         }
     },
-    "url": "http://sdw-wsrest.ecb.int/service",
+    "url": "https://sdw-wsrest.ecb.europa.eu/service",
     "name": "European Central Bank",
     "supports": {"preview": true}
   },
