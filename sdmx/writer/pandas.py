@@ -3,6 +3,7 @@ from typing import Set, Union
 
 import numpy as np
 import pandas as pd
+from pandas.core.indexes.datetimes import prefix_mapping
 
 from sdmx import message, model
 from sdmx.model import (
@@ -432,7 +433,7 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
     if param["freq"]:
         # Determine frequency string, Dimension, or Attribute
         freq = param["freq"]
-        if isinstance(freq, str) and freq not in pd.offsets.prefix_mapping:
+        if isinstance(freq, str) and freq not in prefix_mapping:
             # ID of a Dimension or Attribute
             for component in chain(_get_dims(), _get_attrs()):
                 if component.id == freq:

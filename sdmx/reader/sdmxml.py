@@ -551,15 +551,23 @@ def _header(reader, elem):
 
     reader.get_single(message.Message).header = header
 
-    # TODO check whether these occur anywhere besides footer.xml
-    reader.pop_all("Timezone")
+    # TODO add these to the Message class
+    # Appearing in data messages from WB_WDI
+    reader.pop_all("Extracted")
+    # Appearing in data messages from WB_WDI and the footer.xml specimen
     reader.pop_all("DataSetAction")
     reader.pop_all("DataSetID")
+    # Apparing in the footer.xml specimen
+    reader.pop_all("Timezone")
 
 
 @end("mes:Receiver mes:Sender")
 def _header_org(reader, elem):
-    reader.push(elem, reader.nameable(class_for_tag(elem.tag), elem))
+    reader.push(
+        elem, reader.nameable(
+            class_for_tag(elem.tag), elem, contact=reader.pop_all(model.Contact)
+        )
+    )
 
 
 @end("mes:Structure", only=False)
@@ -682,7 +690,7 @@ def _structures(reader, elem):
 @end(
     "mes:DataSetAction mes:DataSetID mes:ID mes:Prepared mes:Test mes:Timezone "
     "com:AnnotationType com:AnnotationTitle com:AnnotationURL com:None com:URN "
-    "com:Value str:Email str:Telephone str:URI"
+    "com:Value mes:Email mes:Extracted str:Email str:Telephone str:URI"
 )
 def _text(reader, elem):
     reader.push(elem, elem.text)
@@ -947,7 +955,7 @@ def _cat(reader, elem):
 # §4.6: Organisations
 
 
-@end("str:Contact")
+@end("mes:Contact str:Contact")
 def _contact(reader, elem):
     contact = model.Contact(
         telephone=reader.pop_single("Telephone"),

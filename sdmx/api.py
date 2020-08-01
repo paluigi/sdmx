@@ -247,8 +247,10 @@ class Request:
         parameters = kwargs.pop("params", {})
         headers = kwargs.pop("headers", {})
 
-        if len(kwargs):
-            raise ValueError(f"unrecognized arguments: {kwargs!r}")
+        # kwargs with values other than None are an error
+        extra_args = dict(filter(lambda i: i[1] is not None, kwargs.items()))
+        if len(extra_args):
+            raise ValueError(f"{repr(extra_args)} supplied with get(url=...)")
 
         return requests.Request("get", url, params=parameters, headers=headers)
 
@@ -376,6 +378,8 @@ class Request:
             and `force` is not :obj:`True`.
 
         """
+        kwargs.update(dict(resource_type=resource_type, resource_id=resource_id))
+
         # Allow sources to modify request args
         # TODO this should occur after most processing, defaults, checking etc.
         #      are performed, so that core code does most of the work.
@@ -386,7 +390,6 @@ class Request:
         if "url" in kwargs:
             req = self._request_from_url(kwargs)
         else:
-            kwargs.update(dict(resource_type=resource_type, resource_id=resource_id))
             req = self._request_from_args(kwargs)
 
         req = self.session.prepare_request(req)

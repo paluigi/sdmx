@@ -367,3 +367,16 @@ class TestUNSD(DataSourceTest):
 
 class TestWB(DataSourceTest):
     source_id = "WB"
+
+
+class TestWB_WDI(DataSourceTest):
+    source_id = "WB_WDI"
+
+    endpoint_args = {
+        # Example from the documentation website
+        "data": dict(
+            resource_id="WDI",
+            key="A.SP_POP_TOTL.AFG",
+            params=dict(startPeriod="2011", endPeriod="2011"),
+        )
+    }
