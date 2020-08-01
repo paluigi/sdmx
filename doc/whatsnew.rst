@@ -3,8 +3,8 @@
 What's new?
 ***********
 
-Next release (vX.Y.0)
-=====================
+v1.3.0 (2020-08-02)
+===================
 
 - Adjust imports for compatibility with pandas 1.1.0 (:pull:`10`).
 - Add :ref:`World Bank World Development Indicators (WDI) <WB_WDI>` service to supported sources (:pull:`10`).
