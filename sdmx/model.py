@@ -1894,6 +1894,17 @@ class DataSet(AnnotableArtefact):
         else:
             return ActionType[value]
 
+    def compare(self, other, strict=True):
+        # TODO compare indivial observations, series- and group-keys
+        return (
+            compare("action", self, other, strict)
+            and compare("valid_from", self, other, strict)
+            and self.attrib.compare(other.attrib, strict)
+            and len(self.obs) == len(other.obs)
+            and len(self.series) == len(other.series)
+            and len(self.group) == len(other.group)
+        )
+
 
 class StructureSpecificDataSet(DataSet):
     """SDMX-IM StructureSpecificDataSet."""

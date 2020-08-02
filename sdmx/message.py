@@ -13,7 +13,7 @@ from typing import List, Optional, Text, Union
 from requests import Response
 
 from sdmx import model
-from sdmx.util import BaseModel, DictLike, summarize_dictlike
+from sdmx.util import BaseModel, DictLike, compare, summarize_dictlike
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +95,10 @@ class Message(BaseModel):
         lines.extend(_summarize(self, ["footer", "response"]))
         return "\n  ".join(lines)
 
+    def compare(self, other, strict=True):
+        # TODO compare header, footer
+        return True
+
 
 class ErrorMessage(Message):
     pass
@@ -131,7 +135,7 @@ class StructureMessage(Message):
         strict : bool, optional
             Passed to :meth:`.DictLike.compare`.
         """
-        return all(
+        return super().compare(other, strict) and all(
             getattr(self, attr).compare(getattr(other, attr), strict)
             for attr in (
                 "categorisation",
@@ -196,3 +200,12 @@ class DataMessage(Message):
         lines.extend(_summarize(self, ("dataflow", "observation_dimension")))
 
         return "\n  ".join(lines)
+
+    def compare(self, other, strict=True):
+        return (
+            super().compare(other, strict)
+            and compare("dataflow", self, other, strict)
+            and compare("observation_dimension", self, other, strict)
+            and len(self.data) == len(other.data)
+            and all(ds[0].compare(ds[1], strict) for ds in zip(self.data, other.data))
+        )
