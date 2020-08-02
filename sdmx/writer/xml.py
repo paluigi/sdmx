@@ -6,7 +6,7 @@
 # - writer functions for sdmx.model classes, in the same order as model.py
 
 from itertools import chain
-from typing import cast
+from typing import List, cast
 
 from lxml import etree
 from lxml.builder import ElementMaker
@@ -95,6 +95,29 @@ def reference(obj, parent=None, tag=None, style="URN"):
 
 
 # Writers for sdmx.message classes
+
+
+@writer
+def _dm(obj: message.DataMessage):
+    elem = Element("mes:GenericData")
+
+    header = writer.recurse(obj.header)
+    elem.append(header)
+
+    # Add DSD references to header
+    for ds in obj.data:
+        header.append(
+            Element(
+                "mes:Structure",
+                structureID=ds.structured_by.id,
+                dimensionAtObservation=obj.observation_dimension.id,
+            )
+        )
+        header[-1].append(reference(ds.structured_by, tag="com:Structure"))
+
+        elem.append(writer.recurse(ds))
+
+    return elem
 
 
 @writer
@@ -417,4 +440,50 @@ def _dfd(obj: model.DataflowDefinition):
 
 
 # §5.4: Data Set
-# TODO implement
+
+
+def _av(obj: List[model.AttributeValue]):
+    for av in obj:
+        yield Element("gen:Value", id=av.value_for.id, value=av.value)
+
+
+@writer
+def _sk(obj: model.SeriesKey):
+    elem = []
+
+    elem.append(Element("gen:SeriesKey"))
+    elem[-1].extend(
+        Element("gen:Value", id=kv.value_for.id, value=kv.value) for kv in obj
+    )
+    if len(obj.attrib):
+        elem.append(Element("gen:Attributes"))
+        elem[-1].extend(_av(obj.attrib.values()))
+
+    return tuple(elem)
+
+
+@writer
+def _obs(obj: model.Observation):
+    elem = Element("gen:Obs")
+
+    assert len(obj.dimension) == 1
+    elem.append(Element("gen:ObsDimension", value=obj.dimension.values[0].value))
+    elem.append(Element("gen:ObsValue", value=obj.value))
+
+    if len(obj.attached_attribute):
+        elem.append(Element("gen:Attributes"))
+        elem[-1].extend(_av(obj.attached_attribute.values()))
+
+    return elem
+
+
+@writer
+def _ds(obj: model.DataSet):
+    elem = Element("mes:DataSet", action=obj.action, structureRef=obj.structured_by.id)
+
+    for sk, observations in obj.series.items():
+        elem.append(Element("gen:Series"))
+        elem[-1].extend(writer.recurse(sk))
+        elem[-1].extend(writer.recurse(obs) for obs in observations)
+
+    return elem
