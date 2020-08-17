@@ -354,6 +354,15 @@ class TestUNESCO(DataSourceTest):
     }
 
 
+class TestUNICEF(DataSourceTest):
+    source_id = "UNICEF"
+
+    @pytest.mark.network
+    def test_data(self, req):
+        dsd = req.dataflow("GLOBAL_DATAFLOW").structure[0]
+        req.data("GLOBAL_DATAFLOW", key="ALB+DZA.MNCH_INSTDEL.", dsd=dsd)
+
+
 class TestUNSD(DataSourceTest):
     source_id = "UNSD"
 
