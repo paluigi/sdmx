@@ -14,6 +14,7 @@ Next release
 New features
 ------------
 
+- Add :ref:`UNICEF <UNICEF>` service to supported sources (:pull:`15`).
 - Enhance :func:`.to_xml` to handle :class:`DataMessages <.DataMessage>` (:pull:`13`).
 
   In v1.4.0, this feature supports a subset of DataMessages and DataSets.
