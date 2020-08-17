@@ -25,6 +25,8 @@ def _summarize(obj, fields):
         attr = getattr(obj, name)
         if attr is None:
             continue
+        elif isinstance(attr, datetime):
+            attr = attr.isoformat()
         yield f"{name}: {repr(attr)}"
 
 

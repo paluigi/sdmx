@@ -10,7 +10,7 @@ import logging
 import re
 from collections import defaultdict
 from copy import copy
-from datetime import datetime, timezone
+from datetime import datetime
 from itertools import chain, product
 from operator import itemgetter
 from sys import maxsize
@@ -702,10 +702,20 @@ def _text(reader, elem):
 
 @end("mes:Extracted mes:Prepared mes:ReportingBegin mes:ReportingEnd")
 def _datetime(reader, elem):
-    # Handle "Z" as a shorthand for "+00:00", i.e. UTC
-    text = re.sub(r"(.*)Z$", r"\1+00:00", elem.text)
-    # Truncate seconds decimal places beyond the 6th; incorrectly returned by e.g. UNSD
-    text = re.sub(r"(.*\.)(\d{6})\d+(\+.*)", r"\1\2\3", text)
+    localname = QName(elem).localname
+
+    # Handle non-ISO date-times occuring in common messages
+    text, n = re.subn(r"(.*)Z$", r"\1+00:00", elem.text)
+    if n > 0:
+        log.debug(f"Replace non-ISO 'Z' with '+00:00' in <{localname}>")
+
+    text, n = re.subn(r"(.*)-(\d{2}:\d{2})$", r"\1+\2", text)
+    if n > 0:
+        log.debug(f"Replace non-ISO '-{text[-5:]}' with '{text[-6:]}' in <{localname}>")
+
+    text, n = re.subn(r"(.*\.)(\d{6})\d+(\+.*)", r"\1\2\3", text)
+    if n > 0:
+        log.debug(f"Truncate sub-microsecond time in <{localname}>")
 
     reader.push(elem, datetime.fromisoformat(text))
 
