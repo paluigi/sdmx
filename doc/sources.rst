@@ -203,10 +203,6 @@ SDMX-ML —
 
 - Supports preview_data and series-key based key validation.
 
-.. warning:: supports categoryscheme even though it offers very few dataflows.
-   Use this feature with caution.
-   Moreover, it seems that categories confusingly include dataflows which UNSD does not actually provide.
-
 
 ``UNESCO``: UN Educational, Scientific and Cultural Organization
 ----------------------------------------------------------------
