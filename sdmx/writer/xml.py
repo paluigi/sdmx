@@ -166,6 +166,8 @@ def _header(obj: message.Header):
         elem.append(Element("mes:Prepared", obj.prepared))
     if obj.sender:
         elem.append(writer.recurse(obj.sender, _tag="mes:Sender"))
+    if obj.source:
+        elem.extend(i11lstring(obj.source, "mes:Source"))
     if obj.receiver:
         elem.append(writer.recurse(obj.receiver, _tag="mes:Receiver"))
     return elem
