@@ -50,6 +50,11 @@ _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
         ),
         ("INSEE/IPI-2010-A21.xml", "INSEE/IPI-2010-A21-structure.xml"),
         ("ECB_EXR/1/M.USD.EUR.SP00.A.xml", "ECB_EXR/1/structure.xml"),
+        pytest.param(
+            "ECB_EXR/ng-ts.xml",
+            "ECB_EXR/ng-structure-full.xml",
+            marks=pytest.mark.xfail(raises=NotImplementedError),
+        ),
     ],
 )
 def test_data_roundtrip(pytestconfig, data_id, structure_id, tmp_path):

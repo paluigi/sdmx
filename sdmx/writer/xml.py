@@ -113,7 +113,13 @@ def _dm(obj: message.DataMessage):
                 dimensionAtObservation=obj.observation_dimension.id,
             )
         )
-        header[-1].append(reference(ds.structured_by, tag="com:Structure"))
+        try:
+            # TODO if a URN is missing, use a <Ref>
+            header[-1].append(reference(ds.structured_by, tag="com:Structure"))
+        except TypeError:
+            raise NotImplementedError(
+                "to_xml() for DataMessage with DSD lacking a URN"
+            )
 
         elem.append(writer.recurse(ds))
 
