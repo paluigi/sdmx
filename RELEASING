@@ -1,33 +1,47 @@
-1. Tag the version, e.g.::
+Before releasing, check:
+
+- https://github.com/khaeru/sdmx/actions?query=workflow:pytest+branch:master to
+  ensure that the push and scheduled builds are passing.
+- https://readthedocs.org/projects/sdmx1/builds/ to ensure that the docs build
+  is passing.
+
+Address any failures before releasing.
+
+
+1. Edit doc/whatsnew.rst to replace "Next release" with the version number and
+   date. Make a commit with a message like "Mark vX.Y.Z in whatsnew.rst".
+
+2. Tag the version, e.g.:
 
     $ git tag v1.2.3b4
 
-2. Test-build and check the source and binary packages::
+3. Test-build and check the source and binary packages::
 
     $ rm -rf build dist
     $ python setup.py bdist_wheel sdist
     $ twine check dist/*
 
    Address any warnings or errors that appear.
+   If needed, make a new commit and go back to step (2).
 
-3. Upload the packages to the TEST instance of PyPI::
+4. Upload the packages to the TEST instance of PyPI:
 
     $ twine upload -r testpypi dist/*
 
-4. Check at https://test.pypi.org/project/sdmx1/ that:
+5. Check at https://test.pypi.org/project/sdmx1/ that:
 
    - The package can be downloaded, installed and run.
    - The README is rendered correctly.
    - Links to the documentation go to the correct version.
 
-   If not, modify the code and repeat from step 2.
+   If not, modify the code and go back to step (2).
 
-5. Upload to PyPI::
+6. Upload to PyPI:
 
     $ twine upload dist/*
 
-6. Push the commit and tag to Github::
+7. Push the commit(s) and tag to GitHub:
 
     $ git push --tags
 
-7. Edit doc/whatsnew.rst, adding a new heading for the next release.
+8. Edit doc/whatsnew.rst to add a new heading for the next release.
