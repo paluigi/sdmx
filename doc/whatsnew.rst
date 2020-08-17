@@ -3,9 +3,29 @@
 What's new?
 ***********
 
+.. contents::
+   :local:
+   :backlinks: none
+   :depth: 1
+
 Next release
 ============
 
+New features
+------------
+
+- Enhance :func:`.to_xml` to handle :class:`DataMessages <.DataMessage>` (:pull:`13`).
+
+  In v1.4.0, this feature supports a subset of DataMessages and DataSets.
+  If you have an example of a DataMessages that :mod:`sdmx1` 1.4.0 cannot write, please `file an issue on GitHub <https://github.com/khaeru/sdmx/issues/new>`_ with a file attachment.
+  SDMX-ML features used in such examples will be prioritized for future improvements.
+
+- Add ``compare()`` methods to :class:`.DataMessage`, :class:`.DataSet`, and related classes  (:pull:`13`).
+
+Bug fixes
+---------
+
+- Fix parsing of :class:`.MeasureDimension` returned by :ref:`SGR <SGR>` for data structure queries (:pull:`14`).
 
 v1.3.0 (2020-08-02)
 ===================
@@ -34,7 +54,7 @@ Data model changes
 
 - Change :attr:`.Header.receiver` and :attr:`.Header.sender` to optional :class:`.Agency`, not :class:`str`.
 - Add :attr:`.Header.source` and :attr:`~.Header.test`.
-- :attr:`.IdentifiableArtefact.id` is strictly typed as :class:`str`, with a a singleton object (analogous to :obj:`None`) used for missing IDs.
+- :attr:`.IdentifiableArtefact.id` is strictly typed as :class:`str`, with a singleton object (analogous to :obj:`None`) used for missing IDs.
 - :attr:`.IdentifiableArtefact.id`, :attr:`.VersionableArtefact.version`, and :attr:`.MaintainableArtefact.maintainer` are inferred from a URN if one is passed during construction.
 - :meth:`.VersionableArtefact.identical` and :meth:`.MaintainableArtefact.identical` compare on version and maintainer attributes, respectively.
 - :class:`.Facet`, :class:`.Representation`, and :class:`.ISOConceptReference` are strictly validated, i.e. cannot be assigned non-IM attributes.

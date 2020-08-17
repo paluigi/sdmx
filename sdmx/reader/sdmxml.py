@@ -482,7 +482,8 @@ class Reader(BaseReader):
                 existing.is_external_reference = False
 
                 # Update `existing` from `obj` to preserve references
-                for attr in list(kwargs.keys()):
+                # If `existing` was a forward reference <Ref/>, its URN was not stored.
+                for attr in list(kwargs.keys()) + ["urn"]:
                     # log.info(
                     #     f"Updating {attr} {getattr(existing, attr)} "
                     #     f"{getattr(obj, attr)}"
@@ -525,7 +526,7 @@ def _message(reader, elem):
     elif "StructureSpecific" not in elem.tag and reader.get_single(
         model.DataStructureDefinition
     ):
-        log.warning("Ambiguous: dsd=… argument for non–structure-specific message")
+        log.info("Use supplied dsd=… argument for non–structure-specific message")
 
     # Store values for other methods
     reader.push("SS without DSD", ss_without_dsd)

@@ -39,7 +39,6 @@ def test_dataset():
     # Enumeration values can be used to initialize
     from sdmx.model import ActionType
 
-    print(ActionType)
     DataSet(action=ActionType["information"])
 
 
