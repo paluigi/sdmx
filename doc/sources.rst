@@ -203,10 +203,6 @@ SDMX-ML —
 
 - Supports preview_data and series-key based key validation.
 
-.. warning:: supports categoryscheme even though it offers very few dataflows.
-   Use this feature with caution.
-   Moreover, it seems that categories confusingly include dataflows which UNSD does not actually provide.
-
 
 ``UNESCO``: UN Educational, Scientific and Cultural Organization
 ----------------------------------------------------------------
@@ -218,6 +214,40 @@ SDMX-ML —
 
 .. warning:: An issue with structure-specific datasets has been reported.
    It seems that Series are not recognized due to some oddity in the XML format.
+
+
+.. _UNICEF:
+
+``UNICEF``: UN Children's Fund
+------------------------------
+
+SDMX-ML or SDMX-JSON —
+`API documentation <https://data.unicef.org/sdmx-api-documentation/>`__ —
+`Web interface <https://sdmx.data.unicef.org/>`__
+
+- This source always returns structure-specific messages for SDMX-ML data queries; even when the HTTP header ``Accept: application/vnd.sdmx.genericdata+xml`` is given.
+- The example query from the UNICEF API documentation (also used in the :mod:`sdmx` test suite) returns XML like:
+
+  .. code-block:: xml
+
+     <mes:Structure structureID="UNICEF_GLOBAL_DATAFLOW_1_0" namespace="urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=UNICEF:GLOBAL_DATAFLOW(1.0):ObsLevelDim:TIME_PERIOD" dimensionAtObservation="TIME_PERIOD">
+       <com:StructureUsage>
+         <Ref agencyID="UNICEF" id="GLOBAL_DATAFLOW" version="1.0"/>
+       </com:StructureUsage>
+     </mes:Structure>
+
+  The corresponding DSD actually has the ID ``DSD_AGGREGATE``, which is not obvious from the message.
+  To retrieve the DSD—which is necessary to parse a data message—first query this data *flow* by ID, and select the DSD from the returned message:
+
+  .. ipython:: python
+
+     import sdmx
+     msg = sdmx.Request("UNICEF").dataflow("GLOBAL_DATAFLOW")
+     msg
+     dsd = msg.structure[0]
+
+  The resulting object `dsd` can be passed as an argument to a :meth:`.Request.get` data query.
+  See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/master/sdmx/tests/test_sources.py>`_ for an example.
 
 
 ``WB``: World Bank Group “World Integrated Trade Solution”

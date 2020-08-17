@@ -110,6 +110,12 @@
     "supports": {"datastructure": false}
   },
   {
+    "id": "UNICEF",
+    "name": "UN Children's Fund",
+    "url": "https://sdmx.data.unicef.org/ws/public/sdmxapi/rest",
+    "supports": {"structure-specific data": true}
+  },
+  {
     "id": "UNSD",
     "name": "United Nations Statistics Division",
     "url": "http://data.un.org/WS/rest",

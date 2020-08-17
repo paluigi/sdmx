@@ -167,7 +167,7 @@ def _header(obj: message.Header):
     if obj.id:
         elem.append(Element("mes:ID", obj.id))
     if obj.prepared:
-        elem.append(Element("mes:Prepared", obj.prepared))
+        elem.append(Element("mes:Prepared", obj.prepared.isoformat()))
     if obj.sender:
         elem.append(writer.recurse(obj.sender, _tag="mes:Sender"))
     if obj.source:
