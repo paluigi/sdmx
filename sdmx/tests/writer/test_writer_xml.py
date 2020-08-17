@@ -43,7 +43,14 @@ _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
 
 @pytest.mark.parametrize(
     "data_id, structure_id",
-    [("ECB_EXR/1/M.USD.EUR.SP00.A.xml", "ECB_EXR/1/structure.xml")],
+    [
+        (
+            "INSEE/CNA-2010-CONSO-SI-A17.xml",
+            "INSEE/CNA-2010-CONSO-SI-A17-structure.xml",
+        ),
+        ("INSEE/IPI-2010-A21.xml", "INSEE/IPI-2010-A21-structure.xml"),
+        ("ECB_EXR/1/M.USD.EUR.SP00.A.xml", "ECB_EXR/1/structure.xml"),
+    ],
 )
 def test_data_roundtrip(pytestconfig, data_id, structure_id, tmp_path):
     """Test that SDMX-ML DataMessages can be 'round-tripped'."""

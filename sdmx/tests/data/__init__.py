@@ -39,7 +39,10 @@ BASE_PATH = Path(__file__).parent
 
 # List of specimen files.
 # Each is a tuple: (path, format (xml|json), kind (data|structure))
-TEST_FILES = [(BASE_PATH / "INSEE" / "IPI-2010-A21.xml", "xml", "data")]
+TEST_FILES = [
+    (BASE_PATH / "INSEE" / "CNA-2010-CONSO-SI-A17.xml", "xml", "data"),
+    (BASE_PATH / "INSEE" / "IPI-2010-A21.xml", "xml", "data"),
+]
 
 # XML data files for the ECB exchange rate data flow
 for path in (BASE_PATH / "ECB_EXR").rglob("*.xml"):
