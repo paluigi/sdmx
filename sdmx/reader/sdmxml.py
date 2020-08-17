@@ -702,15 +702,12 @@ def _text(reader, elem):
 
 @end("mes:Extracted mes:Prepared mes:ReportingBegin mes:ReportingEnd")
 def _datetime(reader, elem):
-    text = elem.text
-    replace = dict()
-
     # Handle "Z" as a shorthand for "+00:00", i.e. UTC
-    if text.endswith("Z"):
-        text = text[:-1]
-        replace["tzinfo"] = timezone.utc
+    text = re.sub(r"(.*)Z$", r"\1+00:00", elem.text)
+    # Truncate seconds decimal places beyond the 6th; incorrectly returned by e.g. UNSD
+    text = re.sub(r"(.*\.)(\d{6})\d+(\+.*)", r"\1\2\3", text)
 
-    reader.push(elem, datetime.fromisoformat(text).replace(**replace))
+    reader.push(elem, datetime.fromisoformat(text))
 
 
 @end(
