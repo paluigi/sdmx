@@ -216,6 +216,8 @@ SDMX-ML —
    It seems that Series are not recognized due to some oddity in the XML format.
 
 
+.. _UNICEF:
+
 ``UNICEF``: UN Children's Fund
 ------------------------------
 
@@ -226,7 +228,7 @@ SDMX-ML or SDMX-JSON —
 - This source always returns structure-specific messages for SDMX-ML data queries; even when the HTTP header ``Accept: application/vnd.sdmx.genericdata+xml`` is given.
 - The example query from the UNICEF API documentation (also used in the :mod:`sdmx` test suite) returns XML like:
 
-  .. code-block:: XML
+  .. code-block:: xml
 
      <mes:Structure structureID="UNICEF_GLOBAL_DATAFLOW_1_0" namespace="urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=UNICEF:GLOBAL_DATAFLOW(1.0):ObsLevelDim:TIME_PERIOD" dimensionAtObservation="TIME_PERIOD">
        <com:StructureUsage>
@@ -234,15 +236,17 @@ SDMX-ML or SDMX-JSON —
        </com:StructureUsage>
      </mes:Structure>
 
-  This corresponding DSD actually has the ID ``DSD_AGGREGATE``, which is not obvious from the message.
-  To retrieve the proper DSD, query the data *flow* by ID, and select the DSD from the returned message:
+  The corresponding DSD actually has the ID ``DSD_AGGREGATE``, which is not obvious from the message.
+  To retrieve the DSD—which is necessary to parse a data message—first query this data *flow* by ID, and select the DSD from the returned message:
 
-  .. code-block:: python
+  .. ipython:: python
 
-     req = sdmx.Request("UNICEF")
-     dsd = req.dataflow("GLOBAL_DATAFLOW").structure[0]
+     import sdmx
+     msg = sdmx.Request("UNICEF").dataflow("GLOBAL_DATAFLOW")
+     msg
+     dsd = msg.structure[0]
 
-  The resulting object `dsd` can be passed as an argument to a :meth:`.Request.data` query.
+  The resulting object `dsd` can be passed as an argument to a :meth:`.Request.get` data query.
   See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/master/sdmx/tests/test_sources.py>`_ for an example.
 
 
