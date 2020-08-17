@@ -8,6 +8,7 @@
 returned by data sources.
 """
 import logging
+from datetime import datetime
 from typing import List, Optional, Text, Union
 
 from requests import Response
@@ -35,10 +36,16 @@ class Header(BaseModel):
 
     #: (optional) Error code for the message.
     error: Optional[Text] = None
+    #: Date and time at which the data was extracted.
+    extracted: Optional[datetime] = None
     #: Identifier for the message.
     id: Optional[Text] = None
     #: Date and time at which the message was generated.
-    prepared: Optional[Text] = None
+    prepared: Optional[datetime] = None
+    #: Start of the time period covered by a :class:`.DataMessage`.
+    reporting_begin: Optional[datetime] = None
+    #: End of the time period covered by a :class:`.DataMessage`.
+    reporting_end: Optional[datetime] = None
     #: Intended recipient of the message, e.g. the user's name for an
     #: authenticated service.
     receiver: Optional[model.Agency] = None
@@ -69,8 +76,11 @@ class Header(BaseModel):
             compare(attr, self, other, strict)
             for attr in [
                 "error",
+                "extracted",
                 "id",
                 "prepared",
+                "reporting_begin",
+                "reporting_end",
                 "receiver",
                 "sender",
                 "source",

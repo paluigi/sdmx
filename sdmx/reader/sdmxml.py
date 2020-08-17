@@ -10,6 +10,7 @@ import logging
 import re
 from collections import defaultdict
 from copy import copy
+from datetime import datetime, timezone
 from itertools import chain, product
 from operator import itemgetter
 from sys import maxsize
@@ -542,8 +543,11 @@ def _message(reader, elem):
 def _header(reader, elem):
     # Attach to the Message
     header = message.Header(
+        extracted=reader.pop_single("Extracted") or None,
         id=reader.pop_single("ID") or None,
         prepared=reader.pop_single("Prepared") or None,
+        reporting_begin=reader.pop_single("ReportingBegin") or None,
+        reporting_end=reader.pop_single("ReportingEnd") or None,
         receiver=reader.pop_single("Receiver") or None,
         sender=reader.pop_single("Sender") or None,
         test=str(reader.pop_single("Test")).lower() == "true",
@@ -553,8 +557,6 @@ def _header(reader, elem):
     reader.get_single(message.Message).header = header
 
     # TODO add these to the Message class
-    # Appearing in data messages from WB_WDI
-    reader.pop_all("Extracted")
     # Appearing in data messages from WB_WDI and the footer.xml specimen
     reader.pop_all("DataSetAction")
     reader.pop_all("DataSetID")
@@ -690,12 +692,25 @@ def _structures(reader, elem):
 
 
 @end(
-    "mes:DataSetAction mes:DataSetID mes:ID mes:Prepared mes:Test mes:Timezone "
-    "com:AnnotationType com:AnnotationTitle com:AnnotationURL com:None com:URN "
-    "com:Value mes:Email mes:Extracted str:Email str:Telephone str:URI"
+    "com:AnnotationTitle com:AnnotationType com:AnnotationURL com:None com:URN "
+    "com:Value mes:DataSetAction mes:DataSetID mes:Email mes:ID mes:Test mes:Timezone "
+    "str:Email str:Telephone str:URI"
 )
 def _text(reader, elem):
     reader.push(elem, elem.text)
+
+
+@end("mes:Extracted mes:Prepared mes:ReportingBegin mes:ReportingEnd")
+def _datetime(reader, elem):
+    text = elem.text
+    replace = dict()
+
+    # Handle "Z" as a shorthand for "+00:00", i.e. UTC
+    if text.endswith("Z"):
+        text = text[:-1]
+        replace["tzinfo"] = timezone.utc
+
+    reader.push(elem, datetime.fromisoformat(text).replace(**replace))
 
 
 @end(
