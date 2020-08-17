@@ -6,7 +6,7 @@
 # - writer functions for sdmx.model classes, in the same order as model.py
 
 from itertools import chain
-from typing import List, cast
+from typing import Iterable, cast
 
 from lxml import etree
 from lxml.builder import ElementMaker
@@ -106,16 +106,20 @@ def _dm(obj: message.DataMessage):
 
     # Add DSD references to header
     for ds in obj.data:
-        header.append(
-            Element(
-                "mes:Structure",
-                structureID=ds.structured_by.id,
-                dimensionAtObservation=obj.observation_dimension.id,
-            )
-        )
-        # Reference by URN if possible, otherwise with a <Ref> tag
-        style = "URN" if ds.structured_by.urn else "Ref"
-        header[-1].append(reference(ds.structured_by, tag="com:Structure", style=style))
+        attrib = dict()
+        dsd_ref = None
+
+        if ds.structured_by:
+            attrib["structureID"] = ds.structured_by.id
+
+            # Reference by URN if possible, otherwise with a <Ref> tag
+            style = "URN" if ds.structured_by.urn else "Ref"
+            dsd_ref = reference(ds.structured_by, tag="com:Structure", style=style)
+        if isinstance(obj.observation_dimension, model.DimensionComponent):
+            attrib["dimensionAtObservation"] = obj.observation_dimension.id
+
+        header.append(Element("mes:Structure", **attrib))
+        header[-1].append(dsd_ref)
 
         elem.append(writer.recurse(ds))
 
@@ -446,8 +450,9 @@ def _dfd(obj: model.DataflowDefinition):
 # §5.4: Data Set
 
 
-def _av(obj: List[model.AttributeValue]):
+def _av(obj: Iterable[model.AttributeValue]):
     for av in obj:
+        assert av.value_for
         yield Element("gen:Value", id=av.value_for.id, value=av.value)
 
 
@@ -470,7 +475,7 @@ def _sk(obj: model.SeriesKey):
 def _obs(obj: model.Observation):
     elem = Element("gen:Obs")
 
-    assert len(obj.dimension) == 1
+    assert obj.dimension and len(obj.dimension) == 1
     elem.append(Element("gen:ObsDimension", value=obj.dimension.values[0].value))
     elem.append(Element("gen:ObsValue", value=obj.value))
 
@@ -486,7 +491,12 @@ def _ds(obj: model.DataSet):
     if len(obj.group):
         raise NotImplementedError("to_xml() for DataSet with groups")
 
-    elem = Element("mes:DataSet", action=obj.action, structureRef=obj.structured_by.id)
+    attrib = dict()
+    if obj.action:
+        attrib["action"] = str(obj.action)
+    if obj.structured_by:
+        attrib["structureRef"] = obj.structured_by.id
+    elem = Element("mes:DataSet", **attrib)
 
     for sk, observations in obj.series.items():
         elem.append(Element("gen:Series"))
