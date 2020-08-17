@@ -55,6 +55,29 @@ class Header(BaseModel):
         lines.extend(_summarize(self, self.__fields__.keys()))
         return "\n  ".join(lines)
 
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two Headers are the same if their corresponding attributes are equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare`.
+        """
+        return all(
+            compare(attr, self, other, strict)
+            for attr in [
+                "error",
+                "id",
+                "prepared",
+                "receiver",
+                "sender",
+                "source",
+                "test",
+            ]
+        )
+
 
 class Footer(BaseModel):
     """Footer of an SDMX-ML message.
@@ -68,6 +91,21 @@ class Footer(BaseModel):
     text: List[model.InternationalString] = []
     #:
     code: Optional[int] = None
+
+    def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two Footers are the same if their :attr:`code`, :attr:`severity`, and
+        :attr:`text` are equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare`.
+        """
+        return all(
+            compare(attr, self, other, strict) for attr in ["severity", "text", "code"]
+        )
 
 
 class Message(BaseModel):
@@ -96,8 +134,20 @@ class Message(BaseModel):
         return "\n  ".join(lines)
 
     def compare(self, other, strict=True):
-        # TODO compare header, footer
-        return True
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two Messages are the same if their :attr:`header` and :attr:`footer` compare
+        equal.
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare`.
+        """
+        return self.header.compare(other.header, strict) and (
+            self.footer is other.footer is None
+            or self.footer.compare(other.footer, strict)
+        )
 
 
 class ErrorMessage(Message):
@@ -202,6 +252,20 @@ class DataMessage(Message):
         return "\n  ".join(lines)
 
     def compare(self, other, strict=True):
+        """Return :obj:`True` if `self` is the same as `other`.
+
+        Two DataMessages are the same if:
+
+        - :meth:`.Message.compare` is :obj:`True`
+        - their :attr:`dataflow` and :attr:`observation_dimension` compare equal.
+        - they have the same number of :class:`DataSets <DataSet>`, and
+        - corresponding DataSets compare equal (see :meth:`.DataSet.compare`).
+
+        Parameters
+        ----------
+        strict : bool, optional
+            Passed to :func:`.compare`.
+        """
         return (
             super().compare(other, strict)
             and compare("dataflow", self, other, strict)
