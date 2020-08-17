@@ -526,7 +526,7 @@ def _message(reader, elem):
     elif "StructureSpecific" not in elem.tag and reader.get_single(
         model.DataStructureDefinition
     ):
-        log.warning("Ambiguous: dsd=… argument for non–structure-specific message")
+        log.info("Use supplied dsd=… argument for non–structure-specific message")
 
     # Store values for other methods
     reader.push("SS without DSD", ss_without_dsd)
