@@ -113,13 +113,9 @@ def _dm(obj: message.DataMessage):
                 dimensionAtObservation=obj.observation_dimension.id,
             )
         )
-        try:
-            # TODO if a URN is missing, use a <Ref>
-            header[-1].append(reference(ds.structured_by, tag="com:Structure"))
-        except TypeError:
-            raise NotImplementedError(
-                "to_xml() for DataMessage with DSD lacking a URN"
-            )
+        # Reference by URN if possible, otherwise with a <Ref> tag
+        style = "URN" if ds.structured_by.urn else "Ref"
+        header[-1].append(reference(ds.structured_by, tag="com:Structure", style=style))
 
         elem.append(writer.recurse(ds))
 
@@ -485,6 +481,9 @@ def _obs(obj: model.Observation):
 
 @writer
 def _ds(obj: model.DataSet):
+    if len(obj.group):
+        raise NotImplementedError("to_xml() for DataSet with groups")
+
     elem = Element("mes:DataSet", action=obj.action, structureRef=obj.structured_by.id)
 
     for sk, observations in obj.series.items():
