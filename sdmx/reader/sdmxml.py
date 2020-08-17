@@ -482,7 +482,8 @@ class Reader(BaseReader):
                 existing.is_external_reference = False
 
                 # Update `existing` from `obj` to preserve references
-                for attr in list(kwargs.keys()):
+                # If `existing` was a forward reference <Ref/>, its URN was not stored.
+                for attr in list(kwargs.keys()) + ["urn"]:
                     # log.info(
                     #     f"Updating {attr} {getattr(existing, attr)} "
                     #     f"{getattr(obj, attr)}"
