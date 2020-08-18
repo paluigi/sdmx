@@ -10,11 +10,11 @@ import logging
 import re
 from collections import defaultdict
 from copy import copy
-from datetime import datetime
 from itertools import chain, product
 from operator import itemgetter
 from sys import maxsize
 
+from dateutil.parser import isoparse
 from lxml import etree
 from lxml.etree import QName
 
@@ -702,22 +702,11 @@ def _text(reader, elem):
 
 @end("mes:Extracted mes:Prepared mes:ReportingBegin mes:ReportingEnd")
 def _datetime(reader, elem):
-    localname = QName(elem).localname
-
-    # Handle non-ISO date-times occuring in common messages
-    text, n = re.subn(r"(.*)Z$", r"\1+00:00", elem.text)
+    text, n = re.subn(r"(.*\.)(\d{6})\d+(\+.*)", r"\1\2\3", elem.text)
     if n > 0:
-        log.debug(f"Replace non-ISO 'Z' with '+00:00' in <{localname}>")
+        log.debug(f"Truncate sub-microsecond time in <{QName(elem).localname}>")
 
-    text, n = re.subn(r"(.*)-(\d{2}:\d{2})$", r"\1+\2", text)
-    if n > 0:
-        log.debug(f"Replace non-ISO '-{text[-5:]}' with '{text[-6:]}' in <{localname}>")
-
-    text, n = re.subn(r"(.*\.)(\d{6})\d+(\+.*)", r"\1\2\3", text)
-    if n > 0:
-        log.debug(f"Truncate sub-microsecond time in <{localname}>")
-
-    reader.push(elem, datetime.fromisoformat(text))
+    reader.push(elem, isoparse(text))
 
 
 @end(
