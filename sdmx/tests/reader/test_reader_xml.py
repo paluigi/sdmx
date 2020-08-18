@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from itertools import chain
 
@@ -10,6 +11,7 @@ from sdmx.format.xml import qname
 from sdmx.model import Facet, FacetType, FacetValueType
 from sdmx.reader.sdmxml import Reader, XMLParseError
 from sdmx.tests.data import specimen, test_files
+from sdmx.writer.xml import Element as E
 
 
 # Read example data files
@@ -76,8 +78,6 @@ def test_read_ss_xml():
     assert len(TIME_FORMAT.related_to.dimensions) == 5
 
 
-E = etree.Element
-
 # Each entry is a tuple with 2 elements:
 # 1. an instance of lxml.etree.Element to be parsed.
 # 2. Either:
@@ -86,7 +86,25 @@ E = etree.Element
 #   - A string, in which case parsing the element is expected to fail, raising
 #     an exception matching the string.
 ELEMENTS = [
-    # Reader.parse_facet
+    # sdmxml._datetime()
+    (  # with 5 decimal places
+        E(qname("mes:Extracted"), "2020-08-18T00:14:31.59849+05:00"),
+        datetime(2020, 8, 18, 0, 14, 31, 598490, tzinfo=timezone(timedelta(hours=5))),
+    ),
+    (  # with 7 decimal places
+        E(qname("mes:Extracted"), "2020-08-18T01:02:03.4567891+00:00"),
+        datetime(2020, 8, 18, 1, 2, 3, 456789, tzinfo=timezone.utc),
+    ),
+    (  # with "Z"
+        E(qname("mes:Extracted"), "2020-08-18T00:14:31.59849Z"),
+        datetime(2020, 8, 18, 0, 14, 31, 598490, tzinfo=timezone.utc),
+    ),
+    pytest.param(  # with 7 decimal places AND "Z"
+        E(qname("mes:Extracted"), "2020-08-18T01:02:03.4567891Z"),
+        datetime(2020, 8, 18, 1, 2, 3, 456789, tzinfo=timezone.utc),
+        marks=pytest.mark.xfail(raises=XMLParseError),
+    ),
+    # sdmxml._facet()
     (
         E(qname("str:TextFormat"), isSequence="False", startValue="3.4", endValue="1"),
         None,
