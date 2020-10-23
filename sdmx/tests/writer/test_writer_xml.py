@@ -36,7 +36,7 @@ def test_structuremessage(tmp_path, structuremessage):
 
 
 _xf_ref = pytest.mark.xfail(
-    raises=NotImplementedError, match="Cannot write reference to .* without parent",
+    raises=NotImplementedError, match="Cannot write reference to .* without parent"
 )
 _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
 
@@ -96,7 +96,7 @@ def test_data_roundtrip(pytestconfig, data_id, structure_id, tmp_path):
         ("ECB_EXR/1/structure-full.xml", False),
         ("ESTAT/apro_mk_cola-structure.xml", True),
         pytest.param(
-            "ISTAT/47_850-structure.xml", True, marks=[pytest.mark.skip(reason="Slow")],
+            "ISTAT/47_850-structure.xml", True, marks=[pytest.mark.skip(reason="Slow")]
         ),
         pytest.param("IMF/ECOFIN_DSD-structure.xml", True, marks=_xf_ref),
         ("INSEE/CNA-2010-CONSO-SI-A17-structure.xml", False),
