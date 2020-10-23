@@ -312,7 +312,7 @@ def _component(obj: model.Component):
     elem = identifiable(obj)
     if obj.concept_identity:
         elem.append(
-            reference(obj.concept_identity, tag="str:ConceptIdentity", style="Ref",)
+            reference(obj.concept_identity, tag="str:ConceptIdentity", style="Ref")
         )
     if obj.local_representation:
         elem.append(

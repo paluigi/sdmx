@@ -398,7 +398,7 @@ class Reader(BaseReader):
         # MaintainableArtefact with is_external_reference=True; either a new object, or
         # reference to an existing object
         target_or_parent = self.maintainable(
-            ref.cls, None, id=ref.id, maintainer=ref.agency, version=ref.version,
+            ref.cls, None, id=ref.id, maintainer=ref.agency, version=ref.version
         )
 
         if ref.maintainable:
@@ -662,7 +662,7 @@ def _footer(reader, elem):
         args["code"] = int(args["code"])
 
     reader.get_single(message.Message).footer = message.Footer(
-        text=list(map(model.InternationalString, reader.pop_all("Text"))), **args,
+        text=list(map(model.InternationalString, reader.pop_all("Text"))), **args
     )
 
 
@@ -991,7 +991,7 @@ def _dk(reader, elem):
         # Convert MemberSelection/MemberValue from _ms() to ComponentValue
         key_value={
             ms.values_for: model.ComponentValue(
-                value_for=ms.values_for, value=ms.values.pop().value,
+                value_for=ms.values_for, value=ms.values.pop().value
             )
             for ms in reader.pop_all(model.MemberSelection)
         },
@@ -1194,7 +1194,7 @@ def _series_ss(reader, elem):
     ds.add_obs(
         reader.pop_all(model.Observation),
         ds.structured_by.make_key(
-            model.SeriesKey, elem.attrib, extend=reader.peek("SS without DSD"),
+            model.SeriesKey, elem.attrib, extend=reader.peek("SS without DSD")
         ),
     )
 
@@ -1218,7 +1218,7 @@ def _group_ss(reader, elem):
     group_id = attrib.pop(qname("xsi", "type"), None)
 
     gk = ds.structured_by.make_key(
-        model.GroupKey, attrib, extend=reader.peek("SS without DSD"),
+        model.GroupKey, attrib, extend=reader.peek("SS without DSD")
     )
 
     if group_id:
