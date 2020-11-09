@@ -155,6 +155,9 @@ SDMX-ML —
    Avoid downloading this type of message.
    Prepare the key as string using the web interface, and simply download a dataset.
 
+.. autoclass:: sdmx.source.insee.Source
+   :members:
+
 
 ``ISTAT``: National Institute of Statistics (Italy)
 ---------------------------------------------------
