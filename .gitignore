@@ -15,6 +15,7 @@ coverage.xml
 dist
 doc/cache.sqlite
 doc/_build
+doc/*.xml
 prof/
 htmlcov
 ref
