@@ -636,11 +636,17 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         if not super().compare(other, strict):
             pass
         elif set(self.items) != set(other.items):
-            log.info(repr([set(self.items), set(other.items)]))
+            log.debug(
+                f"ItemScheme contents differ: {repr(set(self.items))} != "
+                + repr(set(other.items))
+            )
         else:
             for id, item in self.items.items():
                 if not item.compare(other.items[id], strict):
-                    log.info(repr([item, other.items[id]]))
+                    log.debug(
+                        f"Items with id {repr(id)} differ: {repr(item)} != "
+                        + repr(other.items[id])
+                    )
                     return False
             return True
 
