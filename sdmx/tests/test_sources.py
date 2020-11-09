@@ -269,17 +269,6 @@ class TestINSEE(DataSourceTest):
 
     tolerate_503 = True
 
-    @pytest.mark.network
-    def test_endpoints(self, req, endpoint, args):
-        # Using the default 'INSEE' agency in the URL gives a response "La
-        # syntaxe de la requête est invalide."
-        req.get(
-            endpoint,
-            provider="all",
-            **args,
-            tofile=self._cache_path.with_suffix("." + endpoint),
-        )
-
 
 @pytest.mark.xfail(reason="Service is currently unavailable.", raises=HTTPError)
 class TestISTAT(DataSourceTest):
