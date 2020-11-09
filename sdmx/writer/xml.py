@@ -323,6 +323,10 @@ def _component(obj: model.Component):
         elem.append(writer.recurse(cast(model.DataAttribute, obj).related_to))
     except AttributeError:
         pass
+    except NotImplementedError:
+        if obj.related_to is not None:
+            raise
+
     return elem
 
 
@@ -450,23 +454,29 @@ def _dfd(obj: model.DataflowDefinition):
 # §5.4: Data Set
 
 
-def _av(obj: Iterable[model.AttributeValue]):
+def _av(name: str, obj: Iterable[model.AttributeValue]):
+    elements = []
     for av in obj:
         assert av.value_for
-        yield Element("gen:Value", id=av.value_for.id, value=av.value)
+        elements.append(Element("gen:Value", id=av.value_for.id, value=av.value))
+    return Element(name, *elements)
+
+
+def _kv(name: str, obj: Iterable[model.KeyValue]):
+    elements = []
+    for kv in obj:
+        assert kv.value_for
+        elements.append(Element("gen:Value", id=kv.value_for.id, value=str(kv.value)))
+    return Element(name, *elements)
 
 
 @writer
 def _sk(obj: model.SeriesKey):
     elem = []
 
-    elem.append(Element("gen:SeriesKey"))
-    elem[-1].extend(
-        Element("gen:Value", id=kv.value_for.id, value=kv.value) for kv in obj
-    )
+    elem.append(_kv("gen:SeriesKey", obj))
     if len(obj.attrib):
-        elem.append(Element("gen:Attributes"))
-        elem[-1].extend(_av(obj.attrib.values()))
+        elem.append(_av("gen:Attributes", obj.attrib.values()))
 
     return tuple(elem)
 
@@ -475,13 +485,17 @@ def _sk(obj: model.SeriesKey):
 def _obs(obj: model.Observation):
     elem = Element("gen:Obs")
 
-    assert obj.dimension and len(obj.dimension) == 1
-    elem.append(Element("gen:ObsDimension", value=obj.dimension.values[0].value))
-    elem.append(Element("gen:ObsValue", value=obj.value))
+    if len(obj.dimension) == 1:
+        # Observation in a series; at most one dimension given by the Key
+        elem.append(Element("gen:ObsDimension", value=obj.dimension.values[0].value))
+    else:
+        # Top-level observation, not associated with a SeriesKey
+        elem.append(_kv("gen:ObsKey", obj.dimension))
+
+    elem.append(Element("gen:ObsValue", value=str(obj.value)))
 
     if len(obj.attached_attribute):
-        elem.append(Element("gen:Attributes"))
-        elem[-1].extend(_av(obj.attached_attribute.values()))
+        elem.append(_av("gen:Attributes", obj.attached_attribute.values()))
 
     return elem
 
@@ -498,9 +512,16 @@ def _ds(obj: model.DataSet):
         attrib["structureRef"] = obj.structured_by.id
     elem = Element("mes:DataSet", **attrib)
 
+    obs_to_write = set(map(id, obj.obs))
+
     for sk, observations in obj.series.items():
         elem.append(Element("gen:Series"))
         elem[-1].extend(writer.recurse(sk))
         elem[-1].extend(writer.recurse(obs) for obs in observations)
+        obs_to_write -= set(map(id, observations))
+
+    # Observations not in any series
+    for obs in filter(lambda o: id(o) in obs_to_write, obj.obs):
+        elem.append(writer.recurse(obs))
 
     return elem
