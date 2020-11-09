@@ -7,9 +7,8 @@ class Source(BaseSource):
     def modify_request_args(self, kwargs):
         """Supply explicit provider agency ID for INSEE.
 
-        As reported by @beberking (https://github.com/khaeru/sdmx/issue/21), INSEE
-        accepts either "ALL" or "FR1" as a provider agency ID for structure endpoints,
-        but not "INSEE".
+        INSEE accepts either "ALL" or "FR1" as a provider agency ID for structure
+        endpoints, but not "INSEE" (see :issue:`21`).
 
         This hook sets the provider to "ALL" for structure queries if it is not given
         explicitly.
