@@ -141,6 +141,8 @@ SDMX-ML —
 - Spanish name: Instituto Nacional de Estadística y Geografía.
 
 
+.. _INSEE:
+
 ``INSEE``: National Institute of Statistics and Economic Studies (France)
 -------------------------------------------------------------------------
 
