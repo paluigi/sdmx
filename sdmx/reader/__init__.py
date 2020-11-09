@@ -65,6 +65,7 @@ def get_reader_for_path(path):
     --------
     SUFFIX_READER
     """
+    path = Path(path)
     try:
         return SUFFIX_READER[path.suffix.lower()]
     except KeyError:
