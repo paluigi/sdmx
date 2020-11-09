@@ -1,4 +1,5 @@
 # TODO test str() and repr() implementations
+import logging
 
 import pydantic
 import pytest
@@ -119,12 +120,12 @@ def test_nameable(caplog):
     na2 = model.NameableArtefact()
 
     assert not na1.compare(na2)
-    assert caplog.messages[-1] == "Not identical: name=[en: Name, ]"
+    assert caplog.messages[-1] == "Not identical: name <en: Name> != <>"
 
     na2.name["en"] = "Name"
 
     assert not na1.compare(na2)
-    assert caplog.messages[-1] == "Not identical: description=[en: Description, ]"
+    assert caplog.messages[-1] == "Not identical: description <en: Description> != <>"
 
     na2.description["en"] = "Description"
 
@@ -306,6 +307,8 @@ def test_itemscheme():
 
 
 def test_itemscheme_compare(caplog):
+    caplog.set_level(logging.DEBUG)
+
     is0 = model.ItemScheme()
     is1 = model.ItemScheme()
 
@@ -315,7 +318,10 @@ def test_itemscheme_compare(caplog):
     assert not is0.compare(is1)
 
     # Log shows that items with same ID have different name
-    assert caplog.messages[-1] == "[<Item foo: Foo>, <Item foo: Bar>]"
+    assert caplog.messages[-2:] == [
+        "Not identical: name <en: Foo> != <en: Bar>",
+        "…for items with id='foo'",
+    ]
 
 
 def test_key():

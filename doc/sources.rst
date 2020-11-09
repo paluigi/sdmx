@@ -141,6 +141,8 @@ SDMX-ML —
 - Spanish name: Instituto Nacional de Estadística y Geografía.
 
 
+.. _INSEE:
+
 ``INSEE``: National Institute of Statistics and Economic Studies (France)
 -------------------------------------------------------------------------
 
@@ -149,11 +151,8 @@ SDMX-ML —
 
 - French name: Institut national de la statistique et des études économiques.
 
-.. warning::
-   An issue has been reported apparently due to a missing pericite codelist in StructureMessages.
-   This may cause crashes.
-   Avoid downloading this type of message.
-   Prepare the key as string using the web interface, and simply download a dataset.
+.. autoclass:: sdmx.source.insee.Source
+   :members:
 
 
 ``ISTAT``: National Institute of Statistics (Italy)

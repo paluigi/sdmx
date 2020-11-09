@@ -41,7 +41,11 @@ html_theme = "alabaster"
 
 # -- Options for sphinx.ext.extlinks -----------------------------------------
 
-extlinks = {"pull": ("https://github.com/khaeru/sdmx/pull/%s", "PR #")}
+extlinks = {
+    "issue": ("https://github.com/khaeru/sdmx/issues/%s", "#"),
+    "pull": ("https://github.com/khaeru/sdmx/pull/%s", "PR #"),
+    "gh-user": ("https://github.com/%s", "@"),
+}
 
 
 # -- Options for sphinx.ext.intersphinx --------------------------------------
