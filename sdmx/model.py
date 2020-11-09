@@ -305,11 +305,13 @@ class NameableArtefact(IdentifiableArtefact):
         if not super().compare(other, strict):
             pass
         elif self.name != other.name:
-            log.info("Not identical: name=" + repr([self.name, other.name]))
+            log.debug(
+                f"Not identical: name <{repr(self.name)}> != <{repr(other.name)}>"
+            )
         elif self.description != other.description:
-            log.info(
-                "Not identical: description="
-                + repr([self.description, other.description])
+            log.debug(
+                f"Not identical: description <{repr(self.description)}> != "
+                f"<{repr(other.description)}>"
             )
         else:
             return True
@@ -643,10 +645,7 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         else:
             for id, item in self.items.items():
                 if not item.compare(other.items[id], strict):
-                    log.debug(
-                        f"Items with id {repr(id)} differ: {repr(item)} != "
-                        + repr(other.items[id])
-                    )
+                    log.debug(f"…for items with id={repr(id)}")
                     return False
             return True
 
