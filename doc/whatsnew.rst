@@ -11,6 +11,7 @@ What's new?
 Next release
 ============
 
+- Add a :doc:`brief tutorial <howto/create>` on creating SDMX-ML messages from pure Python objects (:issue:`23`, :pull:`24`).
 - Add :ref:`Statistics Estonia <STAT_EE>` as a data source (:pull:`25`).
 - Supply provider=“ALL” to :ref:`INSEE <INSEE>` structure queries by default (:issue:`21`, :pull:`22`)
 
