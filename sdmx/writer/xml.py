@@ -104,23 +104,31 @@ def _dm(obj: message.DataMessage):
     header = writer.recurse(obj.header)
     elem.append(header)
 
-    # Add DSD references to header
+    # Set of DSDs already referenced in the header
+    structures = set()
+
     for ds in obj.data:
         attrib = dict()
         dsd_ref = None
 
-        if ds.structured_by:
+        # Add any new DSD reference to header
+        if ds.structured_by and id(ds.structured_by) not in structures:
             attrib["structureID"] = ds.structured_by.id
 
             # Reference by URN if possible, otherwise with a <Ref> tag
             style = "URN" if ds.structured_by.urn else "Ref"
             dsd_ref = reference(ds.structured_by, tag="com:Structure", style=style)
-        if isinstance(obj.observation_dimension, model.DimensionComponent):
-            attrib["dimensionAtObservation"] = obj.observation_dimension.id
 
-        header.append(Element("mes:Structure", **attrib))
-        header[-1].append(dsd_ref)
+            if isinstance(obj.observation_dimension, model.DimensionComponent):
+                attrib["dimensionAtObservation"] = obj.observation_dimension.id
 
+            header.append(Element("mes:Structure", **attrib))
+            header[-1].append(dsd_ref)
+
+            # Record this object so it is not added a second time
+            structures.add(id(ds.structured_by))
+
+        # Add data
         elem.append(writer.recurse(ds))
 
     return elem
