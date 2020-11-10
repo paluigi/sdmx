@@ -26,6 +26,7 @@ We store the data in a :class:`pandas.DataFrame`, with each row corresponding to
 For example, the first observation has:
 
 - Dimension values TIME_DETAIL=2016, REF_AREA=1.
+  These are the **key** for the observation.
 - The value "PT" for the UNIT_MEASURE attribute.
 - A value of 50 for the primary measure.
 
@@ -40,6 +41,7 @@ For example, the first observation has:
     # List of attributes
     A = ["UNIT_MEASURE"]
 
+    # Keys, attributes, and values together in a single data frame
     data = pd.DataFrame(
         columns=D + M + A,
         data=[
@@ -60,7 +62,7 @@ Create a data structure definition (DSD)
 
 The module :mod:`sdmx.model` contains the classes needed to describe the structure of this data set.
 A DSD collects objects that describe the structure of the data.
-There are different classes for dimensions, measures, and attributes.
+There are different classes to describe dimensions, measures, and attributes.
 
 .. ipython:: python
 
@@ -80,24 +82,27 @@ There are different classes for dimensions, measures, and attributes.
     for order, id in enumerate(D):
         dsd.dimensions.append(Dimension(id=id, order=order))
 
-    # `A` only has 1 element, but this code will work with more.
+    # `A` only has 1 element, but this code will work with 2 or more.
     for id in A:
         dsd.attributes.append(DataAttribute(id=id))
 
     for id in M:
         dsd.measures.append(PrimaryMeasure(id=id))
 
+    # No longer needed
     del D, M, A
 
 .. note:: This is a minimal example, so we don't further describe the structure, even though :mod:`sdmx.model` offers the full SDMX information model.
-   We could, for instance, use a :class:`.CodeList` to add internationalized names, annotations, and other information to the codes "PT" and "USD" used for the "UNIT_MEASURE" attribute, and thus restrict the values of this attribute to the codes in that list.
+
+   We could, for instance, use a :class:`.Codelist` to add internationalized names, annotations, and other information to the codes "PT" and "USD" used for the "UNIT_MEASURE" attribute, and thus restrict the values of this attribute to the codes in that list.
+
    Or, we could add :class:`.Concept` objects to give a full description of what is meant by "REF_AREA"—regardless of whether it appears as a dimension or an attribute.
 
 Populate a data set with observations
 =====================================
 
 The next step is to convert the data frame to :class:`.Observation` objects.
-We define a new function, ``make_obs``, and use the built-in method :meth:`pandas.DataFrame.apply` to run it on each row of ``data``.
+We define a new function, ``make_obs``, that operates on one row of the data frame.
 The function generates a single Observation object by using the different columns as key values (for dimensions), attributes, or the observation value, as appropriate.
 
 .. ipython:: python
@@ -121,27 +126,45 @@ The function generates a single Observation object by using the different column
              value=row[dsd.measures[0].id],
         )
 
-    # Convert each row of `data` to an Observation
-    observations = data.apply(make_obs, axis=1).to_list()
 
-.. note:: Because the DSD is a complete description of the structure of the data, notice that ``make_obs`` can use its attributes to know which IDs to use for values of dimensions, attributes, and the primary measure.
+.. note:: Because the DSD is a complete description of the structure of the data, notice that ``make_obs`` can use its properties to retrieve the IDs for dimensions, attributes, and the primary measure.
+
    The variables ``D``, ``M``, and ``A`` were already deleted and aren't used anymore.
 
-This list of Observation objects can now be used to create a :class:`.DataSet`.
-The DSD is also linked to the data set.
+Next, we use the built-in method :meth:`pandas.DataFrame.apply` to run this function on each row of ``data``.
+
+.. ipython:: python
+
+    # Convert each row of `data` to an Observation
+    # apply() returns a pd.Series; convert to a list
+    observations = data.apply(make_obs, axis=1).to_list()
+
+This list of Observation objects can now be used to create :class:`Datasets <.DataSet>`.
+
+Because of the structure of our ``data``, there are only 4 unique keys for 8 observations.
+For instance, the key TIME_DETAIL=2016, REF_AREA=1 appears *twice*, each time with a different value for the UNIT_MEASURE attribute.
+The SDMX information model requires that every observation in a data set has a *unique* key.
+We meet this requirement by creating two data sets, so that each data set contains a set of unique keys.
 
 .. ipython:: python
 
     from sdmx.model import DataSet
-    ds = DataSet(structured_by=dsd, obs=observations)
-    ds
 
+    # Only the Observations with UNIT_MEASURE="PT"
+    ds1 = DataSet(structured_by=dsd, obs=observations[:4])
+    ds1
+
+    # Observations with UNIT_MEASURE="USD"
+    ds2 = DataSet(structured_by=dsd, obs=observations[4:])
+    ds2
+
+The DSD is also connected to each data set.
 
 Encapsulate in messages and write to file
 =========================================
 
 SDMX files always contain complete *messages* with either data or structure.
-To write the ``ds`` object to file, we need to enclose it in a message object.
+To write the ``ds1`` and ``ds2`` objects to file, we need to enclose them in a message object.
 
 An SDMX data message doesn't refer to a DSD directly, but to a data *flow* definition (DFD), which in turn refers to the DSD.
 We create a DFD as well.
@@ -155,15 +178,15 @@ We create a DFD as well.
     dfd = DataflowDefinition(id="CUSTOM_DFD", structure=dsd)
 
     # The data message contains the data set, and points to the data flow
-    msg1 = DataMessage(data=[ds], dataflow=dfd)
+    msg1 = DataMessage(data=[ds1, ds2], dataflow=dfd)
 
     # Write in SDMX-ML (XML) format
     with open("data-message.xml", "wb") as f:
         f.write(sdmx.to_xml(msg1))
 
 We also write the DFD and DSD to file.
-This step is not required; :mod:`sdmx` could infer these when reading :file:`data-message.xml`.
-However, the very purpose of the SDMX standard is to enable good practices: being explicit and unambigious about how data is structured and what it means.
+This step is not required: :mod:`sdmx` could infer these when reading :file:`data-message.xml`.
+However, the very purpose of the SDMX standard is to enable good practice, to be explicit and unambigious about how data is structured and what it means.
 
 .. ipython:: python
 
@@ -178,22 +201,34 @@ However, the very purpose of the SDMX standard is to enable good practices: bein
     with open("structure-message.xml", "wb") as f:
         f.write(sdmx.to_xml(msg2))
 
-Read the results
-================
+Check the results
+=================
 
-We delete the references to all the objects we created, and then re-read them from file:
+We read the data from the files just generated.
 
 .. ipython:: python
 
-    del msg1, msg2, ds, dfd, dsd, observations
+    # Delete references to all the objects just created
+    del msg1, msg2, ds1, ds2, dfd, dsd, observations
 
+    # Re-read from files
     msg3 = sdmx.read_sdmx("structure-message.xml")
     msg4 = sdmx.read_sdmx(
       "data-message.xml", dsd=msg3.structure["CUSTOM_DSD"]
     )
-    # Convert to a dataframe, including attributes
-    sdmx.to_pandas(msg4.data[0], attributes="o")
 
-.. note:: Simplifying the process of authoring different kinds of SDMX objects and messages is a top priority enhancement for :mod:`sdmx`.
-   See the :doc:`roadmap <roadmap>`.
+    # Convert to a data frame, including attributes in a column
+    dfs = sdmx.to_pandas(msg4, attributes="o")
+    dfs
+
+:func:`.to_pandas` converts each data set in the message to a separate :mod:`pandas` object with a unique :class:`pandas.MultiIndex`, so this call returns a list containing two data frames.
+
+We can also combine these data frames into a single one, with a non-unique index, and then use :meth:`pandas.DataFrame.reset_index` to recover the initial structure:
+
+.. ipython:: python
+
+    pd.concat(dfs).reset_index()
+
+.. note:: Simplifying the process of authoring different kinds of SDMX objects and messages is a priority enhancement for :mod:`sdmx`.
    Contributions are welcome!
+   See the :doc:`roadmap </roadmap>`.
