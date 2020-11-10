@@ -332,7 +332,7 @@ def _component(obj: model.Component):
     except AttributeError:
         pass
     except NotImplementedError:
-        if obj.related_to is not None:
+        if getattr(obj, "related_to", None) is not None:
             raise
 
     return elem
@@ -493,12 +493,15 @@ def _sk(obj: model.SeriesKey):
 def _obs(obj: model.Observation):
     elem = Element("gen:Obs")
 
-    if len(obj.dimension) == 1:
-        # Observation in a series; at most one dimension given by the Key
-        elem.append(Element("gen:ObsDimension", value=obj.dimension.values[0].value))
-    else:
-        # Top-level observation, not associated with a SeriesKey
-        elem.append(_kv("gen:ObsKey", obj.dimension))
+    if obj.dimension:
+        if len(obj.dimension) == 1:
+            # Observation in a series; at most one dimension given by the Key
+            elem.append(
+                Element("gen:ObsDimension", value=obj.dimension.values[0].value)
+            )
+        else:
+            # Top-level observation, not associated with a SeriesKey
+            elem.append(_kv("gen:ObsKey", obj.dimension))
 
     elem.append(Element("gen:ObsValue", value=str(obj.value)))
 
