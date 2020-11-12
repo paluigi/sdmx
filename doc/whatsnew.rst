@@ -8,8 +8,8 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+v1.5.0 (2020-11-12)
+===================
 
 - Add a :doc:`brief tutorial <howto/create>` on creating SDMX-ML messages from pure Python objects (:issue:`23`, :pull:`24`).
 - Add :ref:`Statistics Estonia <STAT_EE>` as a data source (:pull:`25`).
