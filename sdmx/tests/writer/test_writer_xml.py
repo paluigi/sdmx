@@ -3,14 +3,36 @@ import logging
 import pytest
 
 import sdmx
+from sdmx.model import DataStructureDefinition, Dimension, Key, Observation
 from sdmx.tests.data import specimen
 
 log = logging.getLogger(__name__)
 
 
+@pytest.fixture
+def dsd():
+    dsd = DataStructureDefinition()
+
+    for order, id in enumerate(["FOO", "BAR", "BAZ"]):
+        dsd.dimensions.append(Dimension(id=id, order=order))
+
+    return dsd
+
+
 def test_codelist(tmp_path, codelist):
     result = sdmx.to_xml(codelist, pretty_print=True)
     print(result.decode())
+
+
+def test_obs(dsd):
+    # Generate <gen:ObsKey> element for 2+-dimensional Observation.dimension
+    o = Observation(dimension=dsd.make_key(Key, dict(FOO=1, BAR=2)), value=42.)
+
+    exp = (
+        '<gen:ObsKey><gen:Value id="FOO" value="1"/>'
+        '<gen:Value id="BAR" value="2"/></gen:ObsKey>'
+    )
+    assert exp in sdmx.to_xml(o).decode()
 
 
 def test_structuremessage(tmp_path, structuremessage):
