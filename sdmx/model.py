@@ -1906,7 +1906,7 @@ class DataSet(AnnotableArtefact):
         """Add *observations* to a series with *series_key*.
 
         Checks consistency and adds group associations."""
-        if series_key:
+        if series_key is not None:
             # Associate series_key with any GroupKeys that apply to it
             self._add_group_refs(series_key)
             # Maybe initialize empty series
@@ -1919,7 +1919,7 @@ class DataSet(AnnotableArtefact):
             # Store a reference to the observation
             self.obs.append(obs)
 
-            if series_key:
+            if series_key is not None:
                 if obs.series_key is None:
                     # Assign the observation to the SeriesKey
                     obs.series_key = series_key

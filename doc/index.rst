@@ -58,9 +58,10 @@ To learn about SDMX in more detail, use the :doc:`list of resources and referenc
 Contributing and getting help
 =============================
 
-- Report bugs, suggest features or view the source code on
+- Ask usage questions (“How do I?”) on `Stack Overflow <https://stackoverflow.com/questions/tagged/python-sdmx+or+sdmx>`_ using the tag ``[python-sdmx]``.
+- Report bugs, suggest features, or view the source code on
   `GitHub <https://github.com/khaeru/sdmx>`_.
-- The `sdmx-python <https://groups.google.com/forum/?hl=en#!forum/sdmx-python>`_ Google Group and mailing list may have answers for some questions.
+- The older `sdmx-python <https://groups.google.com/forum/?hl=en#!forum/sdmx-python>`_ Google Group may have answers for some questions.
 
 
 .. toctree::

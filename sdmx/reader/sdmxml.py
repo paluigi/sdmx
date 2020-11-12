@@ -1307,7 +1307,7 @@ def _ds_end(reader, elem):
     # Collect observations not grouped by SeriesKey
     ds.add_obs(reader.pop_all(model.Observation))
 
-    # Create group references
+    # Add any group associations not made above in add_obs() or in _series()
     for obs in ds.obs:
         ds._add_group_refs(obs)
 

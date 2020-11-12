@@ -5,6 +5,13 @@ How to…
    :local:
    :backlinks: none
 
+On other pages:
+
+.. toctree::
+   :maxdepth: 1
+
+   howto/create
+
 Access other SDMX data sources
 ------------------------------
 
