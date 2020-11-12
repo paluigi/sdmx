@@ -194,6 +194,18 @@ SDMX-ML —
    :members:
 
 
+.. _STAT_EE:
+
+``STAT_EE``: Statistics Estonia (Estonia)
+-----------------------------------------
+
+SDMX-JSON —
+`Website <http://andmebaas.stat.ee>`__ (et) —
+API documentation `(en) <https://www.stat.ee/sites/default/files/2020-09/API-instructions.pdf>`__, `(et) <https://www.stat.ee/sites/default/files/2020-09/API-juhend.pdf>`__
+
+- Estonian name: Eesti Statistika.
+
+
 ``UNSD``: United Nations Statistics Division
 --------------------------------------------
 
