@@ -101,6 +101,13 @@
     "name": "SDMX Global Registry"
   },
   {
+    "id": "STAT_EE",
+    "data_content_type": "JSON",
+    "documentation": "https://www.stat.ee/sites/default/files/2020-09/API-instructions.pdf",
+    "url": "http://andmebaas.stat.ee/sdmx-json",
+    "name": "Statistics Estonia"
+  },
+  {
     "id": "UNESCO",
     "name": "UN Educational, Scientific and Cultural Organization",
     "url": "http://api.uis.unesco.org/sdmx",

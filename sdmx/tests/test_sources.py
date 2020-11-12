@@ -328,6 +328,19 @@ class TestSGR(DataSourceTest):
     source_id = "SGR"
 
 
+class TestSTAT_EE(DataSourceTest):
+    source_id = "STAT_EE"
+
+    endpoint_args = {
+        # Using the example from the documentation
+        "data": dict(
+            resource_id="VK12",
+            key="TRD_VAL+TRD_VAL_PREV..TOTAL.A",
+            params=dict(startTime=2013, endTime=2017),
+        )
+    }
+
+
 class TestUNESCO(DataSourceTest):
     source_id = "UNESCO"
     xfail = {
