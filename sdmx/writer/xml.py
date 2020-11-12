@@ -331,9 +331,11 @@ def _component(obj: model.Component):
         elem.append(writer.recurse(cast(model.DataAttribute, obj).related_to))
     except AttributeError:
         pass
-    except NotImplementedError:
-        if getattr(obj, "related_to", None) is not None:
-            raise
+    except NotImplementedError:  # pragma: no cover
+        if getattr(obj, "related_to", None) is None:
+            pass  # .related_to not set
+        else:
+            raise  # Some other NotImplementedError
 
     return elem
 
