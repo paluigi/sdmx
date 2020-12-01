@@ -368,6 +368,10 @@ class TestSGR(DataSourceTest):
     source_id = "SGR"
 
 
+class TestSPC(DataSourceTest):
+    source_id = "SPC"
+
+
 class TestSTAT_EE(DataSourceTest):
     source_id = "STAT_EE"
 

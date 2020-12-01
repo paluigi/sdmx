@@ -27,7 +27,7 @@ Bug fixes
 
 - Data set-level attributes were not collected by :class:`.sdmxml.Reader` (:issue:`29`, :pull:`33`).
 - Respect `HTTP[S]_PROXY` environment variables (:issue:`26`, :pull:`27`).
-
+- Add The Pacific Community's (SPC) Pacific Data Hub DotStat (PDHSTAT) as a data source
 
 v1.5.0 (2020-11-12)
 ===================

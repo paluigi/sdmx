@@ -120,6 +120,12 @@
     "name": "SDMX Global Registry"
   },
   {
+    "id": "SPC",
+    "name": "Pacific Data Hub DotStat by the Pacific Community (SPC)",
+    "url": "https://stats-nsi-stable.pacificdata.org/rest",
+    "documentation": "https://docs.pacificdata.org/dotstat"
+  },
+  {
     "id": "STAT_EE",
     "data_content_type": "JSON",
     "documentation": "https://www.stat.ee/sites/default/files/2020-09/API-instructions.pdf",
