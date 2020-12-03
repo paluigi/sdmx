@@ -91,6 +91,13 @@
     }
   },
   {
+    "id": "NBB",
+    "data_content_type": "JSON",
+    "documentation": "https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_stat-technical-manual.pdf",
+    "url": "https://stat.nbb.be/sdmx-json",
+    "name": "National Bank of Belgium"
+  },
+  {
     "id": "OECD",
     "data_content_type": "JSON",
     "url": "https://stats.oecd.org/SDMX-JSON",

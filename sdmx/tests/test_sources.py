@@ -341,6 +341,16 @@ class TestNB(DataSourceTest):
     # This source returns a valid SDMX Error message (100 No Results Found)
     # for the 'categoryscheme' endpoint.
 
+class TestNBB(DataSourceTest):
+    source_id = "NBB"
+
+    endpoint_args = {
+        "data": dict(
+            resource_id="REGPOP",
+            key="POPULA.000.A",
+            params=dict(startTime=2013, endTime=2017),
+        )
+    }
 
 class TestOECD(DataSourceTest):
     source_id = "OECD"

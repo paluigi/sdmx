@@ -186,6 +186,17 @@ SDMX-ML —
 - Few dataflows. So do not use categoryscheme.
 - It is unknown whether NB supports series-keys-only.
 
+.. _NBB:
+
+``NBB``: National Bank of Belgium (Belgium)
+-----------------------------------------
+
+SDMX-JSON —
+`Website <https://stat.nbb.be/>`__
+API documentation `(en) <https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_stat-technical-manual.pdf>`__
+
+- French name: Banque Nationale de Belgique.
+- Dutch name: Nationale Bank van België.
 
 ``OECD``: Organisation for Economic Cooperation and Development
 ---------------------------------------------------------------
