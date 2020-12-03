@@ -308,6 +308,18 @@ class TestISTAT(DataSourceTest):
         req.data(df_id, key=data_key)
 
 
+class TestLSD(DataSourceTest):
+    source_id = "LSD"
+
+    endpoint_args = {
+        # Using the example from the documentation
+        "data": dict(
+            resource_id="S3R629_M3010217",
+            params=dict(startTime='2005-01', endTime='2007-01'),
+        )
+    }
+
+
 class TestNB(DataSourceTest):
     source_id = "NB"
     # This source returns a valid SDMX Error message (100 No Results Found)

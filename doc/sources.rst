@@ -165,6 +165,15 @@ SDMX-ML —
 - Similar server platform to Eurostat, with similar capabilities.
 
 
+``LSD``: National Institute of Statistics (Lithuania)
+---------------------------------------------------
+
+SDMX-ML —
+`Website <https://osp.stat.gov.lt/rdb-rest>`__
+
+- Lithuanian name: Lietuvos statistikos.
+
+
 ``NB``: Norges Bank (Norway)
 ----------------------------
 
