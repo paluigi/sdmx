@@ -208,6 +208,7 @@ class Reader(BaseReader):
         "application/vnd.sdmx.genericdata+xml",
         "application/vnd.sdmx.structure+xml",
         "application/vnd.sdmx.structurespecificdata+xml",
+        "application/force-download",
         "text/xml",
     ]
     suffixes = [".xml"]
