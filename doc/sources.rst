@@ -165,6 +165,8 @@ SDMX-ML —
 - Similar server platform to Eurostat, with similar capabilities.
 
 
+.. _LSD:
+
 ``LSD``: National Institute of Statistics (Lithuania)
 -----------------------------------------------------
 
