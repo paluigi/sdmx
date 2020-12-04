@@ -109,11 +109,14 @@ class DataSourceTest:
     # Keyword arguments for particular endpoints
     endpoint_args: Dict[str, Dict[str, Any]] = {}
 
-    @pytest.fixture
-    def req(self):
+    @classmethod
+    def setup_class(cls):
         # Use a common cache file for all agency tests
         (TEST_DATA_PATH / ".cache").mkdir(exist_ok=True)
-        self._cache_path = TEST_DATA_PATH / ".cache" / self.source_id
+        cls._cache_path = TEST_DATA_PATH / ".cache" / cls.source_id
+
+    @pytest.fixture
+    def req(self):
         return Request(
             self.source_id, cache_name=str(self._cache_path), backend="sqlite"
         )
