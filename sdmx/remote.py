@@ -1,4 +1,3 @@
-import logging
 from io import BufferedIOBase, BytesIO
 from warnings import warn
 
@@ -15,16 +14,26 @@ except ImportError:  # pragma: no cover
     from requests import Session as MaybeCachedSession
 
 
-logger = logging.getLogger(__name__)
-
-
 class Session(MaybeCachedSession):
     """:class:`requests.Session` subclass with optional caching.
 
-    If requests_cache is installed, this class caches responses.
+    If :mod:`requests_cache` is installed, this class caches responses.
+
+    Parameters
+    ----------
+    timeout : float
+        Timeout in seconds, used for every request.
+
+    Other parameters
+    ----------------
+    kwargs :
+        Values for any attributes of :class:`requests.Session`, e.g.
+        :attr:`~requests.Session.proxies`,
+        :attr:`~requests.Session.stream`, or
+        :attr:`~requests.Session.verify`.
     """
 
-    def __init__(self, timeout=30.1, proxies=None, stream=False, **kwargs):
+    def __init__(self, timeout=30.1, **kwargs):
 
         if MaybeCachedSession is not requests.Session:
             # Using requests_cache.CachedSession
@@ -36,7 +45,7 @@ class Session(MaybeCachedSession):
                 # Avoid creating any file
                 kwargs["backend"] = "memory"
 
-            super(Session, self).__init__(**kwargs)
+            super(Session, self).__init__()
 
             # Overwrite value from requests_cache.CachedSession.__init__()
             self._is_cache_disabled = disabled
@@ -49,10 +58,13 @@ class Session(MaybeCachedSession):
             # Plain requests.Session
             super(Session, self).__init__()
 
-        # Overwrite values from requests.Session.__init__()
-        self.proxies = proxies
+        # Store timeout; not a property of requests.Session
         self.timeout = timeout
-        self.stream = stream
+
+        # Addition keyword arguments must match existing attributes of requests.Session
+        for name, value in kwargs.items():
+            if hasattr(self, name):
+                setattr(self, name, value)
 
 
 class ResponseIO(BufferedIOBase):
