@@ -318,7 +318,7 @@ class TestLSD(DataSourceTest):
         # Using the example from the documentation
         "data": dict(
             resource_id="S3R629_M3010217",
-            params=dict(startTime='2005-01', endTime='2007-01'),
+            params=dict(startTime="2005-01", endTime="2007-01"),
         )
     }
 
