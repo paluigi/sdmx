@@ -1305,6 +1305,9 @@ def _ds_start(reader, elem):
 def _ds_end(reader, elem):
     ds = reader.pop_single("DataSet")
 
+    # Collect attributes attached to the data set
+    ds.attrib.update(reader.pop_single("Attributes") or {})
+
     # Collect observations not grouped by SeriesKey
     ds.add_obs(reader.pop_all(model.Observation))
 
