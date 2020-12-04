@@ -166,7 +166,7 @@ SDMX-ML —
 
 
 ``LSD``: National Institute of Statistics (Lithuania)
----------------------------------------------------
+-----------------------------------------------------
 
 SDMX-ML —
 `Website <https://osp.stat.gov.lt/rdb-rest>`__
