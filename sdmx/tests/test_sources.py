@@ -322,6 +322,19 @@ class TestLSD(DataSourceTest):
         )
     }
 
+    @pytest.fixture
+    def req(self):
+        """Identical to DataSourceTest, except add verify=False.
+
+        As of 2020-12-04, this source returns an invalid certificate.
+        """
+        return Request(
+            self.source_id,
+            cache_name=str(self._cache_path),
+            backend="sqlite",
+            verify=False,
+        )
+
 
 class TestNB(DataSourceTest):
     source_id = "NB"
