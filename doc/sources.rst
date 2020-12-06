@@ -189,7 +189,7 @@ SDMX-ML —
 .. _NBB:
 
 ``NBB``: National Bank of Belgium (Belgium)
------------------------------------------
+-------------------------------------------
 
 SDMX-JSON —
 `Website <https://stat.nbb.be/>`__
