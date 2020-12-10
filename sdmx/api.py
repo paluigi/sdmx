@@ -444,22 +444,20 @@ class Request:
         # Maybe copy the response to file as it's received
         response_content = remote.ResponseIO(response, tee=tofile)
 
+        # Allow a source class to modify the response (e.g. headers) or content
+        response, response_content = self.source.handle_response(
+            response, response_content
+        )
+
         # Select reader class
         content_type = response.headers.get("content-type", None)
         try:
             Reader = get_reader_for_content_type(content_type)
         except ValueError:
-            try:
-                response, response_content = self.source.handle_response(
-                    response, response_content
-                )
-                content_type = response.headers.get("content-type", None)
-                Reader = get_reader_for_content_type(content_type)
-            except ValueError:
-                raise ValueError(
-                    "can't determine a reader for response "
-                    "content type: %s" % content_type
-                )
+            raise ValueError(
+                "can't determine a SDMX reader for response content type "
+                + repr(content_type)
+            )
 
         # Instantiate reader
         reader = Reader()

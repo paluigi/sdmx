@@ -174,6 +174,7 @@ SDMX-ML —
 `Website <https://osp.stat.gov.lt/rdb-rest>`__
 
 - Lithuanian name: Lietuvos statistikos.
+- This web service returns the non-standard HTTP content-type "application/force-download"; :mod:`sdmx` replaces it with "application/xml"
 
 
 ``NB``: Norges Bank (Norway)
