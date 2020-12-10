@@ -472,6 +472,21 @@ class Reader(BaseReader):
         # Create a candidate object
         obj = self.nameable(cls, elem, **kwargs)
 
+        try:
+            # Retrieve the Agency.id for obj.maintainer
+            maint = self.get_single(model.Agency, elem.attrib["agencyID"])
+        except (AttributeError, KeyError):
+            pass
+        else:
+            # Elem contains a maintainer ID
+            if maint is None:
+                # …but it did not correspond to an existing object; create one
+                maint = model.Agency(id=elem.attrib["agencyID"])
+                self.push(maint)
+                # This object is never collected; ignore it at end of parsing
+                self.ignore.add(id(maint))
+            obj.maintainer = maint
+
         # Maybe retrieve an existing object of the same class and ID
         existing = self.get_single(cls, obj.id, strict=True)
 
@@ -668,7 +683,7 @@ def _footer(reader, elem):
 
 @end("mes:Structures")
 def _structures(reader, elem):
-    """End of a stucture message."""
+    """End of a structure message."""
     msg = reader.get_single(message.Message)
 
     # Populate dictionaries by ID
@@ -906,7 +921,7 @@ def _cl(reader, elem):
         pass
 
     # Retrieve the DSD
-    dsd = reader.peek(model.DataStructureDefinition)
+    dsd = reader.peek("current DSD")
     assert dsd is not None
 
     # Retrieve the components
@@ -1005,8 +1020,30 @@ def _dks(reader, elem):
     )
 
 
+@end("com:StartPeriod com:EndPeriod")
+def _p(reader, elem):
+    # Store by element tag name
+    reader.push(
+        elem,
+        model.Period(
+            is_inclusive=elem.attrib["isInclusive"], period=isoparse(elem.text)
+        ),
+    )
+
+
+@end("com:TimeRange")
+def _tr(reader, elem):
+    return model.RangePeriod(
+        start=reader.pop_single("StartPeriod"), end=reader.pop_single("EndPeriod")
+    )
+
+
 @end("com:Attribute com:KeyValue")
 def _ms(reader, elem):
+    """MemberSelection."""
+    arg = dict(values_for=None)
+
+    # Identify the component
     # Values are for either a Dimension or Attribute, based on tag name
     kind = {
         "KeyValue": ("dimensions", model.Dimension),
@@ -1026,22 +1063,29 @@ def _ms(reader, elem):
         # e.g. DataProvider, that does not provide an association to a DSD.
         # Try to get a Component from the current scope with matching ID.
         cl = None
-        component = reader.get_single(kind[1], id=elem.attrib["id"])
+        arg["values_for"] = reader.get_single(kind[1], id=elem.attrib["id"])
     else:
         # Get the Component
-        component = cl.get(elem.attrib["id"])
+        arg["values_for"] = cl.get(elem.attrib["id"])
 
-    # Convert to MemberValue
-    values = map(lambda v: model.MemberValue(value=v), reader.pop_all("Value"))
+    # Convert to SelectionValue
+    mvs = reader.pop_all("Value")
+    trv = reader.pop_all(model.TimeRangeValue)
+    if mvs:
+        arg["values"] = list(map(lambda v: model.MemberValue(value=v), mvs))
+    elif trv:
+        arg["values"] = trv
+    else:
+        raise RuntimeError
 
-    if not component:
+    if arg["values_for"] is None:
         log.warning(
             f"{cl} has no {kind[1].__name__} with ID {elem.attrib['id']}; XML element "
-            "ignored and MemberValues discarded"
+            "ignored and SelectionValues discarded"
         )
         return None
-
-    return model.MemberSelection(values_for=component, values=list(values))
+    else:
+        return model.MemberSelection(**arg)
 
 
 @end("str:CubeRegion")
@@ -1080,8 +1124,7 @@ def _cc(reader, elem):
 
 @end("str:AttributeRelationship")
 def _ar(reader, elem):
-    # Retrieve the current DSD
-    dsd = reader.peek(model.DataStructureDefinition)
+    dsd = reader.peek("current DSD")
 
     if "None" in elem[0].tag:
         return model.NoSpecifiedRelationship()
@@ -1117,20 +1160,24 @@ def _ar(reader, elem):
 @start("str:DataStructure", only=False)
 def _dsd_start(reader, elem):
     # Get any external reference created earlier, or instantiate a new object.
-    # Children are not parsed at this point
     dsd = reader.maintainable(model.DataStructureDefinition, elem)
 
     if dsd not in reader.stack[model.DataStructureDefinition]:
         # A new object was created
         reader.push(dsd)
 
+    # Store a separate reference to the current DSD
+    reader.push("current DSD", dsd)
+
 
 @end("str:DataStructure", only=False)
 def _dsd_end(reader, elem):
-    dsd = reader.peek(model.DataStructureDefinition)
+    dsd = reader.pop_single("current DSD")
+
+    # Collect annotations, name, and description
+    dsd.annotations = reader.pop_all(model.Annotation, strict=True)
     add_localizations(dsd.name, reader.pop_all("Name"))
     add_localizations(dsd.description, reader.pop_all("Description"))
-    # TODO also handle annotations etc.
 
 
 @end("str:Dataflow")

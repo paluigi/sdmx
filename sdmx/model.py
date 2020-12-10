@@ -1071,7 +1071,7 @@ class MemberValue(SelectionValue):
             return self.value == other
 
 
-class TimeRangeValue(BaseModel):
+class TimeRangeValue(SelectionValue):
     """SDMX-IM TimeRangeValue."""
 
 
