@@ -1071,13 +1071,28 @@ class MemberValue(SelectionValue):
             return self.value == other
 
 
+class TimeRangeValue(BaseModel):
+    """SDMX-IM TimeRangeValue."""
+
+
+class Period(BaseModel):
+    is_inclusive: bool
+    period: datetime
+
+
+class RangePeriod(TimeRangeValue):
+    start: Period
+    end: Period
+
+
 class MemberSelection(BaseModel):
     #:
     included: bool = True
     #:
     values_for: Component
-    #: NB the spec does not say what this feature should be named
-    values: Set[MemberValue] = set()
+    #: Value(s) included in the selection. Note that the name of this attribute is not
+    #: stated in the IM, so 'values' is chosen for the implementation in this package.
+    values: List[SelectionValue] = []
 
     def __contains__(self, value):
         """Compare KeyValue to MemberValue."""
