@@ -79,6 +79,18 @@
     }
   },
   {
+    "id": "LSD",
+    "documentation": "https://osp.stat.gov.lt/rdb-rest",
+    "url": "https://osp-rs.stat.gov.lt/rest_xml",
+    "name": "Statistics Lithuania",
+    "supports": {
+      "categoryscheme": false,
+      "codelist": false,
+      "conceptscheme": false,
+      "provisionagreement": false
+    }
+  },
+  {
     "id": "OECD",
     "data_content_type": "JSON",
     "url": "https://stats.oecd.org/SDMX-JSON",

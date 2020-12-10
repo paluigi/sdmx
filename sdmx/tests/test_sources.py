@@ -109,11 +109,14 @@ class DataSourceTest:
     # Keyword arguments for particular endpoints
     endpoint_args: Dict[str, Dict[str, Any]] = {}
 
-    @pytest.fixture
-    def req(self):
+    @classmethod
+    def setup_class(cls):
         # Use a common cache file for all agency tests
         (TEST_DATA_PATH / ".cache").mkdir(exist_ok=True)
-        self._cache_path = TEST_DATA_PATH / ".cache" / self.source_id
+        cls._cache_path = TEST_DATA_PATH / ".cache" / cls.source_id
+
+    @pytest.fixture
+    def req(self):
         return Request(
             self.source_id, cache_name=str(self._cache_path), backend="sqlite"
         )
@@ -306,6 +309,31 @@ class TestISTAT(DataSourceTest):
 
         # Use a dict() key to force Request to make a sub-query for the DSD
         req.data(df_id, key=data_key)
+
+
+class TestLSD(DataSourceTest):
+    source_id = "LSD"
+
+    endpoint_args = {
+        # Using the example from the documentation
+        "data": dict(
+            resource_id="S3R629_M3010217",
+            params=dict(startPeriod="2005-01", endPeriod="2007-01"),
+        )
+    }
+
+    @pytest.fixture
+    def req(self):
+        """Identical to DataSourceTest, except add verify=False.
+
+        As of 2020-12-04, this source returns an invalid certificate.
+        """
+        return Request(
+            self.source_id,
+            cache_name=str(self._cache_path),
+            backend="sqlite",
+            verify=False,
+        )
 
 
 class TestNB(DataSourceTest):
