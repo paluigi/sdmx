@@ -1,4 +1,5 @@
 from io import BufferedIOBase, BytesIO
+from operator import itemgetter
 from warnings import warn
 
 import requests
@@ -12,6 +13,20 @@ except ImportError:  # pragma: no cover
         RuntimeWarning,
     )
     from requests import Session as MaybeCachedSession
+
+
+# Known keyword arguments for requests_cache.CachedSession
+CACHE_KW = [
+    "cache_name",
+    "backend",
+    "expire_after",
+    "allowable_codes",
+    "allowable_methods",
+    "old_data_on_error",
+    "location",
+    "fast_save",
+    "extension",
+]
 
 
 class Session(MaybeCachedSession):
@@ -34,28 +49,31 @@ class Session(MaybeCachedSession):
     """
 
     def __init__(self, timeout=30.1, **kwargs):
+        # Separate keyword arguments for CachedSession
+        cache_kwargs = dict(
+            filter(itemgetter(1), [(k, kwargs.pop(k, None)) for k in CACHE_KW])
+        )
 
         if MaybeCachedSession is not requests.Session:
             # Using requests_cache.CachedSession
 
             # No cache keyword arguments supplied = don't use the cache
-            disabled = set(kwargs.keys()) <= {"get_footer_url"}
+            disabled = not len(cache_kwargs.keys())
 
             if disabled:
                 # Avoid creating any file
-                kwargs["backend"] = "memory"
+                cache_kwargs.setdefault("backend", "memory")
 
-            super(Session, self).__init__()
+            super(Session, self).__init__(**cache_kwargs)
 
             # Overwrite value from requests_cache.CachedSession.__init__()
             self._is_cache_disabled = disabled
-        elif len(kwargs):
+        elif len(cache_kwargs):
             raise ValueError(
-                "Cache arguments have no effect without "
-                "requests_session: %s" % kwargs
+                f"Arguments have no effect without requests_session: {cache_kwargs}"
             )
         else:
-            # Plain requests.Session
+            # Plain requests.Session: no arguments
             super(Session, self).__init__()
 
         # Store timeout; not a property of requests.Session
