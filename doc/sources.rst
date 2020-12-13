@@ -174,7 +174,7 @@ SDMX-ML —
 `Website <https://osp.stat.gov.lt/rdb-rest>`__
 
 - Lithuanian name: Lietuvos statistikos.
-- This web service returns the non-standard HTTP content-type "application/force-download"; :mod:`sdmx` replaces it with "application/xml"
+- This web service returns the non-standard HTTP content-type "application/force-download"; :mod:`sdmx` replaces it with "application/xml".
 
 
 ``NB``: Norges Bank (Norway)
@@ -186,17 +186,20 @@ SDMX-ML —
 - Few dataflows. So do not use categoryscheme.
 - It is unknown whether NB supports series-keys-only.
 
+
 .. _NBB:
 
 ``NBB``: National Bank of Belgium (Belgium)
 -------------------------------------------
 
 SDMX-JSON —
-`Website <https://stat.nbb.be/>`__
+`Website <https://stat.nbb.be/>`__ —
 API documentation `(en) <https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_stat-technical-manual.pdf>`__
 
 - French name: Banque Nationale de Belgique.
 - Dutch name: Nationale Bank van België.
+- As of 2020-12-13, this web service (like STAT_EE) uses server software that serves SDMX-ML 2.0 or SDMX-JSON.
+  Since :mod:`sdmx` does not support SDMX-ML 2.0, the package is configured to use the JSON endpoint.
 
 ``OECD``: Organisation for Economic Cooperation and Development
 ---------------------------------------------------------------
@@ -227,6 +230,8 @@ SDMX-JSON —
 API documentation `(en) <https://www.stat.ee/sites/default/files/2020-09/API-instructions.pdf>`__, `(et) <https://www.stat.ee/sites/default/files/2020-09/API-juhend.pdf>`__
 
 - Estonian name: Eesti Statistika.
+- As of 2020-12-13, this web service (like NBB) uses server software that serves SDMX-ML 2.0 or SDMX-JSON.
+  Since :mod:`sdmx` does not support SDMX-ML 2.0, the package is configured to use the JSON endpoint.
 
 
 ``UNSD``: United Nations Statistics Division

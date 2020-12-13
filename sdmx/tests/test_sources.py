@@ -341,6 +341,7 @@ class TestNB(DataSourceTest):
     # This source returns a valid SDMX Error message (100 No Results Found)
     # for the 'categoryscheme' endpoint.
 
+
 class TestNBB(DataSourceTest):
     source_id = "NBB"
 
@@ -351,6 +352,7 @@ class TestNBB(DataSourceTest):
             params=dict(startTime=2013, endTime=2017),
         )
     }
+
 
 class TestOECD(DataSourceTest):
     source_id = "OECD"

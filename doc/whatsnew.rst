@@ -11,6 +11,7 @@ What's new?
 Next release
 ============
 
+- Add :ref:`National Bank of Belgium <NBB>` as a data source (:pull:`32`).
 - Add :ref:`Statistics Lithuania <LSD>` as a data source (:pull:`33`).
 - Bugfix: data set-level attributes were not collected by :class:`.sdmxml.Reader` (:issue:`29`, :pull:`33`).
 - Respect `HTTP[S]_PROXY` environment variables (:issue:`26`, :pull:`27`).
