@@ -8,13 +8,20 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+v1.6.0 (2020-12-16)
+===================
+
+New features
+------------
 
 - Support Python 3.9 (using pydantic ≥ 1.7) (:pull:`37`).
 - Add :ref:`National Bank of Belgium <NBB>` as a data source (:pull:`32`).
 - Add :ref:`Statistics Lithuania <LSD>` as a data source (:pull:`33`).
-- Bugfix: data set-level attributes were not collected by :class:`.sdmxml.Reader` (:issue:`29`, :pull:`33`).
+
+Bug fixes
+---------
+
+- Data set-level attributes were not collected by :class:`.sdmxml.Reader` (:issue:`29`, :pull:`33`).
 - Respect `HTTP[S]_PROXY` environment variables (:issue:`26`, :pull:`27`).
 
 
