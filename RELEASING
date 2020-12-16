@@ -40,8 +40,12 @@ Address any failures before releasing.
 
     $ twine upload dist/*
 
-7. Push the commit(s) and tag to GitHub:
+7. Edit doc/whatsnew.rst to add a new heading for the next release. Make a
+   commit with a message like "Reset whatsnew.rst to development state".
+
+8. Push the commits and tag to GitHub:
 
     $ git push --tags
 
-8. Edit doc/whatsnew.rst to add a new heading for the next release.
+   Visit https://github.com/khaeru/sdmx/releases and mark the new release using
+   the pushed tag.
