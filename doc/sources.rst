@@ -200,6 +200,8 @@ API documentation `(en) <https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_sta
 - Dutch name: Nationale Bank van België.
 - As of 2020-12-13, this web service (like STAT_EE) uses server software that serves SDMX-ML 2.0 or SDMX-JSON.
   Since :mod:`sdmx` does not support SDMX-ML 2.0, the package is configured to use the JSON endpoint.
+- The web service returns a custom HTML error page rather than an SDMX error message for certain queries or an internal error.
+  This appears as: ``ValueError: can't determine a SDMX reader for response content type 'text/html; charset=utf-8'``
 
 ``OECD``: Organisation for Economic Cooperation and Development
 ---------------------------------------------------------------

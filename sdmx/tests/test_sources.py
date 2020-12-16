@@ -348,7 +348,7 @@ class TestNBB(DataSourceTest):
     endpoint_args = {
         "data": dict(
             resource_id="REGPOP",
-            key="POPULA.000.A",
+            key="POPULA.000.",
             params=dict(startTime=2013, endTime=2017),
         )
     }
