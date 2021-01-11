@@ -11,7 +11,7 @@ What's new?
 Next release
 ============
 
-- Add The Pacific Community's (SPC) Pacific Data Hub DotStat (PDHSTAT) as a data source (:pull:`30`).
+- Add :ref:`The Pacific Community's Pacific Data Hub <SPC>` as a data source (:pull:`30`).
 - Add classes to :mod:`sdmx.model`: :class:`.TimeRangeValue`, :class:`.Period`, :class:`RangePeriod`, and parse ``<com:TimeRange>`` and related tags in SDMX-ML (:pull:`30`).
 
 v1.6.0 (2020-12-16)

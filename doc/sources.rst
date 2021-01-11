@@ -222,6 +222,17 @@ SDMX-ML —
    :members:
 
 
+.. _SPC:
+
+``SPC``: Pacific Data Hub DotStat by the Pacific Community (SPC)
+-----------------------------
+
+SDMX-ML —
+`API documentation <https://docs.pacificdata.org/dotstat/>`__ —
+`Web interface <https://stats.pacificdata.org/>`__
+
+- French name: Communauté du Pacifique
+
 .. _STAT_EE:
 
 ``STAT_EE``: Statistics Estonia (Estonia)

@@ -121,9 +121,10 @@
   },
   {
     "id": "SPC",
-    "name": "Pacific Data Hub DotStat by the Pacific Community (SPC)",
+    "name": "Pacific Data Hub DotStat by The Pacific Community (SPC)",
     "url": "https://stats-nsi-stable.pacificdata.org/rest",
-    "documentation": "https://docs.pacificdata.org/dotstat"
+    "documentation": "https://docs.pacificdata.org/dotstat",
+    "supports": {"provisionagreement": false}
   },
   {
     "id": "STAT_EE",
