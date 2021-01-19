@@ -368,7 +368,11 @@ def _cat(obj: model.Categorisation):
 @writer
 def _ms(obj: model.MemberSelection):
     elem = Element("com:KeyValue", id=obj.values_for.id)
-    elem.extend(Element("com:Value", mv.value) for mv in obj.values)
+    elem.extend(
+        # cast(): as of PR#30, only MemberValue is supported here
+        Element("com:Value", cast(model.MemberValue, mv).value)
+        for mv in obj.values
+    )
     return elem
 
 

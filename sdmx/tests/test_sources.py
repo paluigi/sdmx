@@ -370,7 +370,7 @@ class TestSGR(DataSourceTest):
 
 class TestSPC(DataSourceTest):
     source_id = "SPC"
-    
+
     endpoint_args = {
         "data": dict(
             resource_id="DF_CPI",
@@ -378,6 +378,7 @@ class TestSPC(DataSourceTest):
             params=dict(startPeriod=2010, endPeriod=2015),
         )
     }
+
 
 class TestSTAT_EE(DataSourceTest):
     source_id = "STAT_EE"
