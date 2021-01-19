@@ -254,9 +254,12 @@ Let's return to explore the :class:`.ContentConstraint` that came with our metad
 
     # Get the valid members for two dimensions
     c1 = sdmx.to_pandas(cr.member['CURRENCY'].values)
+    # Convert list() to set()
+    c1 = set(c1)
     len(c1)
 
     c2 = sdmx.to_pandas(cr.member['CURRENCY_DENOM'].values)
+    c2 = set(c2)
     len(c2)
 
     # Explore the contents
