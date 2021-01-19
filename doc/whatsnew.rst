@@ -11,6 +11,7 @@ What's new?
 Next release
 ============
 
+- Respect `override` argument to :func:`.add_source` (:pull:`41`).
 - Add :ref:`The Pacific Community's Pacific Data Hub <SPC>` as a data source (:pull:`30`).
 - Add classes to :mod:`sdmx.model`: :class:`.TimeRangeValue`, :class:`.Period`, :class:`RangePeriod`, and parse ``<com:TimeRange>`` and related tags in SDMX-ML (:pull:`30`).
 
