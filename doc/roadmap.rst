@@ -19,6 +19,7 @@ Code style
   - **mypy**: check typing using `mypy <https://mypy.readthedocs.io>`_.
   - **flake8**: check code style against `PEP 8 <https://www.python.org/dev/peps/pep-0008>`_ using `flake8 <https://flake8.pycqa.org>`_.
 
+- Follow `the 7 rules of a great Git commit message <https://chris.beams.io/posts/git-commit/#seven-rules>`_.
 - Write docstrings in the `numpydoc <https://numpydoc.readthedocs.io/en/latest/format.html>`_ style.
 
 Roadmap
