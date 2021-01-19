@@ -3,7 +3,7 @@ from sdmx.source import add_source, list_sources, sources
 
 def test_list_sources():
     source_ids = list_sources()
-    assert len(source_ids) == 19
+    assert len(source_ids) == 20
 
     # Listed alphabetically
     assert source_ids[0] == "ABS"

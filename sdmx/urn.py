@@ -34,6 +34,8 @@ def make(obj, maintainable_parent=None):
         raise ValueError(
             f"Neither {repr(obj)} nor {repr(maintainable_parent)} are maintainable"
         )
+    elif ma.maintainer is None:
+        raise ValueError(f"Cannot construct URL for {repr(ma)} without maintainer")
 
     return _BASE.format(
         package=PACKAGE[obj.__class__], obj=obj, ma=ma, extra_id=extra_id

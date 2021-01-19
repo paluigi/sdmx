@@ -11,6 +11,8 @@ What's new?
 Next release
 ============
 
+- Add :ref:`The Pacific Community's Pacific Data Hub <SPC>` as a data source (:pull:`30`).
+- Add classes to :mod:`sdmx.model`: :class:`.TimeRangeValue`, :class:`.Period`, :class:`RangePeriod`, and parse ``<com:TimeRange>`` and related tags in SDMX-ML (:pull:`30`).
 
 v1.6.0 (2020-12-16)
 ===================
@@ -27,7 +29,6 @@ Bug fixes
 
 - Data set-level attributes were not collected by :class:`.sdmxml.Reader` (:issue:`29`, :pull:`33`).
 - Respect `HTTP[S]_PROXY` environment variables (:issue:`26`, :pull:`27`).
-
 
 v1.5.0 (2020-11-12)
 ===================

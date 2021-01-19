@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Set, Union
+from typing import Set, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -195,7 +195,9 @@ def _cr(obj: model.CubeRegion, **kwargs):
     result: DictLike[str, pd.Series] = DictLike()
     for dim, memberselection in obj.member.items():
         result[dim.id] = pd.Series(
-            [mv.value for mv in memberselection.values], name=dim.id
+            # cast(): as of PR#30, only MemberValue is supported here
+            [cast(model.MemberValue, mv).value for mv in memberselection.values],
+            name=dim.id,
         )
     return result
 
