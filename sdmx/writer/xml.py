@@ -171,17 +171,17 @@ def _sm(obj: message.StructureMessage):
 @writer
 def _header(obj: message.Header):
     elem = Element("mes:Header")
-    elem.append(Element("mes:Test", str(obj.test).lower()))
     if obj.id:
         elem.append(Element("mes:ID", obj.id))
+    elem.append(Element("mes:Test", str(obj.test).lower()))
     if obj.prepared:
         elem.append(Element("mes:Prepared", obj.prepared.isoformat()))
     if obj.sender:
         elem.append(writer.recurse(obj.sender, _tag="mes:Sender"))
-    if obj.source:
-        elem.extend(i11lstring(obj.source, "mes:Source"))
     if obj.receiver:
         elem.append(writer.recurse(obj.receiver, _tag="mes:Receiver"))
+    if obj.source:
+        elem.extend(i11lstring(obj.source, "mes:Source"))
     return elem
 
 
