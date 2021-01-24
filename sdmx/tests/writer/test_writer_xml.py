@@ -70,7 +70,7 @@ def test_structuremessage(tmp_path, structuremessage):
 
 
 _xf_ref = pytest.mark.xfail(
-    raises=NotImplementedError, match="Cannot write reference to .* without parent"
+    raises=NotImplementedError, reason="Cannot write reference to .* without parent"
 )
 _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
 

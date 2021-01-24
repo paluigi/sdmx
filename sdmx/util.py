@@ -1,6 +1,6 @@
-import collections
 import logging
 import typing
+from collections import OrderedDict
 from enum import Enum
 from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
 
@@ -10,16 +10,6 @@ from pydantic.class_validators import make_generic_validator
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
-
-try:
-    from typing import OrderedDict
-except ImportError:
-    # Python < 3.7.2 compatibility; see
-    # https://github.com/python/cpython/commit/68b56d0
-    from typing import _alias  # type: ignore
-
-    OrderedDict = _alias(collections.OrderedDict, (KT, VT))
-
 
 log = logging.getLogger(__name__)
 
@@ -157,7 +147,7 @@ class BaseModel(pydantic.BaseModel):
         self.__fields_set__.add(name)
 
 
-class DictLike(collections.OrderedDict, typing.MutableMapping[KT, VT]):
+class DictLike(OrderedDict, typing.MutableMapping[KT, VT]):
     """Container with features of a dict & list, plus attribute access."""
 
     def __getitem__(self, key: Union[KT, int]) -> VT:
