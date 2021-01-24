@@ -6,7 +6,7 @@ from sdmx.message import StructureMessage
 from sdmx.writer.protobuf import write as to_protobuf
 
 
-@pytest.mark.xfail(raises=RuntimeError, match="sdmx.format.protobuf_pb2 missing")
+@pytest.mark.xfail(raises=RuntimeError, reason="sdmx.format.protobuf_pb2 missing")
 def test_codelist(caplog, codelist):
     msg = StructureMessage()
     msg.codelist[codelist.id] = codelist
