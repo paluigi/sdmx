@@ -1,10 +1,3 @@
-"""Network requests API.
-
-This module defines :class:`.Request`, which forms the high-level API of
-:mod:`sdmx`. Requesting data and metadata from an SDMX server requires a
-understanding of this API and a basic understanding of the SDMX web service
-guidelines.
-"""
 import logging
 from functools import partial
 from typing import Dict
@@ -12,18 +5,32 @@ from warnings import warn
 
 import requests
 
-from sdmx import remote
+from sdmx.message import Message
+from sdmx.model import DataStructureDefinition, MaintainableArtefact
 from sdmx.reader import get_reader_for_content_type
+from sdmx.session import ResponseIO, Session
+from sdmx.source import NoSource, list_sources, sources
+from sdmx.util import Resource
 
-from .message import Message
-from .model import DataStructureDefinition, MaintainableArtefact
-from .source import NoSource, list_sources, sources
-from .util import Resource
-
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
-class Request:
+def Request(*args, **kwargs):
+    """Compatibility function for :class:`Client`.
+
+    .. versionadded:: 2.0
+
+    .. deprecated:: 2.0
+       Will be removed in :mod:`sdmx` version 3.0.
+
+    """
+    message = "Request class will be removed in v3.0; use Client(…)"
+    log.warning(message)
+    warn(message, DeprecationWarning)
+    return Client(*args, **kwargs)
+
+
+class Client:
     """Client for a SDMX REST web service.
 
     Parameters
@@ -34,6 +41,9 @@ class Request:
     log_level : int
         Override the package-wide logger with one of the
         :ref:`standard logging levels <py:levels>`.
+
+        .. deprecated:: 2.0
+           Will be removed in :mod:`sdmx` version 3.0.
     **session_opts
         Additional keyword arguments are passed to
         :class:`.Session`.
@@ -49,17 +59,20 @@ class Request:
     session = None
 
     def __init__(self, source=None, log_level=None, **session_opts):
-        """Constructor."""
         try:
             self.source = sources[source.upper()] if source else NoSource
         except KeyError:
             raise ValueError(
-                "source must be None or one of: %s" % " ".join(list_sources())
+                f"source must be None or one of: {' '.join(list_sources())}"
             )
 
-        self.session = remote.Session(**session_opts)
+        # Create an HTTP Session object to reuse a connection for multiple requests
+        self.session = Session(**session_opts)
 
         if log_level:
+            message = "Client(…, log_level=…) parameter"
+            log.warning(f"Deprecated: {message}")
+            warn(message, DeprecationWarning)
             logging.getLogger("pandasdmx").setLevel(log_level)
 
     def __getattr__(self, name):
@@ -265,7 +278,7 @@ class Request:
     ):
         """Retrieve SDMX data or metadata.
 
-        (Meta)data is retrieved from the :attr:`source` of the current Request.
+        (Meta)data is retrieved from the :attr:`source` of the current Client.
         The item(s) to retrieve can be specified in one of two ways:
 
         1. `resource_type`, `resource_id`: These give the type (see
@@ -388,7 +401,7 @@ class Request:
             self.source.modify_request_args(kwargs)
 
         # Separate kwargs for requests.Session.send()
-        # This echoes the behaviour of requests.Session.request()
+        # This echoes the behaviour of requests.Session.Client()
         send_kw = ("allow_redirects", "cert", "proxies", "stream", "timeout", "verify")
         send_kwargs = {k: kwargs.pop(k) for k in send_kw if k in kwargs}
 
@@ -401,15 +414,15 @@ class Request:
         req = self.session.prepare_request(req)
 
         # Now get the SDMX message via HTTP
-        logger.info("Requesting resource from %s", req.url)
-        logger.info("with headers %s" % req.headers)
+        log.info("Requesting resource from %s", req.url)
+        log.info("with headers %s" % req.headers)
 
         # Try to get resource from memory cache if specified
         if use_cache:
             try:
                 return self.cache[req.url]
             except KeyError:
-                logger.info("Not found in cache")
+                log.info("Not found in cache")
                 pass
 
         if dry_run:
@@ -442,7 +455,7 @@ class Request:
                 raise
 
         # Maybe copy the response to file as it's received
-        response_content = remote.ResponseIO(response, tee=tofile)
+        response_content = ResponseIO(response, tee=tofile)
 
         # Allow a source class to modify the response (e.g. headers) or content
         response, response_content = self.source.handle_response(
@@ -487,7 +500,7 @@ class Request:
 
         To count the number of series::
 
-            keys = sdmx.Request('PROVIDER').preview_data('flow')
+            keys = sdmx.Client('PROVIDER').preview_data('flow')
             len(keys)
 
         To get a :mod:`pandas` object containing the key values::
@@ -502,7 +515,7 @@ class Request:
             Mapping of *dimension* to *values*, where *values* may be a
             '+'-delimited list of values. If given, only SeriesKeys that match
             *key* are returned. If not given, preview_data is equivalent to
-            ``list(req.series_keys(flow_id))``.
+            ``list(client.series_keys(flow_id))``.
 
         Returns
         -------
@@ -527,4 +540,4 @@ class Request:
 
 def read_url(url, **kwargs):
     """Request a URL directly."""
-    return Request().get(url=url, **kwargs)
+    return Client().get(url=url, **kwargs)

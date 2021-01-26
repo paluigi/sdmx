@@ -16,7 +16,7 @@ class Source(BaseSource):
     made available as a ZIP file.
 
     To configure :meth:`finish_message`, pass its `get_footer_url` argument to
-    :meth:`.Request.get`.
+    :meth:`.Client.get`.
 
     .. versionadded:: 0.2.1
 

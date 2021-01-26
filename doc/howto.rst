@@ -19,11 +19,11 @@ Access other SDMX data sources
 However, any data source that generates SDMX 2.1 messages is supported.
 There are multiple ways to access these:
 
-1. Create a :class:`sdmx.Request` without a named data source, then call the :meth:`~.Request.get` method using the `url` argument::
+1. Create a :class:`sdmx.Client` without a named data source, then call the :meth:`~.Client.get` method using the `url` argument::
 
     import sdmx
-    req = sdmx.Request()
-    req.get(url='https://sdmx.example.org/path/to/webservice', ...)
+    c = sdmx.Client()
+    c.get(url='https://sdmx.example.org/path/to/webservice', ...)
 
 2. Call :meth:`~sdmx.source.add_source` with a JSON snippet describing the data provider.
 
@@ -32,10 +32,19 @@ There are multiple ways to access these:
 
 .. _howto-logging:
 
-View log messages
------------------
+Control logging
+---------------
 
-See the description of :obj:`sdmx.logger`.
+:obj:`sdmx.log` is a standard Python :class:`logging.Logger` object.
+For debugging, set this to a permissive level:
+
+.. code-block:: python
+
+   import logging
+
+   sdmx.log.setLevel(logging.DEBUG)
+
+Log messages include the web service query details (URL and headers) used by :class:`.Client`.
 
 
 .. _howto-references:
@@ -83,7 +92,7 @@ To search the list of dataflows by category, we request the category scheme from
 .. ipython:: python
 
     import sdmx
-    ecb = sdmx.Request('ecb')
+    ecb = sdmx.Client('ecb')
     cat_response = ecb.categoryscheme()
 
 Like any other scheme, a category scheme is essentially a dict mapping ID's to the actual SDMX objects.

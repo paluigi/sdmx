@@ -69,7 +69,7 @@ class Source(BaseModel):
     def handle_response(self, response, content):
         """Handle response content of unknown type.
 
-        This hook is called by :meth:`.Request.get` *only* when
+        This hook is called by :meth:`.Client.get` *only* when
         the `content` cannot be parsed as XML or JSON.
 
         See :meth:`.estat.Source.handle_response` and
@@ -80,7 +80,7 @@ class Source(BaseModel):
     def finish_message(self, message, request, **kwargs):
         """Postprocess retrieved message.
 
-        This hook is called by :meth:`.Request.get` after a :class:`.Message`
+        This hook is called by :meth:`.Client.get` after a :class:`.Message`
         object has been successfully parsed from the query response.
 
         See :meth:`.estat.Source.finish_message` for an example implementation.
@@ -90,7 +90,7 @@ class Source(BaseModel):
     def modify_request_args(self, kwargs):
         """Modify arguments used to build query URL.
 
-        This hook is called by :meth:`.Request.get` to modify the keyword
+        This hook is called by :meth:`.Client.get` to modify the keyword
         arguments before the query URL is built.
 
         The default implementation handles requests for 'structure-specific
@@ -191,7 +191,7 @@ def add_source(info, id=None, override=False, **kwargs):
 def list_sources():
     """Return a sorted list of valid source IDs.
 
-    These can be used to create :class:`Request` instances.
+    These can be used to create :class:`Client` instances.
     """
     return sorted(sources.keys())
 

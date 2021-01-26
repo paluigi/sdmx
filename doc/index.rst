@@ -52,7 +52,7 @@ To learn about SDMX in more detail, use the :doc:`list of resources and referenc
    implementation
    howto
    whatsnew
-   roadmap
+   dev
 
 
 Contributing and getting help

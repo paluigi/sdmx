@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 import sdmx
-from sdmx import Request
+from sdmx import Client
 from sdmx.model import GenericDataSet
 from sdmx.util import DictLike
 
@@ -23,7 +23,7 @@ def test_doc_example():
     """Code from example.rst."""
     import sdmx
 
-    estat = sdmx.Request("ESTAT")
+    estat = sdmx.Client("ESTAT")
 
     metadata = estat.datastructure("DSD_une_rt_a")
 
@@ -59,7 +59,7 @@ def test_doc_example():
 @pytest.mark.network
 def test_doc_index1():
     """First code example in index.rst."""
-    estat = Request("ESTAT")
+    estat = Client("ESTAT")
     flow_response = estat.dataflow("une_rt_a")
 
     with pytest.raises(TypeError):
@@ -74,7 +74,7 @@ def test_doc_index1():
         "datastructure", flow_response.dataflow.une_rt_a.structure.id
     )
 
-    # Even better: Request.get(…) should examine the class and ID of the object
+    # Even better: Client.get(…) should examine the class and ID of the object
     # structure = estat.get(flow_response.dataflow.une_rt_a.structure)
 
     # Show some codelists
@@ -100,9 +100,9 @@ def test_doc_index1():
 @pytest.mark.network
 def test_doc_usage_structure():
     """Code examples in walkthrough.rst."""
-    ecb = Request("ECB")
+    ecb = Client("ECB")
 
-    ecb_via_proxy = Request("ECB", proxies={"http": "http://1.2.3.4:5678"})
+    ecb_via_proxy = Client("ECB", proxies={"http": "http://1.2.3.4:5678"})
     assert all(
         getattr(ecb_via_proxy.session, k) == v
         for k, v in (
@@ -184,7 +184,7 @@ def test_doc_usage_structure():
 @pytest.mark.network
 def test_doc_usage_data():
     """Code examples in usage.rst."""
-    ecb = Request("ECB")
+    ecb = Client("ECB")
 
     data_response = ecb.data(
         resource_id="EXR",

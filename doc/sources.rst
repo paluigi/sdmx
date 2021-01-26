@@ -295,11 +295,11 @@ SDMX-ML or SDMX-JSON —
   .. ipython:: python
 
      import sdmx
-     msg = sdmx.Request("UNICEF").dataflow("GLOBAL_DATAFLOW")
+     msg = sdmx.Client("UNICEF").dataflow("GLOBAL_DATAFLOW")
      msg
      dsd = msg.structure[0]
 
-  The resulting object `dsd` can be passed as an argument to a :meth:`.Request.get` data query.
+  The resulting object `dsd` can be passed as an argument to a :meth:`.Client.get` data query.
   See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/master/sdmx/tests/test_sources.py>`_ for an example.
 
 

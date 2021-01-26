@@ -11,8 +11,7 @@ import pytest
 import requests_mock
 
 import sdmx
-from sdmx import Resource
-from sdmx.api import Request
+from sdmx import Client, Resource
 from sdmx.exceptions import HTTPError
 from sdmx.source import DataContentType, sources
 
@@ -37,7 +36,7 @@ def pytest_generate_tests(metafunc):
     # Use the test class' source_id attr to look up the Source class
     source = sources[metafunc.cls.source_id]
 
-    # This exception is raised by api.Request._request_from_args
+    # This exception is raised by api.Client._request_from_args
     # TODO parametrize force=True to query these endpoints anyway; then CI
     #      XPASS will reveal when data sources change their support for
     #      endpoints
@@ -116,16 +115,16 @@ class DataSourceTest:
         cls._cache_path = TEST_DATA_PATH / ".cache" / cls.source_id
 
     @pytest.fixture
-    def req(self):
-        return Request(
+    def client(self):
+        return Client(
             self.source_id, cache_name=str(self._cache_path), backend="sqlite"
         )
 
     @pytest.mark.network
-    def test_endpoints(self, req, endpoint, args):
+    def test_endpoints(self, client, endpoint, args):
         # See pytest_generate_tests() for values of 'endpoint'
         cache = self._cache_path.with_suffix(f".{endpoint}.xml")
-        result = req.get(endpoint, tofile=cache, **args)
+        result = client.get(endpoint, tofile=cache, **args)
 
         # For debugging
         # print(cache, cache.read_text(), result, sep='\n\n')
@@ -189,15 +188,15 @@ class TestESTAT(DataSourceTest):
 
     @pytest.mark.network
     def test_xml_footer(self, mock):
-        req = Request(self.source_id)
+        client = Client(self.source_id)
 
         with mock:
-            msg = req.get(url=list(estat_mock.keys())[0], get_footer_url=(1, 1))
+            msg = client.get(url=list(estat_mock.keys())[0], get_footer_url=(1, 1))
 
         assert len(msg.data[0].obs) == 43
 
     @pytest.mark.network
-    def test_ss_data(self, req):
+    def test_ss_data(self, client):
         """Test a request for structure-specific data.
 
         Examples from:
@@ -207,12 +206,12 @@ class TestESTAT(DataSourceTest):
         args = dict(resource_id=df_id)
 
         # Query for the DSD
-        dsd = req.dataflow(**args).dataflow[df_id].structure
+        dsd = client.dataflow(**args).dataflow[df_id].structure
 
         # Even with ?references=all, ESTAT returns a short message with the
         # DSD as an external reference. Query again to get its actual contents.
         if dsd.is_external_reference:
-            dsd = req.get(resource=dsd).structure[0]
+            dsd = client.get(resource=dsd).structure[0]
             print(dsd)
 
         assert not dsd.is_external_reference
@@ -227,7 +226,7 @@ class TestESTAT(DataSourceTest):
                 # tofile='temp.xml',
             )
         )
-        req.data(**args)
+        client.data(**args)
 
 
 class TestIMF(DataSourceTest):
@@ -238,13 +237,13 @@ class TestILO(DataSourceTest):
     source_id = "ILO"
 
     xfail = {
-        # 413 Client Error: Request Entity Too Large
+        # 413 Client Error: Client Entity Too Large
         "codelist": HTTPError
     }
 
     @pytest.mark.network
-    def test_codelist(self, req):
-        req.get(
+    def test_codelist(self, client):
+        client.get(
             "codelist",
             "CL_ECO",
             tofile=self._cache_path.with_suffix("." + "codelist-CL_ECO"),
@@ -258,13 +257,13 @@ class TestINEGI(DataSourceTest):
     source_id = "INEGI"
 
     @pytest.mark.network
-    def test_endpoints(self, req, endpoint, args):
+    def test_endpoints(self, client, endpoint, args):
         # SSL certificate verification sometimes fails for this server; works
         # in Google Chrome
-        req.session.verify = False
+        client.session.verify = False
 
         # Otherwise identical
-        super().test_endpoints(req, endpoint, args)
+        super().test_endpoints(client, endpoint, args)
 
 
 class TestINSEE(DataSourceTest):
@@ -278,13 +277,13 @@ class TestISTAT(DataSourceTest):
     source_id = "ISTAT"
 
     @pytest.mark.network
-    def test_gh_75(self, req):
+    def test_gh_75(self, client):
         """Test of https://github.com/dr-leo/pandaSDMX/pull/75."""
 
         df_id = "47_850"
 
         # # Reported Dataflow query works
-        # df = req.dataflow(df_id).dataflow[df_id]
+        # df = client.dataflow(df_id).dataflow[df_id]
 
         with specimen("47_850-structure") as f:
             df = sdmx.read_sdmx(f).dataflow[df_id]
@@ -305,10 +304,10 @@ class TestISTAT(DataSourceTest):
         ) + ["TIME_PERIOD"]
 
         # Reported data query works
-        req.data(df_id, key="A.001001+001002.1.AUTP.ALL.ALL")
+        client.data(df_id, key="A.001001+001002.1.AUTP.ALL.ALL")
 
-        # Use a dict() key to force Request to make a sub-query for the DSD
-        req.data(df_id, key=data_key)
+        # Use a dict() key to force Client to make a sub-query for the DSD
+        client.data(df_id, key=data_key)
 
 
 class TestLSD(DataSourceTest):
@@ -328,7 +327,7 @@ class TestLSD(DataSourceTest):
 
         As of 2020-12-04, this source returns an invalid certificate.
         """
-        return Request(
+        return Client(
             self.source_id,
             cache_name=str(self._cache_path),
             backend="sqlite",
@@ -412,9 +411,9 @@ class TestUNICEF(DataSourceTest):
     source_id = "UNICEF"
 
     @pytest.mark.network
-    def test_data(self, req):
-        dsd = req.dataflow("GLOBAL_DATAFLOW").structure[0]
-        req.data("GLOBAL_DATAFLOW", key="ALB+DZA.MNCH_INSTDEL.", dsd=dsd)
+    def test_data(self, client):
+        dsd = client.dataflow("GLOBAL_DATAFLOW").structure[0]
+        client.data("GLOBAL_DATAFLOW", key="ALB+DZA.MNCH_INSTDEL.", dsd=dsd)
 
 
 class TestUNSD(DataSourceTest):

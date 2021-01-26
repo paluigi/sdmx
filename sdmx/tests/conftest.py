@@ -2,4 +2,4 @@ import logging
 
 import sdmx
 
-sdmx.logger.setLevel(logging.DEBUG)
+sdmx.log.setLevel(logging.DEBUG)

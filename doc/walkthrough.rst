@@ -25,7 +25,7 @@ Working with statistical data often includes some or all of the following steps.
       Using :mod:`sdmx`, analyze the structural metadata, by directly inspecting objects or converting them to :mod:`pandas` types.
 5. Download the actual data.
       Using :mod:`sdmx`, specify the needed portions of the data from the data flow by constructing a selection ('key') of series and a period/time range.
-      Then, retrieve the data using :meth:`Request.get`.
+      Then, retrieve the data using :meth:`Client.get`.
 6. Analyze or manipulate the data.
       Convert to :mod:`pandas` types using :func:`pandasmdx.to_pandas` and use the result in further Python code and scripts.
 
@@ -33,31 +33,31 @@ Working with statistical data often includes some or all of the following steps.
 Choose and connect to an SDMX web service
 =========================================
 
-First, we instantiate a :class:`.sdmx.Request` object, using the string ID of a :doc:`data source <sources>` recognized by :mod:`sdmx`:
+First, we instantiate a :class:`.sdmx.Client` object, using the string ID of a :doc:`data source <sources>` recognized by :mod:`sdmx`:
 
 .. ipython:: python
 
     import sdmx
-    ecb = sdmx.Request('ECB')
+    ecb = sdmx.Client('ECB')
 
 The object ``ecb`` is now ready to make multiple data and metadata queries to the European Central Bank's web service.
-To send requests to multiple web services, we could instantiate multiple :class:`Requests <.Request>`.
+To send requests to multiple web services, we could instantiate multiple :class:`Clients <.Client>`.
 
 Configure the HTTP connection
 -----------------------------
 
 :mod:`sdmx` builds on the widely-used :mod:`requests` Python HTTP library.
-To pre-configure all queries made by a :class:`.Request`, we can pass any of the keyword arguments recognized by :func:`requests.request`.
+To pre-configure all queries made by a :class:`.Client`, we can pass any of the keyword arguments recognized by :func:`requests.request`.
 For example, a proxy server can be specified:
 
 .. ipython:: python
 
-    ecb_via_proxy = sdmx.Request(
+    ecb_via_proxy = sdmx.Client(
         'ECB',
         proxies={'http': 'http://1.2.3.4:5678'}
     )
 
-The :attr:`~.Request.session` attribute is a :class:`.Session` object that can be used to inspect and modify configuration between queries:
+The :attr:`~.Client.session` attribute is a :class:`.Session` object that can be used to inspect and modify configuration between queries:
 
 .. ipython:: python
 
@@ -71,12 +71,12 @@ Cache HTTP responses and parsed objects
 .. versionadded:: 0.3.0
 
 If :mod:`requests_cache <requests_cache.core>` is installed, it is used automatically by :class:`.Session`.
-To configure it, we can pass any of the arguments accepted by :class:`requests_cache.core.CachedSession` when creating a :class:`.Request`.
+To configure it, we can pass any of the arguments accepted by :class:`requests_cache.core.CachedSession` when creating a :class:`.Client`.
 For example, to force :mod:`requests_cache <requests_cache.core>` to use SQLite to store cached data with the ``fast_save`` option, and expire cache entries after 10 minutes:
 
 .. ipython:: python
 
-    ecb_with_cache = sdmx.Request(
+    ecb_with_cache = sdmx.Client(
         'ECB',
         backend='sqlite',
         fast_save=True,
@@ -84,7 +84,7 @@ For example, to force :mod:`requests_cache <requests_cache.core>` to use SQLite 
     )
 
 
-:class:`.Request` provides an optional, simple cache for retrieved and parsed :class:`.Message` instances, where the cache key is the constructed query URL.
+:class:`.Client` provides an optional, simple cache for retrieved and parsed :class:`.Message` instances, where the cache key is the constructed query URL.
 This cache is disabled by default; to activate it, supply `use_cache=True` to the constructor.
 
 
@@ -109,7 +109,7 @@ Get information about the source's data flows
 ---------------------------------------------
 
 We use :mod:`sdmx` to download the definitions for all data flows available from our chosen source.
-We could call :meth:`.Request.get` with ``[resource_type=]'dataflow'`` as the first argument, but can also use a shorter alias:
+We could call :meth:`.Client.get` with ``[resource_type=]'dataflow'`` as the first argument, but can also use a shorter alias:
 
 .. ipython:: python
 
@@ -281,7 +281,7 @@ Select and query data from a dataflow
 =====================================
 
 Next, we will query for some data.
-The step is simple: call :meth:`.Request.get` with `resource_type='data'` as the first argument, or the alias :meth:`.Request.data`.
+The step is simple: call :meth:`.Client.get` with `resource_type='data'` as the first argument, or the alias :meth:`.Client.data`.
 
 First, however, we describe some of the many options offered by SDMX and :mod:`pandSDMX` for data queries.
 
@@ -326,7 +326,7 @@ Structure-specific data
 In general, to minimize queries and message size:
 
 1. First query for the DSD associated with a data flow.
-2. When requesting data, pass the obtained object as the `dsd=` argument to :meth:`.Request.get` or :meth:`.Request.data`.
+2. When requesting data, pass the obtained object as the `dsd=` argument to :meth:`.Client.get` or :meth:`.Client.data`.
 
 This allows :mod:`sdmx` to retrieve structure-specific data whenever possible.
 It can also avoid an additional request when validating data query keys (below).
@@ -342,12 +342,12 @@ The SDMX REST API offers two ways to narrow a data request:
 
 - specify a **key**, i.e. values for 1 or more dimensions to be matched by returned Observations and SeriesKeys.
   The key is included as part of the URL constructed for the query.
-  Using :mod:`sdmx`, a key is specified by the `key=` argument to :mod:`.Request.get`.
+  Using :mod:`sdmx`, a key is specified by the `key=` argument to :mod:`.Client.get`.
 - limit the time period, using the HTTP parameters 'startPeriod' and 'endPeriod'.
-  Using :mod:`sdmx`, these are specified using the `params=` argument to :mod:`.Request.get`.
+  Using :mod:`sdmx`, these are specified using the `params=` argument to :mod:`.Client.get`.
 
 From the ECB's dataflow on exchange rates, we specify the ``CURRENCY`` dimension to contain either of the codes 'USD' or 'JPY'.
-The documentation for :meth:`.Request.get` describes the multiple forms of the `key` argument and the validation applied.
+The documentation for :meth:`.Client.get` describes the multiple forms of the `key` argument and the validation applied.
 The following are all equivalent:
 
 .. ipython:: python
@@ -364,7 +364,7 @@ We also set a start period to exclude older data:
 Another way to validate a key against valid codes are series-key-only datasets, i.e. a dataset with all possible series keys where no series contains any observation.
 :mod:`sdmx` supports this validation method as well.
 However, it is disabled by default.
-Pass ``series_keys=True`` to the Request method to validate a given key against a series-keys only dataset rather than the DSD.
+Pass ``series_keys=True`` to the Client method to validate a given key against a series-keys only dataset rather than the DSD.
 
 Query data
 ----------
@@ -375,7 +375,7 @@ Finally, we request the data in generic format:
 
     import sys
 
-    ecb = sdmx.Request('ECB', backend='memory')
+    ecb = sdmx.Client('ECB', backend='memory')
     data_msg = ecb.data('EXR', key=key, params=params)
 
     # Generic data was returned
@@ -484,7 +484,7 @@ Use the advanced functionality to specify a dimension for the frequency of a Per
 Work with files
 ===============
 
-:meth:`.Request.get` accepts the optional keyword argument `tofile`.
+:meth:`.Client.get` accepts the optional keyword argument `tofile`.
 If given, the response from the web service is written to the specified file, *and* the parse :class:`.Message` returned.
 
 .. versionadded:: 0.2.1
