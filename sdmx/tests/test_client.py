@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from io import BytesIO
 
 import pandas as pd
@@ -8,6 +9,14 @@ import pytest
 import sdmx
 
 from .data import specimen
+
+
+def test_deprecated_request(caplog):
+    message = "Request class will be removed in v3.0; use Client(…)"
+    with pytest.warns(DeprecationWarning, match=re.escape(message)):
+        sdmx.Request("ECB")
+
+    assert caplog.record_tuples == [("sdmx.client", logging.WARNING, message)]
 
 
 def test_read_sdmx(tmp_path):
