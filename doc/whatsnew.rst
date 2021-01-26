@@ -26,6 +26,8 @@ Code that calls :func:`Request` emits :class:`DeprecationWarning` and logs a mes
 All changes
 -----------
 
+- The large library of test specimens for :mod:`sdmx` is no longer shipped with the package, reducing the archive size by about 80% (:issue:`18`, :pull:`52`).
+  The specimens can be retrieved for running tests locally; see :ref:`testing`.
 - The :class:`Request` class is renamed :class:`.Client` for semantic clarity (:issue:`11`, :pull:`44`).
   A Client can open a :class:`.requests.Session` and make multiple :class:`requests.Requests <.requests.Request>` against the same web service.
 - Some internal modules are renamed.

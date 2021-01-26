@@ -24,6 +24,43 @@ Code style
 - Follow `the 7 rules of a great Git commit message <https://chris.beams.io/posts/git-commit/#seven-rules>`_.
 - Write docstrings in the `numpydoc <https://numpydoc.readthedocs.io/en/latest/format.html>`_ style.
 
+.. _testing:
+
+Test specimens
+==============
+
+.. versionadded:: 2.0
+
+A variety of *specimens*—example files from real web services, or published with the standards—are used to test that :mod:`sdmx` correctly reads and writes the different SDMX message formats.
+Since v2.0, specimens are stored in the separate `sdmx-test-data <https://github.com/khaeru/sdmx-test-data>`_ repository.
+
+Running the test suite requires these files.
+To retrieve them, use one of the following methods:
+
+1. Obtain the files by one of two methods:
+
+   a. Clone ``khaeru/sdmx-test-data``::
+
+       $ git clone git@github.com:khaeru/sdmx-test-data.git
+
+   b. Download https://github.com/khaeru/sdmx-test-data/archive/master.zip
+
+2. Indicate where pytest can find the files, by one of two methods:
+
+   a. Set the `SDMX_TEST_DATA` environment variable::
+
+       # Set the variable only for one command
+       $ SDMX_TEST_DATA=/path/to/files pytest
+
+       # Export the variable to the environment
+       $ export SDMX_TEST_DATA
+       $ pytest
+
+   b. Give the option ``--sdmx-test-data=<PATH>`` when invoking pytest::
+
+       $ pytest --sdmx-test-data=/path/to/files
+
+
 Releasing
 =========
 
