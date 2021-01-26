@@ -192,7 +192,11 @@ class SpecimenCollection:
         for path, f, k in self.specimens:
             if (format and format != f) or (kind and kind != k):
                 continue
-            yield pytest.param(path, id=path.name, marks=marks.get(path, tuple()))
+            yield pytest.param(
+                path,
+                id=str(path.relative_to(self.base_path)),
+                marks=marks.get(path, tuple()),
+            )
 
     def expected_data(self, path):
         """Return the expected :func:`.to_pandas()` result for the specimen `path`."""
