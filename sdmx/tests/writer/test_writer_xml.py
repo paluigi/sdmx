@@ -4,7 +4,7 @@ import pytest
 
 import sdmx
 from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
-from sdmx.tests.data import specimen
+from sdmx.testing import specimen
 
 log = logging.getLogger(__name__)
 

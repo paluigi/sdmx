@@ -10,7 +10,7 @@ import sdmx
 from sdmx.format.xml import qname
 from sdmx.model import Facet, FacetType, FacetValueType
 from sdmx.reader.xml import Reader, XMLParseError
-from sdmx.tests.data import specimen, test_files
+from sdmx.testing import specimen, test_files
 from sdmx.writer.xml import Element as E
 
 

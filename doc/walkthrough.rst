@@ -494,7 +494,7 @@ If given, the response from the web service is written to the specified file, *a
 .. ipython:: python
 
     # Use an example ('specimen') file from the test suite
-    from sdmx.tests.data import specimen
+    from sdmx.testing import specimen
     # …with time-series exchange rate data from the EU Central Bank
     with specimen('ECB_EXR/ng-ts.xml') as f:
         sdmx.read_sdmx(f)
