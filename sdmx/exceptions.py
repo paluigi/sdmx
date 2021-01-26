@@ -6,7 +6,7 @@ class ParseError(Exception):
 
 
 class XMLParseError(Exception):
-    """:class:`.sdmxml.Reader` is unable to parse a message."""
+    """:class:`.xml.Reader` is unable to parse a message."""
 
     def __str__(self):
         c = str(self.__cause__)

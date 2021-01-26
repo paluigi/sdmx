@@ -48,20 +48,20 @@ Top-level methods and classes
 SDMX-ML
 :::::::
 
-.. currentmodule:: sdmx.reader.sdmxml
+.. currentmodule:: sdmx.reader.xml
 
 :mod:`sdmx` supports the several types of SDMX-ML messages.
 
-.. autoclass:: sdmx.reader.sdmxml.Reader
+.. autoclass:: sdmx.reader.xml.Reader
     :members:
     :undoc-members:
 
 SDMX-JSON
 :::::::::
 
-.. currentmodule:: sdmx.reader.sdmxjson
+.. currentmodule:: sdmx.reader.json
 
-.. autoclass:: sdmx.reader.sdmxjson.Reader
+.. autoclass:: sdmx.reader.json.Reader
     :members:
     :undoc-members:
 

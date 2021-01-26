@@ -194,7 +194,7 @@ SDMX-ML
 
     - An SDMX-ML document contains exactly one Message.
       See :mod:`sdmx.message` for the different types of Messages and their component parts.
-    - See :mod:`.reader.sdmxml`.
+    - See :mod:`.reader.xml`.
 
 SDMX-JSON
     Based on JavaScript Object Notation (JSON).
@@ -202,7 +202,7 @@ SDMX-JSON
 
     Reference: https://github.com/sdmx-twg/sdmx-json
 
-    - See :mod:`.reader.sdmxjson`.
+    - See :mod:`.reader.json`.
 
     .. versionadded:: 0.5
 

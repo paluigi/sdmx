@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Mapping, Type
 
-from . import sdmxjson, sdmxml
+from sdmx.reader import json, xml
 
 #: Reader classes
 READERS: List[Type] = []
@@ -86,8 +86,8 @@ def register(reader_cls):
 
 
 # Register built-in readers
-register(sdmxjson.Reader)
-register(sdmxml.Reader)
+register(json.Reader)
+register(xml.Reader)
 
 
 def read_sdmx(filename_or_obj, format=None, **kwargs):

@@ -9,7 +9,7 @@ from lxml import etree
 import sdmx
 from sdmx.format.xml import qname
 from sdmx.model import Facet, FacetType, FacetValueType
-from sdmx.reader.sdmxml import Reader, XMLParseError
+from sdmx.reader.xml import Reader, XMLParseError
 from sdmx.tests.data import specimen, test_files
 from sdmx.writer.xml import Element as E
 
@@ -86,7 +86,7 @@ def test_read_ss_xml():
 #   - A string, in which case parsing the element is expected to fail, raising
 #     an exception matching the string.
 ELEMENTS = [
-    # sdmxml._datetime()
+    # xml._datetime()
     (  # with 5 decimal places
         E(qname("mes:Extracted"), "2020-08-18T00:14:31.59849+05:00"),
         datetime(2020, 8, 18, 0, 14, 31, 598490, tzinfo=timezone(timedelta(hours=5))),
@@ -104,7 +104,7 @@ ELEMENTS = [
         datetime(2020, 8, 18, 1, 2, 3, 456789, tzinfo=timezone.utc),
         marks=pytest.mark.xfail(raises=XMLParseError),
     ),
-    # sdmxml._facet()
+    # xml._facet()
     (
         E(qname("str:TextFormat"), isSequence="False", startValue="3.4", endValue="1"),
         None,
