@@ -173,5 +173,5 @@ for certain data sources, see :doc:`sources`.
 -------------------
 .. automodule:: sdmx.util
    :members:
-   :undoc-members:
+   :exclude-members: BaseModel, summarize_dictlike
    :show-inheritance:

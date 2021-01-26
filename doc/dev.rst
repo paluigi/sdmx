@@ -7,6 +7,10 @@ Contributions are welcome!
 - For current development priorities, see the list of `GitHub milestones <https://github.com/khaeru/sdmx/milestones>`_ and issues/PRs targeted to each.
 - For wishlist features, see issues on GitHub tagged `‘enh’ <https://github.com/khaeru/sdmx/labels/enh>`_ or `‘wishlist’ <https://github.com/khaeru/sdmx/labels/wishlist>`_.
 
+.. contents::
+   :local:
+   :backlinks: none
+
 Code style
 ==========
 
@@ -59,6 +63,22 @@ To retrieve them, use one of the following methods:
    b. Give the option ``--sdmx-test-data=<PATH>`` when invoking pytest::
 
        $ pytest --sdmx-test-data=/path/to/files
+
+The files are:
+
+- Arranged in directories with names matching particular sources in :file:`sources.json`.
+- Named with:
+
+  - Certain keywords:
+
+    - ``-structure``: a structure message, often associated with a file with a similar name containing a data message.
+    - ``ts``: time-series data, i.e. with a TimeDimensions at the level of individual Observations.
+    - ``xs``: cross-sectional data arranged in other ways.
+    - ``flat``: flat DataSets with all Dimensions at the Observation level.
+    - ``ss``: structure-specific data messages.
+
+  - In some cases, the query string or data flow/structure ID as the file name.
+  - Hyphens ``-`` instead of underscores ``_``.
 
 
 Releasing
@@ -123,6 +143,26 @@ Address any failures before releasing.
     $ git push --tags
 
    Visit https://github.com/khaeru/sdmx/releases and mark the new release using the pushed tag.
+
+
+Internal code reference
+=======================
+
+``testing``: Testing utilities
+------------------------------
+
+.. automodule:: sdmx.testing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+``util``: Utilities
+-------------------
+.. automodule:: sdmx.util
+   :noindex:
+   :members: BaseModel, summarize_dictlike, validate_dictlike
+   :undoc-members:
+   :show-inheritance:
 
 
 Inline TODOs

@@ -1,35 +1,3 @@
-"""Specimens and other data for tests.
-
-This directory contains files with SDMX data and structure messages, in both
-SDMX-ML ('.xml') and JSON ('.json') formats.
-
-These files can be:
-- retrieved with :meth:`specimen`,
-- used to parametrize test methods with :meth:`test_data`, and
-- compared to expected :meth:`to_pandas` output using :meth:`expected_data`.
-
-The files are:
-
-- Arranged in directories with names matching particular sources in
-  :file:`sources.json`.
-
-- Named with:
-
-  - Certain keywords:
-
-    - '-structure': a structure message, often associated with a file with a
-      similar name containing a data message.
-    - 'ts': time-series data, i.e. with a TimeDimensions at the level of
-      individual Observations.
-    - 'xs': cross-sectional data arranged in other ways.
-    - 'flat': flat DataSets with all Dimensions at the Observation level.
-    - 'ss': structure-specific data messages.
-
-  - In some cases, the query string or data flow/structure ID as the file name.
-
-  - Hyphens '-' instead of underscores '_'.
-
-"""
 import logging
 import os
 from contextlib import contextmanager
@@ -79,7 +47,7 @@ def assert_pd_equal(left, right, **kwargs):
 
 
 def pytest_addoption(parser):
-    """Add the --sdmx-test-data command-line option to pytest."""
+    """Add the ``--sdmx-test-data`` command-line option to pytest."""
     parser.addoption(
         "--sdmx-test-data",
         # Use the environment variable value by default
@@ -89,7 +57,7 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    """Handle the --sdmx-test-data command-line option."""
+    """Handle the ``--sdmx-test-data`` command-line option."""
     # Register "parametrize_specimens" as a known mark to suppress warnings from pytest
     config.addinivalue_line(
         "markers", "parametrize_specimens: (for internal use by sdmx.testing)"
@@ -98,7 +66,7 @@ def pytest_configure(config):
     # Check the value can be converted to a path, and exists
     sdmx_test_data = Path(config.option.sdmx_test_data)
 
-    if not sdmx_test_data.exists():
+    if not sdmx_test_data.exists():  # pragma: no cover
         # Cannot proceed further; this exception kills the test session
         raise FileNotFoundError(
             f"SDMX test data in {sdmx_test_data}\nGive --sdmx-test-data=… or set the "
@@ -110,11 +78,16 @@ def pytest_configure(config):
 
 
 def pytest_generate_tests(metafunc):
-    _parametrize_specimens(metafunc)
-    _generate_endpoint_tests(metafunc)
+    """Generate tests.
+
+    Calls both :func:`parametrize_specimens` and :func:`generate_endpoint_tests`.
+    """
+    parametrize_specimens(metafunc)
+    generate_endpoint_tests(metafunc)
 
 
-def _parametrize_specimens(metafunc):
+def parametrize_specimens(metafunc):
+    """Handle ``@pytest.mark.parametrize_specimens(…)``."""
     try:
         mark = next(metafunc.definition.iter_markers("parametrize_specimens"))
     except StopIteration:
@@ -125,10 +98,11 @@ def _parametrize_specimens(metafunc):
     )
 
 
-# This exception is raised by client.Client._request_from_args
-# TODO parametrize force=True to query these endpoints anyway; then CI XPASS will
-#      reveal when data sources change their support for endpoints
-_unsupported = pytest.mark.xfail(
+#: This exception is raised by client.Client._request_from_args
+#:
+#: .. todo:: parametrize force=True to query these endpoints anyway; then XPASS will
+#:    reveal when data sources change their support for endpoints
+unsupported = pytest.mark.xfail(
     strict=True, reason="Known non-supported endpoint.", raises=NotImplementedError
 )
 
@@ -137,8 +111,8 @@ _503 = pytest.mark.xfail(
 )
 
 
-def _generate_endpoint_tests(metafunc):
-    """pytest hook for parametrizing tests with 'endpoint' arguments."""
+def generate_endpoint_tests(metafunc):
+    """pytest hook for parametrizing tests that need an "endpoint" fixture."""
     if "endpoint" not in metafunc.fixturenames:
         return  # Don't need to parametrize this metafunc
 
@@ -159,7 +133,7 @@ def _generate_endpoint_tests(metafunc):
             # SDMX-JSON sources only support data queries
             continue
         elif not supported:
-            marks.append(_unsupported)
+            marks.append(unsupported)
 
         # Check if the test function's class contains an expected failure for `endpoint`
         exc_class = metafunc.cls.xfail.get(ep.name, None)
@@ -167,7 +141,7 @@ def _generate_endpoint_tests(metafunc):
             # Mark the test as expected to fail
             marks.append(pytest.mark.xfail(strict=True, raises=exc_class))
 
-            if not supported:
+            if not supported:  # pragma: no cover
                 log.info(
                     f"tests for {repr(metafunc.cls.source_id)} mention unsupported "
                     f"endpoint {repr(ep.name)}"
@@ -191,6 +165,8 @@ def _generate_endpoint_tests(metafunc):
 
 
 class MessageTest:
+    """Base class for tests of specific specimen files."""
+
     directory: Union[str, Path] = Path(".")
     filename: str
 
@@ -252,12 +228,12 @@ class SpecimenCollection:
 
     @contextmanager
     def __call__(self, pattern="", opened=True):
-        """Open the test specimen file with *pattern* in the name."""
+        """Open the test specimen file with `pattern` in the name."""
         for path, f, k in self.specimens:
             if path.match("*" + pattern + "*"):
                 yield open(path, "br") if opened else path
                 return
-        raise ValueError(pattern)
+        raise ValueError(pattern)  # pragma: no cover
 
     def as_params(self, format=None, kind=None, marks=dict()):
         """Generate :func:`pytest.param` from specimens.
@@ -303,11 +279,11 @@ class SpecimenCollection:
 
 @pytest.fixture(scope="session")
 def test_data_path(pytestconfig):
-    """The :py:class:`.Path` given as --sdmx-test-data."""
+    """Fixture: the :py:class:`.Path` given as --sdmx-test-data."""
     yield pytestconfig.sdmx_test_data
 
 
 @pytest.fixture(scope="session")
 def specimen(pytestconfig):
-    """The :class:`SpecimenCollection`."""
+    """Fixture: the :class:`SpecimenCollection`."""
     yield pytestconfig.sdmx_specimens
