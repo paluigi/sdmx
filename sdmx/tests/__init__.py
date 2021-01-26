@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .data import BASE_PATH
+from sdmx.testing import BASE_PATH
 
 
 def assert_pd_equal(left, right, **kwargs):
