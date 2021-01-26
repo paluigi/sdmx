@@ -68,11 +68,11 @@ class Session(MaybeCachedSession):
 
             # Overwrite value from requests_cache.CachedSession.__init__()
             self._is_cache_disabled = disabled
-        elif len(cache_kwargs):
+        elif len(cache_kwargs):  # pragma: no cover
             raise ValueError(
                 f"Arguments have no effect without requests_session: {cache_kwargs}"
             )
-        else:
+        else:  # pragma: no cover
             # Plain requests.Session: no arguments
             super(Session, self).__init__()
 
