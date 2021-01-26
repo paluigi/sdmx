@@ -30,6 +30,7 @@ The files are:
   - Hyphens '-' instead of underscores '_'.
 
 """
+import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
@@ -38,6 +39,13 @@ from typing import Union
 import numpy as np
 import pandas as pd
 import pytest
+
+from sdmx.exceptions import HTTPError
+from sdmx.source import DataContentType, sources
+from sdmx.util import Resource
+
+log = logging.getLogger(__name__)
+
 
 # Expected to_pandas() results for data files; see expected_data()
 # - Keys are the file name (above) with '.' -> '-': 'foo.xml' -> 'foo-xml'
@@ -102,6 +110,11 @@ def pytest_configure(config):
 
 
 def pytest_generate_tests(metafunc):
+    _parametrize_specimens(metafunc)
+    _generate_endpoint_tests(metafunc)
+
+
+def _parametrize_specimens(metafunc):
     try:
         mark = next(metafunc.definition.iter_markers("parametrize_specimens"))
     except StopIteration:
@@ -110,6 +123,71 @@ def pytest_generate_tests(metafunc):
     metafunc.parametrize(
         mark.args[0], metafunc.config.sdmx_specimens.as_params(**mark.kwargs)
     )
+
+
+# This exception is raised by client.Client._request_from_args
+# TODO parametrize force=True to query these endpoints anyway; then CI XPASS will
+#      reveal when data sources change their support for endpoints
+_unsupported = pytest.mark.xfail(
+    strict=True, reason="Known non-supported endpoint.", raises=NotImplementedError
+)
+
+_503 = pytest.mark.xfail(
+    raises=HTTPError, reason="503 Server Error: Service Unavailable"
+)
+
+
+def _generate_endpoint_tests(metafunc):
+    """pytest hook for parametrizing tests with 'endpoint' arguments."""
+    if "endpoint" not in metafunc.fixturenames:
+        return  # Don't need to parametrize this metafunc
+
+    # Arguments to parametrize()
+    params = []
+
+    # Use the test class' source_id attr to look up the Source class
+    source = sources[metafunc.cls.source_id]
+
+    # Iterate over all known endpoints
+    for ep in Resource:
+        # Accumulate multiple marks; first takes precedence
+        marks = []
+
+        # Check if the associated source supports the endpoint
+        supported = source.supports[ep]
+        if source.data_content_type == DataContentType.JSON and ep is not Resource.data:
+            # SDMX-JSON sources only support data queries
+            continue
+        elif not supported:
+            marks.append(_unsupported)
+
+        # Check if the test function's class contains an expected failure for `endpoint`
+        exc_class = metafunc.cls.xfail.get(ep.name, None)
+        if exc_class:
+            # Mark the test as expected to fail
+            marks.append(pytest.mark.xfail(strict=True, raises=exc_class))
+
+            if not supported:
+                log.info(
+                    f"tests for {repr(metafunc.cls.source_id)} mention unsupported "
+                    f"endpoint {repr(ep.name)}"
+                )
+
+        # Tolerate 503 errors
+        if metafunc.cls.tolerate_503:
+            marks.append(_503)
+
+        # Get any keyword arguments for this endpoint
+        args = metafunc.cls.endpoint_args.get(ep.name, dict())
+        if ep is Resource.data and not len(args):
+            # args must be specified for a data query; no args → no test
+            continue
+
+        params.append(pytest.param(ep, args, id=ep.name, marks=marks))
+
+    if len(params):
+        # Run the test function once for each endpoint
+        metafunc.parametrize("endpoint, args", params)
 
 
 class MessageTest:

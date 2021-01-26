@@ -4,7 +4,6 @@ HTTP responses from the data sources are cached in tests/data/cache.
 To force the data to be retrieved over the Internet, delete this directory.
 """
 # TODO add a pytest argument for clearing this cache in conftest.py
-import logging
 from pathlib import Path
 from typing import Any, Dict, Type
 
@@ -12,80 +11,11 @@ import pytest
 import requests_mock
 
 import sdmx
-from sdmx import Client, Resource
+from sdmx import Client
 from sdmx.exceptions import HTTPError
-from sdmx.source import DataContentType, sources
 
-log = logging.getLogger(__name__)
-
-
+# Mark the whole file so the tests can be excluded/included
 pytestmark = pytest.mark.source
-
-
-def pytest_generate_tests(metafunc):
-    """pytest hook for parametrizing tests with 'endpoint' arguments."""
-    if "endpoint" not in metafunc.fixturenames:
-        return  # Don't need to parametrize this metafunc
-
-    # Arguments to parametrize()
-    ep_data = []
-    ids = []
-
-    # Use the test class' source_id attr to look up the Source class
-    source = sources[metafunc.cls.source_id]
-
-    # This exception is raised by api.Client._request_from_args
-    # TODO parametrize force=True to query these endpoints anyway; then CI
-    #      XPASS will reveal when data sources change their support for
-    #      endpoints
-    mark_unsupported = pytest.mark.xfail(
-        strict=True, reason="Known non-supported endpoint.", raises=NotImplementedError
-    )
-
-    for ep in Resource:
-        # Accumulate multiple marks; first takes precedence
-        marks = []
-
-        # Check if the associated source supports the endpoint
-        supported = source.supports[ep]
-        if source.data_content_type == DataContentType.JSON and ep is not Resource.data:
-            # SDMX-JSON sources only support data queries
-            continue
-        elif not supported:
-            marks.append(mark_unsupported)
-
-        # Check if the test function's class contains an expected failure
-        # for this endpoint
-        exc_class = metafunc.cls.xfail.get(ep.name, None)
-        if exc_class:
-            # Mark the test as expected to fail
-            marks.append(pytest.mark.xfail(strict=True, raises=exc_class))
-
-            if not supported:
-                log.info(
-                    f"tests for {metafunc.cls.source_id!r} mention "
-                    f"unsupported endpoint {ep.name!r}"
-                )
-
-        # Tolerate 503 errors
-        if metafunc.cls.tolerate_503:
-            marks.append(
-                pytest.mark.xfail(
-                    raises=HTTPError, reason="503 Server Error: Service Unavailable"
-                )
-            )
-
-        # Get keyword arguments for this endpoint
-        args = metafunc.cls.endpoint_args.get(ep.name, dict())
-        if ep is Resource.data and not len(args):
-            # args must be specified for a data query; no args → no test
-            continue
-
-        ep_data.append(pytest.param(ep, args, marks=marks))
-        ids.append(ep.name)
-
-    # Run the test function once for each endpoint
-    metafunc.parametrize("endpoint, args", ep_data, ids=ids)
 
 
 class DataSourceTest:
@@ -119,8 +49,8 @@ class DataSourceTest:
         )
 
     @pytest.mark.network
-    def test_endpoints(self, client, endpoint, args):
-        # See pytest_generate_tests() for values of 'endpoint'
+    def test_endpoint(self, client, endpoint, args):
+        # See sdmx.testing._generate_endpoint_tests() for values of `endpoint`
         cache = self._cache_path.with_suffix(f".{endpoint}.xml")
         result = client.get(endpoint, tofile=cache, **args)
 
