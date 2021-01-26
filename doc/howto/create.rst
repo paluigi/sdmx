@@ -4,7 +4,7 @@ Generate SDMX-ML from Python objects
 :mod:`sdmx` was developed to retrieve SDMX-formatted data from web services and convert it to :mod:`pandas` objects.
 
 The opposite—creating SDMX messages from Python or pandas objects—is also possible.
-(Helper code to simplify this process is still a :doc:`planned future development </roadmap>`.)
+(Helper code to simplify this process is still a :doc:`planned future development </dev>`.)
 This page gives a minimal demonstration.
 
 .. contents::
@@ -230,5 +230,4 @@ We can also combine these data frames into a single one, with a non-unique index
     pd.concat(dfs).reset_index()
 
 .. note:: Simplifying the process of authoring different kinds of SDMX objects and messages is a priority enhancement for :mod:`sdmx`.
-   Contributions are welcome!
-   See the :doc:`roadmap </roadmap>`.
+   Contributions are welcome; see :doc:`/dev`.
