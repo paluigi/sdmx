@@ -7,28 +7,6 @@ import sdmx
 from sdmx.model import TimeDimension
 from sdmx.testing import assert_pd_equal
 
-ssds = (
-    "Reading StructureSpecificDataSet does not distinguish between attrs and "
-    "dimension values."
-)
-
-# file name → (exception raised, exception message, comment/reason)
-FILE_MARKS = {
-    # AssertionError: Expected type <class 'pandas.core.frame.DataFrame'>, found
-    # <class 'list'> instead
-    "exr-action-delete.json": pytest.mark.skip(
-        reason=(
-            "Message contains two DataSets; test infrastructure currently handles only "
-            "messages with a single DataSet."
-        )
-    ),
-    # AssertionError: Series.index are different
-    "ECB/EXR/ng-ts-ss.xml": pytest.mark.skip(reason=ssds),
-    "ECB/EXR/ng-flat-ss.xml": pytest.mark.skip(reason=ssds),
-    "ECB/EXR/ng-xs-ss.xml": pytest.mark.skip(reason=ssds),
-    "ECB/EXR/ng-ts-gf-ss.xml": pytest.mark.skip(reason=ssds),
-}
-
 
 def test_write_data_arguments(specimen):
     # The identity here is not important; any non-empty DataMessage will work
@@ -44,7 +22,7 @@ def test_write_data_arguments(specimen):
         sdmx.to_pandas(msg, attributes="foobarbaz")
 
 
-@pytest.mark.parametrize_specimens("path", kind="data", marks=FILE_MARKS)
+@pytest.mark.parametrize_specimens("path", kind="data")
 def test_write_data(specimen, path):
     msg = sdmx.read_sdmx(path)
 
