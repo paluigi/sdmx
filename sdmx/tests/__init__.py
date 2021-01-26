@@ -1,7 +1,5 @@
 import importlib
 from distutils import version
-from pathlib import Path
-from typing import Union
 
 import pytest
 
