@@ -26,7 +26,8 @@ Code that calls :func:`Request` emits :class:`DeprecationWarning` and logs a mes
 All changes
 -----------
 
-- The :class:`Request` class is renamed :class:`.Client` for clarity: a Client can open a :class:`.requests.Session` and make multiple :class:`requests.Requests <.requests.Request>` against the same web service.
+- The :class:`Request` class is renamed :class:`.Client` for semantic clarity (:issue:`11`, :pull:`44`).
+  A Client can open a :class:`.requests.Session` and make multiple :class:`requests.Requests <.requests.Request>` against the same web service.
 
   - :mod:`sdmx.api` is renamed :mod:`sdmx.client`.
   - :mod:`sdmx.remote` is renamed :mod:`sdmx.session`.
