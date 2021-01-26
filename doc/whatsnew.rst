@@ -8,8 +8,8 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+v2.0.0 (2021-01-26)
+===================
 
 Migration notes
 ---------------
@@ -28,6 +28,10 @@ Instead, use:
 
    sdmx.Client("ECB")
 
+Per `the standard semantic versioning approach <https://semver.org/#how-should-i-handle-deprecating-functionality>`_, this feature is marked as deprecated in version 2.0, and will be removed no sooner than version 3.0.
+
+References to ``sdmx.logger`` should be updated to ``sdmx.log``.
+Instead of passing the `log_level` parameter to :class:`.Client`, access this standard Python :py:class:`~.logging.Logger` and change its level, as described at :ref:`HOWTO control logging <howto-logging>`.
 
 All changes
 -----------
@@ -37,6 +41,8 @@ All changes
 - The :class:`Request` class is renamed :class:`.Client` for semantic clarity (:issue:`11`, :pull:`44`):
 
   A Client can open a :class:`.requests.Session` and might make many :class:`requests.Requests <.requests.Request>` against the same web service.
+
+- The `log_level` parameter to :class:`.Client` is deprecated.
 - Some internal modules are renamed.
   These should not affect user code; if they do, adjust that code to use the top-level objects.
 
