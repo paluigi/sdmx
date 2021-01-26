@@ -8,13 +8,20 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+v1.7.0 (2021-01-26)
+===================
+
+New features
+------------
+
+- Add :ref:`The Pacific Community's Pacific Data Hub <SPC>` as a data source (:pull:`30`).
+- Add classes to :mod:`sdmx.model`: :class:`.TimeRangeValue`, :class:`.Period`, :class:`RangePeriod`, and parse ``<com:TimeRange>`` and related tags in SDMX-ML (:pull:`30`).
+
+Bug fixes
+---------
 
 - Output SDMX-ML header elements in order expected by standard XSD (:issue:`42`, :pull:`43`).
 - Respect `override` argument to :func:`.add_source` (:pull:`41`).
-- Add :ref:`The Pacific Community's Pacific Data Hub <SPC>` as a data source (:pull:`30`).
-- Add classes to :mod:`sdmx.model`: :class:`.TimeRangeValue`, :class:`.Period`, :class:`RangePeriod`, and parse ``<com:TimeRange>`` and related tags in SDMX-ML (:pull:`30`).
 
 v1.6.0 (2020-12-16)
 ===================
