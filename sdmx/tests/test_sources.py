@@ -5,6 +5,7 @@ To force the data to be retrieved over the Internet, delete this directory.
 """
 # TODO add a pytest argument for clearing this cache in conftest.py
 import logging
+from pathlib import Path
 from typing import Any, Dict, Type
 
 import pytest
@@ -14,9 +15,6 @@ import sdmx
 from sdmx import Client, Resource
 from sdmx.exceptions import HTTPError
 from sdmx.source import DataContentType, sources
-
-from .data import BASE_PATH as TEST_DATA_PATH
-from .data import specimen
 
 log = logging.getLogger(__name__)
 
@@ -109,10 +107,10 @@ class DataSourceTest:
     endpoint_args: Dict[str, Dict[str, Any]] = {}
 
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls, test_data_path):
         # Use a common cache file for all agency tests
-        (TEST_DATA_PATH / ".cache").mkdir(exist_ok=True)
-        cls._cache_path = TEST_DATA_PATH / ".cache" / cls.source_id
+        (test_data_path / ".cache").mkdir(exist_ok=True)
+        cls._cache_path = test_data_path / ".cache" / cls.source_id
 
     @pytest.fixture
     def client(self):
@@ -152,7 +150,7 @@ estat_mock = {
     (
         "http://ec.europa.eu/eurostat/SDMX/diss-web/rest/data/nama_10_gdp/" "..B1GQ+P3."
     ): {
-        "body": TEST_DATA_PATH / "ESTAT" / "footer2.xml",
+        "body": Path("ESTAT", "footer2.xml"),
         "headers": {
             "Content-Type": "application/vnd.sdmx.genericdata+xml; version=2.1"
         },
@@ -160,7 +158,7 @@ estat_mock = {
     "http://ec.europa.eu/eurostat/SDMX/diss-web/file/7JUdWyAy4fmjBSWT": {
         # This file is a trimmed version of the actual response for the above
         # query
-        "body": TEST_DATA_PATH / "ESTAT" / "footer2.zip",
+        "body": Path("ESTAT", "footer2.zip"),
         "headers": {"Content-Type": "application/octet-stream"},
     },
 }
@@ -176,12 +174,12 @@ class TestESTAT(DataSourceTest):
     }
 
     @pytest.fixture
-    def mock(self):
+    def mock(self, test_data_path):
         # Prepare the mock requests
         fixture = requests_mock.Mocker()
         for url, args in estat_mock.items():
             # str() here is for Python 3.5 compatibility
-            args["body"] = open(str(args["body"]), "rb")
+            args["body"] = open(str(test_data_path / args["body"]), "rb")
             fixture.get(url, **args)
 
         return fixture
@@ -277,7 +275,7 @@ class TestISTAT(DataSourceTest):
     source_id = "ISTAT"
 
     @pytest.mark.network
-    def test_gh_75(self, client):
+    def test_gh_75(self, specimen, client):
         """Test of https://github.com/dr-leo/pandaSDMX/pull/75."""
 
         df_id = "47_850"

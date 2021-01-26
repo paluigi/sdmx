@@ -1,14 +1,14 @@
+from pathlib import Path
+
 import pytest
 
 import sdmx
 from sdmx import model
-
-from . import MessageTest
-from .data import specimen
+from sdmx.testing import MessageTest
 
 
 class Test_ESTAT_dsd_apro_mk_cola(MessageTest):
-    path = MessageTest.path / "ESTAT"
+    directory = "ESTAT"
     filename = "apro_mk_cola-structure.xml"
 
     def test_codelists_keys(self, msg):
@@ -49,7 +49,7 @@ class Test_ESTAT_dsd_apro_mk_cola(MessageTest):
 
 
 class TestDSDCommon(MessageTest):
-    path = MessageTest.path / "SGR"
+    directory = "SGR"
     filename = "common-structure.xml"
 
     def test_codelists_keys(self, msg):
@@ -73,7 +73,7 @@ class TestDSDCommon(MessageTest):
 
 
 class TestECB_EXR1(MessageTest):
-    path = MessageTest.path / "ECB_EXR" / "1"
+    directory = Path("ECB_EXR", "1")
     filename = "structure.xml"
 
     def test_uri(self, msg):
@@ -83,7 +83,7 @@ class TestECB_EXR1(MessageTest):
         assert msg.structure["ECB_EXR1"].uri == expected
 
 
-def test_exr_constraints():
+def test_exr_constraints(specimen):
     with specimen("1/structure-full.xml") as f:
         m = sdmx.read_sdmx(f)
     ECB_EXR1 = m.structure["ECB_EXR1"]

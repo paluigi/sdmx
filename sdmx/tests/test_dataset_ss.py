@@ -6,29 +6,28 @@ import pytest
 import sdmx
 from sdmx import message, model
 from sdmx.model import Key
-
-from . import MessageTest
+from sdmx.testing import MessageTest
 
 
 class StructuredMessageTest(MessageTest):
     """Variant of MessageTest for structure-specific messages."""
 
-    path = MessageTest.path / "ECB_EXR"
+    directory = "ECB_EXR"
     dsd_filename: str
 
     # Fixtures
     @pytest.fixture(scope="class")
-    def dsd(self):
-        yield sdmx.read_sdmx(self.path / self.dsd_filename).structure[0]
+    def dsd(self, path):
+        yield sdmx.read_sdmx(path / self.dsd_filename).structure[0]
 
     @pytest.fixture(scope="class")
-    def msg(self, dsd):
-        yield sdmx.read_sdmx(self.path / self.filename, dsd=dsd)
+    def msg(self, path, dsd):
+        yield sdmx.read_sdmx(path / self.filename, dsd=dsd)
 
     # Tests for every class
-    def test_msg(self, dsd):
+    def test_msg(self, path, dsd):
         # The message can be parsed
-        sdmx.read_sdmx(self.path / self.filename, dsd=dsd)
+        sdmx.read_sdmx(path / self.filename, dsd=dsd)
 
     def test_structured_by(self, dsd, msg):
         # The DSD was used to parse the message

@@ -8,8 +8,6 @@ import pytest
 
 import sdmx
 
-from .data import specimen
-
 
 def test_deprecated_request(caplog):
     message = "Request class will be removed in v3.0; use Client(…)"
@@ -19,7 +17,7 @@ def test_deprecated_request(caplog):
     assert caplog.record_tuples == [("sdmx.client", logging.WARNING, message)]
 
 
-def test_read_sdmx(tmp_path):
+def test_read_sdmx(tmp_path, specimen):
     # Copy the file to a temporary file with an urecognizable suffix
     target = tmp_path / "foo.badsuffix"
     with specimen("flat.json", opened=False) as original:
@@ -48,7 +46,10 @@ def test_read_sdmx(tmp_path):
 
 def test_Client():
     # Constructor
-    r = sdmx.Client(log_level=logging.ERROR)
+    with pytest.warns(
+        DeprecationWarning, match=re.escape("Client(…, log_level=…) parameter")
+    ):
+        r = sdmx.Client(log_level=logging.ERROR)
 
     # Invalid source name raise an exception
     with pytest.raises(ValueError):
