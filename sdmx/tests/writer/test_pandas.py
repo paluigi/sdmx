@@ -5,48 +5,13 @@ from pytest import raises
 
 import sdmx
 from sdmx.model import TimeDimension
-from sdmx.tests import assert_pd_equal
-from sdmx.tests.data import expected_data, specimen, test_files
-
-# file name → (exception raised, exception message, comment/reason)
-ssds = (
-    "Reading StructureSpecificDataSet does not distinguish between attrs "
-    "and dimension values."
-)
-
-file_marks = {
-    "exr-action-delete.json": (
-        AssertionError,
-        "Expected type <class 'pandas.core.frame.DataFrame'>, found <class "
-        " 'list'> instead",
-        "Message contains two DataSets; test infrastructure currently handles "
-        "only messages with a single DataSet.",
-    ),
-    "ECB/EXR/ng-ts-ss.xml": (AssertionError, "Series.index are different", ssds),
-    "ECB/EXR/ng-flat-ss.xml": (AssertionError, "Series.index are different", ssds),
-    "ECB/EXR/ng-xs-ss.xml": (AssertionError, "Series.index are different", ssds),
-    "ECB/EXR/ng-ts-gf-ss.xml": (AssertionError, "Series.index are different", ssds),
-}
+from sdmx.testing import assert_pd_equal
 
 
-def pytest_generate_tests(metafunc):
-    if "data_path" in metafunc.fixturenames:
-        params = []
-        tf = test_files(kind="data")
-        for value, id in zip(tf["argvalues"], tf["ids"]):
-            kwargs = dict(id=id)
-            for cond, info in file_marks.items():
-                if cond in str(value):
-                    kwargs["marks"] = pytest.mark.skip(reason=info[2])
-                    break
-
-            params.append(pytest.param(value, **kwargs))
-
-        metafunc.parametrize("data_path", params)
-
-
-def test_write_data_arguments():
-    msg = sdmx.read_sdmx(test_files(kind="data")["argvalues"][0])
+def test_write_data_arguments(specimen):
+    # The identity here is not important; any non-empty DataMessage will work
+    with specimen("INSEE/CNA-2010-CONSO-SI-A17.xml") as f:
+        msg = sdmx.read_sdmx(f)
 
     # Attributes must be a string
     with raises(TypeError):
@@ -57,12 +22,13 @@ def test_write_data_arguments():
         sdmx.to_pandas(msg, attributes="foobarbaz")
 
 
-def test_write_data(data_path):
-    msg = sdmx.read_sdmx(data_path)
+@pytest.mark.parametrize_specimens("path", kind="data")
+def test_write_data(specimen, path):
+    msg = sdmx.read_sdmx(path)
 
     result = sdmx.to_pandas(msg)
 
-    expected = expected_data(data_path)
+    expected = specimen.expected_data(path)
     if expected is not None:
         print(expected, result, sep="\n")
     assert_pd_equal(expected, result)
@@ -71,7 +37,7 @@ def test_write_data(data_path):
     assert isinstance(result, (pd.Series, pd.DataFrame, list)), type(result)
 
 
-@pytest.mark.parametrize("path", **test_files(kind="data"))
+@pytest.mark.parametrize_specimens("path", kind="data")
 def test_write_data_attributes(path):
     msg = sdmx.read_sdmx(path)
 
@@ -80,7 +46,7 @@ def test_write_data_attributes(path):
     assert isinstance(result, (pd.Series, pd.DataFrame, list)), type(result)
 
 
-def test_write_agencyscheme():
+def test_write_agencyscheme(specimen):
     # Convert an agency scheme
     with specimen("ECB/orgscheme.xml") as f:
         msg = sdmx.read_sdmx(f)
@@ -103,7 +69,7 @@ def test_write_agencyscheme():
         data.structure
 
 
-def test_write_categoryscheme():
+def test_write_categoryscheme(specimen):
     with specimen("IPI-2010-A21-structure.xml") as f:
         msg = sdmx.read_sdmx(f)
         data = sdmx.to_pandas(msg)
@@ -116,7 +82,7 @@ def test_write_categoryscheme():
     assert cs.loc["CNA-PIB-2005", "parent"] == "CNA-PIB"
 
 
-def test_write_codelist():
+def test_write_codelist(specimen):
     # Retrieve codelists from a test specimen and convert to pandas
     with specimen("common-structure.xml") as f:
         dsd_common = sdmx.read_sdmx(f)
@@ -157,7 +123,7 @@ def test_write_codelist():
     assert area_hierarchy.loc["002", "name_parent"] == "World"
 
 
-def test_write_conceptscheme():
+def test_write_conceptscheme(specimen):
     with specimen("common-structure.xml") as f:
         msg = sdmx.read_sdmx(f)
         data = sdmx.to_pandas(msg)
@@ -166,7 +132,7 @@ def test_write_conceptscheme():
     assert cdc.loc["UNIT_MEASURE", "name"] == "Unit of Measure"
 
 
-def test_write_dataflow():
+def test_write_dataflow(specimen):
     # Read the INSEE dataflow definition
     with specimen("INSEE/dataflow") as f:
         msg = sdmx.read_sdmx(f)
@@ -191,7 +157,7 @@ def test_write_dataflow():
     assert_pd_equal(result["dataflow"].head(), expected)
 
 
-def test_write_dataset_datetime():
+def test_write_dataset_datetime(specimen):
     """Test datetime arguments to write_dataset()."""
     # Load structure
     with specimen("IPI-2010-A21-structure.xml") as f:
@@ -296,7 +262,7 @@ def test_write_dataset_datetime():
         sdmx.to_pandas(ds, datetime=43)
 
 
-@pytest.mark.parametrize("path", **test_files(kind="structure"))
+@pytest.mark.parametrize_specimens("path", kind="structure")
 def test_writer_structure(path):
     msg = sdmx.read_sdmx(path)
 
@@ -306,7 +272,7 @@ def test_writer_structure(path):
 
 
 @pytest.mark.network
-def test_write_constraint():
+def test_write_constraint(specimen):
     """'constraint' argument to writer.write_dataset."""
     with specimen("ng-ts.xml") as f:
         msg = sdmx.read_sdmx(f)

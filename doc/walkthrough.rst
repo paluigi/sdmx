@@ -491,13 +491,16 @@ If given, the response from the web service is written to the specified file, *a
 
 :func:`~.sdmx.read_sdmx` can be used to load SDMX messages stored in local files:
 
-.. ipython:: python
+.. code-block:: python
 
-    # Use an example ('specimen') file from the test suite
-    from sdmx.tests.data import specimen
-    # …with time-series exchange rate data from the EU Central Bank
-    with specimen('ECB_EXR/ng-ts.xml') as f:
-        sdmx.read_sdmx(f)
+   # Use an example ('specimen') file from the test suite
+   from sdmx.testing import SpecimenCollection
+
+   specimen = SpecimenCollection("/path/to/sdmx-test-data")
+
+   # …with time-series exchange rate data from the EU Central Bank
+   with specimen("ECB_EXR/ng-ts.xml") as f:
+       sdmx.read_sdmx(f)
 
 
 Handle errors

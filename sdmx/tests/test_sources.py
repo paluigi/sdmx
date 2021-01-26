@@ -4,90 +4,18 @@ HTTP responses from the data sources are cached in tests/data/cache.
 To force the data to be retrieved over the Internet, delete this directory.
 """
 # TODO add a pytest argument for clearing this cache in conftest.py
-import logging
+from pathlib import Path
 from typing import Any, Dict, Type
 
 import pytest
 import requests_mock
 
 import sdmx
-from sdmx import Client, Resource
+from sdmx import Client
 from sdmx.exceptions import HTTPError
-from sdmx.source import DataContentType, sources
 
-from .data import BASE_PATH as TEST_DATA_PATH
-from .data import specimen
-
-log = logging.getLogger(__name__)
-
-
+# Mark the whole file so the tests can be excluded/included
 pytestmark = pytest.mark.source
-
-
-def pytest_generate_tests(metafunc):
-    """pytest hook for parametrizing tests with 'endpoint' arguments."""
-    if "endpoint" not in metafunc.fixturenames:
-        return  # Don't need to parametrize this metafunc
-
-    # Arguments to parametrize()
-    ep_data = []
-    ids = []
-
-    # Use the test class' source_id attr to look up the Source class
-    source = sources[metafunc.cls.source_id]
-
-    # This exception is raised by api.Client._request_from_args
-    # TODO parametrize force=True to query these endpoints anyway; then CI
-    #      XPASS will reveal when data sources change their support for
-    #      endpoints
-    mark_unsupported = pytest.mark.xfail(
-        strict=True, reason="Known non-supported endpoint.", raises=NotImplementedError
-    )
-
-    for ep in Resource:
-        # Accumulate multiple marks; first takes precedence
-        marks = []
-
-        # Check if the associated source supports the endpoint
-        supported = source.supports[ep]
-        if source.data_content_type == DataContentType.JSON and ep is not Resource.data:
-            # SDMX-JSON sources only support data queries
-            continue
-        elif not supported:
-            marks.append(mark_unsupported)
-
-        # Check if the test function's class contains an expected failure
-        # for this endpoint
-        exc_class = metafunc.cls.xfail.get(ep.name, None)
-        if exc_class:
-            # Mark the test as expected to fail
-            marks.append(pytest.mark.xfail(strict=True, raises=exc_class))
-
-            if not supported:
-                log.info(
-                    f"tests for {metafunc.cls.source_id!r} mention "
-                    f"unsupported endpoint {ep.name!r}"
-                )
-
-        # Tolerate 503 errors
-        if metafunc.cls.tolerate_503:
-            marks.append(
-                pytest.mark.xfail(
-                    raises=HTTPError, reason="503 Server Error: Service Unavailable"
-                )
-            )
-
-        # Get keyword arguments for this endpoint
-        args = metafunc.cls.endpoint_args.get(ep.name, dict())
-        if ep is Resource.data and not len(args):
-            # args must be specified for a data query; no args → no test
-            continue
-
-        ep_data.append(pytest.param(ep, args, marks=marks))
-        ids.append(ep.name)
-
-    # Run the test function once for each endpoint
-    metafunc.parametrize("endpoint, args", ep_data, ids=ids)
 
 
 class DataSourceTest:
@@ -109,10 +37,10 @@ class DataSourceTest:
     endpoint_args: Dict[str, Dict[str, Any]] = {}
 
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls, test_data_path):
         # Use a common cache file for all agency tests
-        (TEST_DATA_PATH / ".cache").mkdir(exist_ok=True)
-        cls._cache_path = TEST_DATA_PATH / ".cache" / cls.source_id
+        (test_data_path / ".cache").mkdir(exist_ok=True)
+        cls._cache_path = test_data_path / ".cache" / cls.source_id
 
     @pytest.fixture
     def client(self):
@@ -121,8 +49,8 @@ class DataSourceTest:
         )
 
     @pytest.mark.network
-    def test_endpoints(self, client, endpoint, args):
-        # See pytest_generate_tests() for values of 'endpoint'
+    def test_endpoint(self, client, endpoint, args):
+        # See sdmx.testing._generate_endpoint_tests() for values of `endpoint`
         cache = self._cache_path.with_suffix(f".{endpoint}.xml")
         result = client.get(endpoint, tofile=cache, **args)
 
@@ -152,7 +80,7 @@ estat_mock = {
     (
         "http://ec.europa.eu/eurostat/SDMX/diss-web/rest/data/nama_10_gdp/" "..B1GQ+P3."
     ): {
-        "body": TEST_DATA_PATH / "ESTAT" / "footer2.xml",
+        "body": Path("ESTAT", "footer2.xml"),
         "headers": {
             "Content-Type": "application/vnd.sdmx.genericdata+xml; version=2.1"
         },
@@ -160,7 +88,7 @@ estat_mock = {
     "http://ec.europa.eu/eurostat/SDMX/diss-web/file/7JUdWyAy4fmjBSWT": {
         # This file is a trimmed version of the actual response for the above
         # query
-        "body": TEST_DATA_PATH / "ESTAT" / "footer2.zip",
+        "body": Path("ESTAT", "footer2.zip"),
         "headers": {"Content-Type": "application/octet-stream"},
     },
 }
@@ -176,12 +104,12 @@ class TestESTAT(DataSourceTest):
     }
 
     @pytest.fixture
-    def mock(self):
+    def mock(self, test_data_path):
         # Prepare the mock requests
         fixture = requests_mock.Mocker()
         for url, args in estat_mock.items():
             # str() here is for Python 3.5 compatibility
-            args["body"] = open(str(args["body"]), "rb")
+            args["body"] = open(str(test_data_path / args["body"]), "rb")
             fixture.get(url, **args)
 
         return fixture
@@ -277,7 +205,7 @@ class TestISTAT(DataSourceTest):
     source_id = "ISTAT"
 
     @pytest.mark.network
-    def test_gh_75(self, client):
+    def test_gh_75(self, specimen, client):
         """Test of https://github.com/dr-leo/pandaSDMX/pull/75."""
 
         df_id = "47_850"

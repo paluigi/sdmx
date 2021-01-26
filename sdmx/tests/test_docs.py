@@ -12,10 +12,8 @@ import pytest
 import sdmx
 from sdmx import Client
 from sdmx.model import GenericDataSet
+from sdmx.testing import assert_pd_equal
 from sdmx.util import DictLike
-
-from . import assert_pd_equal
-from .data import specimen
 
 
 @pytest.mark.network
@@ -221,7 +219,7 @@ def test_doc_usage_data():
     )
 
 
-def test_doc_howto_timeseries():
+def test_doc_howto_timeseries(specimen):
     with specimen("sg-ts.xml") as f:
         ds = sdmx.read_sdmx(f).data[0]
 

@@ -10,23 +10,22 @@ import sdmx
 from sdmx.format.xml import qname
 from sdmx.model import Facet, FacetType, FacetValueType
 from sdmx.reader.xml import Reader, XMLParseError
-from sdmx.tests.data import specimen, test_files
 from sdmx.writer.xml import Element as E
 
 
 # Read example data files
-@pytest.mark.parametrize("path", **test_files(format="xml", kind="data"))
+@pytest.mark.parametrize_specimens("path", format="xml", kind="data")
 def test_read_xml(path):
     sdmx.read_sdmx(path)
 
 
 # Read example structure files
-@pytest.mark.parametrize("path", **test_files(format="xml", kind="structure"))
+@pytest.mark.parametrize_specimens("path", format="xml", kind="structure")
 def test_read_xml_structure(path):
     sdmx.read_sdmx(path)
 
 
-def test_read_xml_structure_insee():
+def test_read_xml_structure_insee(specimen):
     with specimen("IPI-2010-A21-structure.xml") as f:
         msg = sdmx.read_sdmx(f)
 
@@ -41,7 +40,7 @@ def test_read_xml_structure_insee():
 
 
 # Read structure-specific messages
-def test_read_ss_xml():
+def test_read_ss_xml(specimen):
     with specimen("M.USD.EUR.SP00.A.xml", opened=False) as f:
         msg_path = f
         dsd_path = f.parent / "structure.xml"

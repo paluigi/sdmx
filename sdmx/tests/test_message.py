@@ -5,8 +5,6 @@ import pytest
 
 import sdmx
 
-from .data import specimen
-
 EXPECTED = [
     # Structure messages
     (
@@ -76,7 +74,7 @@ EXPECTED = [
 @pytest.mark.parametrize(
     "pattern, expected", EXPECTED, ids=list(map(itemgetter(0), EXPECTED))
 )
-def test_message_repr(pattern, expected):
+def test_message_repr(specimen, pattern, expected):
     with specimen(pattern) as f:
         msg = sdmx.read_sdmx(f)
     if isinstance(expected, re.Pattern):

@@ -4,7 +4,6 @@ import pytest
 
 import sdmx
 from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
-from sdmx.tests.data import specimen
 
 log = logging.getLogger(__name__)
 
@@ -99,7 +98,7 @@ _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
         ),
     ],
 )
-def test_data_roundtrip(pytestconfig, data_id, structure_id, tmp_path):
+def test_data_roundtrip(pytestconfig, specimen, data_id, structure_id, tmp_path):
     """Test that SDMX-ML DataMessages can be 'round-tripped'."""
 
     # Read structure from file
@@ -140,7 +139,7 @@ def test_data_roundtrip(pytestconfig, data_id, structure_id, tmp_path):
         ("UNSD/codelist_partial.xml", True),
     ],
 )
-def test_structure_roundtrip(pytestconfig, specimen_id, strict, tmp_path):
+def test_structure_roundtrip(pytestconfig, specimen, specimen_id, strict, tmp_path):
     """Test that SDMX-ML StructureMessages can be 'round-tripped'."""
 
     # Read a specimen file

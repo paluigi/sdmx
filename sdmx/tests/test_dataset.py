@@ -3,13 +3,11 @@ import pandas.testing as pdt
 
 import sdmx
 from sdmx import message, model
-
-from . import MessageTest
-from .data import specimen
+from sdmx.testing import MessageTest
 
 
 class DataMessageTest(MessageTest):
-    path = MessageTest.path / "ECB_EXR"
+    directory = "ECB_EXR"
 
 
 class TestGenericFlatDataSet(DataMessageTest):
@@ -249,7 +247,7 @@ class TestGenericSeriesData_RateGroup_TS(DataMessageTest):
         g_attrib = s.group_attrib
         assert len(g_attrib) == 5
 
-    def test_footer(self):
+    def test_footer(self, specimen):
         with specimen("footer.xml") as f:
             f = sdmx.read_sdmx(f).footer
         assert f.code == 413

@@ -14,7 +14,7 @@ Next release
 Migration notes
 ---------------
 
-Code that calls :func:`Request` emits :class:`DeprecationWarning` and logs a message with level :py:obj:`~.logging.WARNING`:
+Code that calls :func:`Request` emits :class:`DeprecationWarning` and logs a message with level :py:data:`~.logging.WARNING`:
 
 .. code-block:: ipython
 
@@ -22,12 +22,21 @@ Code that calls :func:`Request` emits :class:`DeprecationWarning` and logs a mes
    Request class will be removed in v3.0; use Client(...)
    <sdmx.client.Client object at 0x7f98787e7d60>
 
+Instead, use:
+
+.. code-block:: python
+
+   sdmx.Client("ECB")
+
 
 All changes
 -----------
 
-- The :class:`Request` class is renamed :class:`.Client` for semantic clarity (:issue:`11`, :pull:`44`).
-  A Client can open a :class:`.requests.Session` and make multiple :class:`requests.Requests <.requests.Request>` against the same web service.
+- The large library of test specimens for :mod:`sdmx` is no longer shipped with the package, reducing the archive size by about 80% (:issue:`18`, :pull:`52`).
+  The specimens can be retrieved for running tests locally; see :ref:`testing`.
+- The :class:`Request` class is renamed :class:`.Client` for semantic clarity (:issue:`11`, :pull:`44`):
+
+  A Client can open a :class:`.requests.Session` and might make many :class:`requests.Requests <.requests.Request>` against the same web service.
 - Some internal modules are renamed.
   These should not affect user code; if they do, adjust that code to use the top-level objects.
 

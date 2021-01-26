@@ -2,12 +2,10 @@ import sdmx
 from sdmx import model
 from sdmx.message import DataMessage, Header
 from sdmx.model import AttributeValue, DataAttribute, DataSet, Key, Observation
-
-from . import assert_pd_equal
-from .data import specimen
+from sdmx.testing import assert_pd_equal
 
 
-def test_flat():
+def test_flat(specimen):
     # Create a bare Message
     msg = DataMessage()
 
@@ -56,7 +54,7 @@ def test_flat():
     assert_pd_equal(df1, df2)
 
 
-def test_bare_series():
+def test_bare_series(specimen):
     with specimen("ng-ts.xml") as f:
         sdmx.read_sdmx(f)
 

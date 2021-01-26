@@ -3,7 +3,7 @@ Implementation notes
 
 :mod:`sdmx.model` implements the SDMX version 2.1.
 (:term:`What is an 'information model'? <information model>`)
-This page gives brief explanations of **how :mod:`sdmx` implements the standards**, focusing on additional features, conveniences, or interpretations/naming choices that are not strictly detemined by the standards.
+This page gives brief explanations of **how** :mod:`sdmx` **implements the standards**, focusing on additional features, conveniences, or interpretations/naming choices that are not strictly detemined by the standards.
 
 Although this page is organized to correspond to the standards, it **does not recapitulate them** (:ref:`as stated <not-the-standard>`)—nor does it set out to teach all their details.
 For those purposes, see :doc:`resources`; or the :doc:`walkthrough`, which includes some incidental explanations.
