@@ -4,16 +4,10 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import sdmx
-
 # -- Project information -----------------------------------------------------
 
 project = "sdmx"
-copyright = "2014–2020 SDMX Python developers"
-# The major project version, used as the replacement for |version|.
-version = sdmx.__version__[:3]
-# The full project version, used as the replacement for |release|.
-release = sdmx.__version__
+copyright = "2014–2021 sdmx1 developers"
 
 
 # -- General configuration ------------------------------------------------

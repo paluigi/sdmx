@@ -169,7 +169,7 @@ for certain data sources, see :doc:`sources`.
    :members:
 
 .. automodule:: sdmx.source
-   :members: add_source, list_sources, load_package_sources
+   :members: list_sources, load_package_sources
 
 
 ``util``: Utilities
