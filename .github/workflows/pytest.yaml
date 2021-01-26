@@ -29,8 +29,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Checkout test data
+      uses: actions/checkout@v2
       with:
-        submodules: true
+        repository: khaeru/sdmx-test-data
+        path: sdmx-test-data
 
     - uses: actions/setup-python@v2
       with:
@@ -40,7 +44,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          $HOME/.cache/pip
+          ~/.cache/pip
+          ~/Library/Caches/pip
+          ~/appdata/local/pip/cache
         key: ${{ matrix.os }}
 
     - name: Upgrade pip, wheel
@@ -51,10 +57,14 @@ jobs:
 
     - name: Run pytest
       if: ${{ github.event_name != 'schedule' }}
+      env:
+        SDMX_TEST_DATA: ./sdmx-test-data/
       run: pytest --cov-report=xml -ra --color=yes --verbose
 
     - name: Run pytest, including tests of specific web services
       if: ${{ github.event_name == 'schedule' && contains(matrix.os, 'ubuntu') }}
+      env:
+        SDMX_TEST_DATA: ./sdmx-test-data/
       run: pytest -m "not experimental" --cov-report=xml -ra --color=yes --verbose
 
     - name: Upload test coverage to Codecov.io
