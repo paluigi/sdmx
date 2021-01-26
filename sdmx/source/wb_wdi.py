@@ -18,7 +18,7 @@ class Source(BaseSource):
         try:
             if isinstance(kwargs["key"], str):
                 # Data queries fail without a trailing slash
-                # TODO improve the hook integration with Request.get so this can be
+                # TODO improve the hook integration with Client.get so this can be
                 #      done after the query URL is prepared
                 kwargs["key"] += "/"
         except KeyError:

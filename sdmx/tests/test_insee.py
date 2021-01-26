@@ -4,7 +4,7 @@ from collections import OrderedDict
 import pytest
 
 import sdmx
-from sdmx import Request
+from sdmx import Client
 
 from .data import BASE_PATH as test_data_path
 
@@ -33,7 +33,7 @@ SERIES = {
 class TestINSEE:
     @pytest.fixture(scope="class")
     def req(self):
-        return Request("INSEE")
+        return Client("INSEE")
 
     def test_load_dataset(self, req):
         dataset_code = "IPI-2010-A21"

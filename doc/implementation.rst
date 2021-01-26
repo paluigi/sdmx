@@ -173,7 +173,7 @@ Constraints
    1. Zero or more :class:`.CubeRegion` stored at :attr:`.data_content_region`.
    2. Zero or one :class:`.DataKeySet` stored at :attr:`.Constraint.data_content_keys`.
 
-   Currently, :meth:`.ContentConstraint.to_query_string`, used by :meth:`.Request.get` to validate keys based on a data flow definition, only uses :attr:`.data_content_region`, if any.
+   Currently, :meth:`.ContentConstraint.to_query_string`, used by :meth:`.Client.get` to validate keys based on a data flow definition, only uses :attr:`.data_content_region`, if any.
    :attr:`.data_content_keys` are ignored.
    None of the data sources supported by :mod:`sdmx` appears to use this latter form.
 
@@ -239,15 +239,15 @@ The Eurostat and ECB help materials provide descriptions and examples of HTTP us
   Some existing services offer a parameter to select SDMX 2.1 *or* 2.0 format; :mod:`sdmx` does not support the latter.
   Other services *only* provide SDMX 2.0-formatted data; these cannot be used with :mod:`sdmx`.
 
-:class:`.Request` constructs valid URLs and automatically add some parameter and header values.
-These can be overridden; see :meth:`.Request.get`.
-In some cases, Request will make an additional query to fetch metadata and validate a query.
+:class:`.Client` constructs valid URLs and automatically add some parameter and header values.
+These can be overridden; see :meth:`.Client.get`.
+In some cases, Client will make an additional HTTP request to fetch metadata and validate a query.
 
 :class:`.sdmx.Source` and its subclasses handle idiosyncrasies of the web services operated by different agencies, such as:
 
 - parameters or headers that are not supported, or must take very specific, non-standard values, or
 - unusual ways of returning data.
 
-For data sources that support it, :mod:`sdmx` automatically adds the HTTP header ``Accept: application/vnd.sdmx.structurespecificdata+xml;`` when the `dsd` argument is provided to :meth:`.Request.get`.
+For data sources that support it, :mod:`sdmx` automatically adds the HTTP header ``Accept: application/vnd.sdmx.structurespecificdata+xml;`` when the `dsd` argument is provided to :meth:`.Client.get`.
 
 See :doc:`sources` and the source code for the details for each data source.

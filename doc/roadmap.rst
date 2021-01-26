@@ -34,7 +34,7 @@ SDMX features & miscellaneous
 
 - Selective/partial parsing of SDMX-ML messages.
 
-- sdmx.api.Request._resources only contains a subset of: https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1 (see "NOT SUPPORTED OPERATIONS"); provide the rest.
+- Client._resources only contains a subset of: https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1 (see "NOT SUPPORTED OPERATIONS"); provide the rest.
 
 - Get a set of API keys for testing UNESCO and encrypt them for use in CI: https://docs.travis-ci.com/user/encryption-keys/
 

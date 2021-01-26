@@ -14,7 +14,7 @@ The DSD, in turn, contains or references all the metadata describing data sets a
 .. ipython:: python
 
     import sdmx
-    estat = sdmx.Request('ESTAT')
+    estat = sdmx.Client('ESTAT')
 
 Download the metadata and expose:
 

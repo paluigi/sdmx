@@ -1,6 +1,6 @@
 import pytest
 
-from sdmx.remote import Session
+from sdmx.session import Session
 
 from . import has_requests_cache
 

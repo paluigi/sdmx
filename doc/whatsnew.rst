@@ -11,6 +11,25 @@ What's new?
 Next release
 ============
 
+Migration notes
+---------------
+
+Code that calls :func:`Request` emits :class:`DeprecationWarning` and logs a message with level :py:obj:`~.logging.WARNING`:
+
+.. code-block:: ipython
+
+   >>> sdmx.Request("ECB")
+   Request class will be removed in v3.0; use Client(...)
+   <sdmx.client.Client object at 0x7f98787e7d60>
+
+
+All changes
+-----------
+
+- The :class:`Request` class is renamed :class:`.Client` for clarity: a Client can open a :class:`.requests.Session` and make multiple :class:`requests.Requests <.requests.Request>` against the same web service.
+
+  - :mod:`sdmx.api` is renamed :mod:`sdmx.client`.
+  - :mod:`sdmx.remote` is renamed :mod:`sdmx.session`.
 
 
 v1.7.0 (2021-01-26)

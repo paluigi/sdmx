@@ -9,24 +9,21 @@ See also the :doc:`implementation`.
 
 Top-level methods and classes
 -----------------------------
+
 .. automodule:: sdmx
    :members:
-   :exclude-members: logger
 
-.. autodata:: logger
+   .. autosummary::
 
-   By default, messages at the :ref:`log level <py:levels>` ``ERROR`` or
-   greater are printed to :obj:`sys.stderr`.
-   These include the web service query details (URL and headers) used by :class:`.Request`.
-
-   To debug requets to web services, set to a more permissive level::
-
-       import logging
-
-       sdmx.logger.setLevel(logging.DEBUG)
-
-   .. versionadded:: 0.4
-
+      Client
+      Resource
+      add_source
+      list_sources
+      log
+      read_sdmx
+      read_url
+      to_pandas
+      to_xml
 
 ``message``: SDMX messages
 --------------------------
@@ -152,10 +149,10 @@ Other objects are converted as follows:
 See :func:`.to_xml`.
 
 
-``remote``: Access SDMX REST web services
------------------------------------------
-.. autoclass:: sdmx.remote.Session
-.. autoclass:: sdmx.remote.ResponseIO
+``session``: Access SDMX REST web services
+------------------------------------------
+.. autoclass:: sdmx.session.Session
+.. autoclass:: sdmx.session.ResponseIO
 
 
 ``source``: Features of SDMX data sources

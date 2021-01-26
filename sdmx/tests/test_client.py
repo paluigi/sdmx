@@ -37,13 +37,13 @@ def test_read_sdmx(tmp_path):
         sdmx.read_sdmx(bad_file, format="JSON")
 
 
-def test_request():
+def test_Client():
     # Constructor
-    r = sdmx.Request(log_level=logging.ERROR)
+    r = sdmx.Client(log_level=logging.ERROR)
 
     # Invalid source name raise an exception
     with pytest.raises(ValueError):
-        sdmx.Request("noagency")
+        sdmx.Client("noagency")
 
     # Regular methods
     r.clear_cache()
@@ -67,13 +67,13 @@ def test_request():
 
 
 def test_request_get_exceptions():
-    """Tests of Request.get() that don't require remote data."""
-    req = sdmx.Request("ESTAT")
+    """Tests of Client.get() that don't require remote data."""
+    ESTAT = sdmx.Client("ESTAT")
 
     # Exception is raised on unrecognized arguments
     exc = "unrecognized arguments: {'foo': 'bar'}"
     with pytest.raises(ValueError, match=exc):
-        req.get("datastructure", foo="bar")
+        ESTAT.get("datastructure", foo="bar")
 
     exc = r"{'foo': 'bar'} supplied with get\(url=...\)"
     with pytest.raises(ValueError, match=exc):
@@ -82,9 +82,9 @@ def test_request_get_exceptions():
 
 @pytest.mark.network
 def test_request_get_args():
-    req = sdmx.Request("ESTAT")
+    ESTAT = sdmx.Client("ESTAT")
 
-    # Request._make_key accepts '+'-separated values
+    # Client._make_key accepts '+'-separated values
     args = dict(
         resource_id="une_rt_a",
         key={"GEO": "EL+ES+IE"},
@@ -93,19 +93,19 @@ def test_request_get_args():
         use_cache=True,
     )
     # Store the URL
-    url = req.data(**args).url
+    url = ESTAT.data(**args).url
 
     # Using an iterable of key values gives the same URL
     args["key"] = {"GEO": ["EL", "ES", "IE"]}
-    assert req.data(**args).url == url
+    assert ESTAT.data(**args).url == url
 
     # Using a direct string for a key gives the same URL
     args["key"] = "....EL+ES+IE"  # No specified values for first 4 dimensions
-    assert req.data(**args).url == url
+    assert ESTAT.data(**args).url == url
 
     # Giving 'provider' is redundant for a data request, causes a warning
     with pytest.warns(UserWarning, match="'provider' argument is redundant"):
-        req.data(
+        ESTAT.data(
             "une_rt_a",
             key={"GEO": "EL+ES+IE"},
             params={"startPeriod": "2007"},
@@ -114,14 +114,14 @@ def test_request_get_args():
 
     # Using an unknown endpoint is an exception
     with pytest.raises(ValueError):
-        req.get("badendpoint", "id")
+        ESTAT.get("badendpoint", "id")
 
-    # TODO test req.get(obj) with IdentifiableArtefact subclasses
+    # TODO test Client.get(obj) with IdentifiableArtefact subclasses
 
 
 @pytest.mark.network
 def test_read_url():
-    # URL can be queried without instantiating Request
+    # URL can be queried without instantiating Client
     sdmx.read_url(
         "http://sdw-wsrest.ecb.int/service/datastructure/ECB/"
         "ECB_EXR1/latest?references=all"
@@ -130,17 +130,17 @@ def test_read_url():
 
 @pytest.mark.network
 def test_request_preview_data():
-    req = sdmx.Request("ECB")
+    ECB = sdmx.Client("ECB")
 
     # List of keys can be retrieved
-    keys = req.preview_data("EXR")
+    keys = ECB.preview_data("EXR")
     assert isinstance(keys, list)
 
     # Count of keys can be determined
     assert len(keys) > 1000
 
     # A filter can be provided, resulting in fewer keys
-    keys = req.preview_data("EXR", {"CURRENCY": "CAD+CHF+CNY"})
+    keys = ECB.preview_data("EXR", {"CURRENCY": "CAD+CHF+CNY"})
     assert len(keys) == 24
 
     # Result can be converted to pandas object
