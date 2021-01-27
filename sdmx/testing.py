@@ -64,14 +64,15 @@ def pytest_configure(config):
     )
 
     # Check the value can be converted to a path, and exists
-    sdmx_test_data = Path(config.option.sdmx_test_data)
-
-    if not sdmx_test_data.exists():  # pragma: no cover
-        # Cannot proceed further; this exception kills the test session
-        raise FileNotFoundError(
-            f"SDMX test data in {sdmx_test_data}\nGive --sdmx-test-data=… or set the "
-            "SDMX_TEST_DATA environment variable"
-        )
+    message = "Give --sdmx-test-data=… or set the SDMX_TEST_DATA environment variable"
+    try:
+        sdmx_test_data = Path(config.option.sdmx_test_data)
+    except TypeError:  # pragma: no cover
+        raise RuntimeError(message) from None
+    else:  # pragma: no cover
+        if not sdmx_test_data.exists():  # pragma: no cover
+            # Cannot proceed further; this exception kills the test session
+            raise FileNotFoundError(f"SDMX test data in {sdmx_test_data}\n{message}")
 
     setattr(config, "sdmx_test_data", sdmx_test_data)
     setattr(config, "sdmx_specimens", SpecimenCollection(sdmx_test_data))
@@ -162,6 +163,8 @@ def generate_endpoint_tests(metafunc):
     if len(params):
         # Run the test function once for each endpoint
         metafunc.parametrize("endpoint, args", params)
+    else:
+        pytest.skip("No endpoints to be tested")
 
 
 class MessageTest:
