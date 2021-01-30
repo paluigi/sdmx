@@ -54,7 +54,7 @@ class DataSourceTest:
     #    docstring to describe the nature of the problem.
     # @pytest.fixture
     # def client(self, cache_path):
-    #     """Identical to DataSourceTest, except add verify=False.
+    #     """Identical to DataSourceTest, except skip SSL certificate verification.
     #
     #     As of [DATE], this source returns an invalid certificate.
     #     """
@@ -251,6 +251,17 @@ class TestLSD(DataSourceTest):
             params=dict(startPeriod="2005-01", endPeriod="2007-01"),
         )
     }
+
+    @pytest.fixture
+    def client(self, cache_path):
+        """Identical to DataSourceTest, except skip SSL certificate verification.
+
+        As of 2021-01-30, this source returns a certificate that is treated as invalid
+        by the GitHub Actions job runner; but *not* on a local machine.
+        """
+        return Client(
+            self.source_id, cache_name=str(cache_path), backend="sqlite", verify=False
+        )
 
 
 class TestNB(DataSourceTest):
