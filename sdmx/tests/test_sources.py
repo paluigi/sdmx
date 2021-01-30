@@ -203,23 +203,28 @@ class TestISTAT(DataSourceTest):
 
     @pytest.mark.network
     def test_gh_75(self, specimen, client):
-        """Test of https://github.com/dr-leo/pandaSDMX/pull/75."""
+        """Test of https://github.com/dr-leo/pandaSDMX/pull/75.
+
+        As of the original report on 2019-06-02, the 4th dimension was ``TIPO_DATO``,
+        and the 5th ``TIPO_GESTIONE``. As of 2021-01-30, these are transposed, and the
+        4th dimension name is ``TIPO_GEST``.
+        """
 
         df_id = "47_850"
 
-        # # Reported Dataflow query works
-        # df = client.dataflow(df_id).dataflow[df_id]
-
-        with specimen("47_850-structure") as f:
-            df = sdmx.read_sdmx(f).dataflow[df_id]
+        # Reported Dataflow query works
+        # Without references="datastructure", this is a very slow query
+        df = client.dataflow(df_id, params={"references": "datastructure"}).dataflow[
+            df_id
+        ]
 
         # dict() key for the query
         data_key = dict(
             FREQ=["A"],
-            ITTER107=["001001"],
+            ITTER107=["001001+001002"],
             SETTITOLARE=["1"],
+            TIPO_GEST=["ALL"],
             TIPO_DATO=["AUTP"],
-            TIPO_GESTIONE=["ALL"],
             TIPSERVSOC=["ALL"],
         )
 
@@ -229,7 +234,9 @@ class TestISTAT(DataSourceTest):
         ) + ["TIME_PERIOD"]
 
         # Reported data query works
-        client.data(df_id, key="A.001001+001002.1.AUTP.ALL.ALL")
+        # NB the reported query key was "A.001001+001002.1.AUTP.ALL.ALL"; adjusted per
+        #    the DSD change (above).
+        client.data(df_id, key="A.001001+001002.1.ALL.AUTP.ALL")
 
         # Use a dict() key to force Client to make a sub-query for the DSD
         client.data(df_id, key=data_key)
