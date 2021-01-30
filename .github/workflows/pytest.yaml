@@ -28,6 +28,11 @@ jobs:
     name: ${{ matrix.os }}-py${{ matrix.python-version }}
 
     steps:
+    - name: Cancel previous runs that have not completed
+      uses: styfle/cancel-workflow-action@0.7.0
+      with:
+        access_token: ${{ github.token }}
+
     - uses: actions/checkout@v2
 
     - name: Checkout test data
@@ -56,13 +61,13 @@ jobs:
       run: pip install .[cache,docs,tests]
 
     - name: Run pytest
-      if: ${{ github.event_name != 'schedule' }}
+      if: ${{ github.event_name == 'pull_request' }}
       env:
         SDMX_TEST_DATA: ./sdmx-test-data/
       run: pytest --cov-report=xml -ra --color=yes --verbose
 
     - name: Run pytest, including tests of specific web services
-      if: ${{ github.event_name == 'schedule' && contains(matrix.os, 'ubuntu') }}
+      if: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && contains(matrix.os, 'ubuntu') }}
       env:
         SDMX_TEST_DATA: ./sdmx-test-data/
       run: pytest -m "not experimental" --cov-report=xml -ra --color=yes --verbose
