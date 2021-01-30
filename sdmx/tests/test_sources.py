@@ -196,7 +196,6 @@ class TestINEGI(DataSourceTest):
 
 class TestINSEE(DataSourceTest):
     source_id = "INSEE"
-    tolerate_503 = True
 
 
 class TestISTAT(DataSourceTest):
