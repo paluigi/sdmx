@@ -1031,6 +1031,10 @@ class DataKeySet(BaseModel):
     #: :class:`DataKeys <.DataKey>` appearing in the set.
     keys: List[DataKey]
 
+    def __len__(self):
+        """:func:`len` of the DataKeySet = :func:`len` of its :attr:`keys`."""
+        return len(self.keys)
+
 
 class Constraint(MaintainableArtefact):
     #: :class:`.DataKeySet` included in the Constraint.
