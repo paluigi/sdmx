@@ -1053,13 +1053,20 @@ def _ms(reader, elem):
     }.get(QName(elem).localname)
 
     try:
-        # Navigate from the current ContentConstraint to a
-        # ConstrainableArtefact. If this is a DataFlow, it has a DSD, which
-        # has an Attribute- or DimensionDescriptor
+        # Navigate from the current ContentConstraint to a ConstrainableArtefact
         cc_content = reader.stack[Reference]
-        assert len(cc_content) == 1
-        dfd = reader.resolve(cc_content[0])
-        cl = getattr(dfd.structure, kind[0])
+        assert len(cc_content) == 1, (cc_content, reader.stack, elem.attrib)
+        obj = reader.resolve(cc_content[0])
+
+        if isinstance(obj, model.DataflowDefinition):
+            # The constrained DFD has a corresponding DSD, which has a Dimension- or
+            # AttributeDescriptor
+            cl = getattr(obj.structure, kind[0])
+        elif isinstance(obj, model.DataStructureDefinition):
+            # The DSD is constrained directly
+            cl = getattr(obj, kind[0])
+        else:
+            log.warning(f"Not implemented: constraints attached to {type(obj)}")
     except AttributeError:
         # Failed because the ContentConstraint is attached to something, e.g.
         # DataProvider, that does not provide an association to a DSD. Try to get a
@@ -1161,6 +1168,12 @@ def _ar(reader, elem):
 
 @start("str:DataStructure", only=False)
 def _dsd_start(reader, elem):
+    try:
+        # <str:DataStructure> may be a reference, e.g. in <str:ConstraintAttachment>
+        return Reference(elem)
+    except NotReference:
+        pass
+
     # Get any external reference created earlier, or instantiate a new object.
     dsd = reader.maintainable(model.DataStructureDefinition, elem)
 
@@ -1176,10 +1189,11 @@ def _dsd_start(reader, elem):
 def _dsd_end(reader, elem):
     dsd = reader.pop_single("current DSD")
 
-    # Collect annotations, name, and description
-    dsd.annotations = reader.pop_all(model.Annotation, strict=True)
-    add_localizations(dsd.name, reader.pop_all("Name"))
-    add_localizations(dsd.description, reader.pop_all("Description"))
+    if dsd:
+        # Collect annotations, name, and description
+        dsd.annotations = reader.pop_all(model.Annotation, strict=True)
+        add_localizations(dsd.name, reader.pop_all("Name"))
+        add_localizations(dsd.description, reader.pop_all("Description"))
 
 
 @end("str:Dataflow")
