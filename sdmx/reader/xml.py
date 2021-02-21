@@ -509,7 +509,9 @@ class Reader(BaseReader):
             # Discard the candidate
             obj = existing
         elif obj.is_external_reference:
-            # Push a new external reference onto the stack to be located by next calls
+            # A new external reference. Ensure it has a URN.
+            obj.urn = obj.urn or sdmx.urn.make(obj)
+            # Push onto the stack to be located by next calls
             self.push(obj)
 
         return obj
