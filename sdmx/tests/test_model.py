@@ -289,7 +289,7 @@ def test_itemscheme():
 
     # extend()
     is0.items = [foo0]
-    is0.extend(items_list)
+    is0.extend(items_list[1:])
     assert is0.items == items_dict
 
     # setdefault()

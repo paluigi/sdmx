@@ -510,15 +510,12 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
         else:
             seen.add(item)
 
-        # Localized name
-        row = {"name": item.name.localized_default(locale)}
-        try:
+        items[item.id] = dict(
+            # Localized name
+            name=item.name.localized_default(locale),
             # Parent ID
-            row["parent"] = item.parent.id
-        except AttributeError:
-            row["parent"] = ""
-
-        items[item.id] = row
+            parent=item.parent.id if isinstance(item.parent, item.__class__) else "",
+        )
 
         # Add this item's children, recursively
         for child in item.child:

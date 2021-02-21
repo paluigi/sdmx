@@ -18,8 +18,8 @@ Details of the implementation:
   appear out of order so that dependent classes are defined first.
 
 """
-# TODO for complete implementation of the IM, enforce TimeKeyValue (instead of
-#      KeyValue) for {Generic,StructureSpecific} TimeSeriesDataSet.
+# TODO for complete implementation of the IM, enforce TimeKeyValue (instead of KeyValue)
+#      for {Generic,StructureSpecific} TimeSeriesDataSet.
 
 import logging
 from collections import ChainMap
@@ -469,7 +469,7 @@ ConstraintRoleType = Enum("ConstraintRoleType", "allowable actual")
 
 
 class Item(NameableArtefact):
-    parent: Optional["Item"] = None
+    parent: Optional[Union["Item", "ItemScheme"]] = None
     child: List["Item"] = []
 
     # NB this is required to prevent RecursionError in pydantic;
@@ -512,7 +512,11 @@ class Item(NameableArtefact):
         --------
         .ItemScheme.get_hierarchical
         """
-        return (f"{self.parent.hierarchical_id}." if self.parent else "") + self.id
+        return (
+            f"{self.parent.hierarchical_id}.{self.id}"
+            if isinstance(self.parent, self.__class__)
+            else self.id
+        )
 
     def append_child(self, other):
         if other not in self.child:
@@ -526,8 +530,16 @@ class Item(NameableArtefact):
                 return c
         raise ValueError(id)
 
+    def get_scheme(self):
+        """Return the :class:`ItemScheme` to which the Item belongs, if any."""
+        try:
+            # Recurse
+            return self.parent.get_scheme()
+        except AttributeError:
+            # Either this Item is a top-level Item whose .parent refers to the
+            # ItemScheme, or it has no parent
+            return self.parent
 
-Item.update_forward_refs()
 
 IT = TypeVar("IT", bound=Item)
 
@@ -616,8 +628,8 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         items : iterable of :class:`.Item`
             Elements must be of the same class as :attr:`items`.
         """
-        # TODO enhance to accept an ItemScheme
-        self.items.update({i.id: i for i in items})
+        for i in items:
+            self.append(i)
 
     def __len__(self):
         return len(self.items)
@@ -630,7 +642,11 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         item : same class as :attr:`items`
             Item to add.
         """
+        if item.id in self.items:
+            raise ValueError(f"Item with id {repr(item.id)} already exists")
         self.items[item.id] = item
+        if item.parent is None:
+            item.parent = self
 
     def compare(self, other, strict=True):
         """Return :obj:`True` if `self` is the same as `other`.
@@ -692,6 +708,9 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
             self.items[obj.id] = obj
 
         return obj
+
+
+Item.update_forward_refs()
 
 
 # §3.6: Structure
@@ -1414,9 +1433,9 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     def from_keys(cls, keys):
         """Return a new DSD given some *keys*.
 
-        The DSD's :attr:`dimensions` refers to a set of new :class:`Concepts
-        <Concept>` and :class:`Codelists <Codelist>`, created to represent all
-        the values observed across *keys* for each dimension.
+        The DSD's :attr:`dimensions` refers to a set of new :class:`Concepts <Concept>`
+        and :class:`Codelists <Codelist>`, created to represent all the values observed
+        across *keys* for each dimension.
 
         Parameters
         ----------
@@ -1425,9 +1444,14 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         """
         iter_keys = iter(keys)
         dd = DimensionDescriptor.from_key(next(iter_keys))
+
         for k in iter_keys:
             for i, (id, kv) in enumerate(k.values.items()):
-                dd[i].local_representation.enumerated.append(Code(id=kv.value))
+                try:
+                    dd[i].local_representation.enumerated.append(Code(id=kv.value))
+                except ValueError:
+                    pass  # Item already exists
+
         return cls(dimensions=dd)
 
     def make_key(self, key_cls, values: Mapping, extend=False, group_id=None):
@@ -1740,7 +1764,7 @@ class Key(BaseModel):
         try:
             return self.__getitem__(name)
         except KeyError as e:
-            raise e
+            raise AttributeError(e)
 
     # Copying
     def __copy__(self):

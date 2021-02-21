@@ -262,10 +262,10 @@ def maintainable(obj, **kwargs):
 def _item(obj: model.Item, **kwargs):
     elem = nameable(obj, **kwargs)
 
-    if obj.parent:
+    if isinstance(obj.parent, obj.__class__):
         # Reference to parent Item
         e_parent = Element("str:Parent")
-        e_parent.append(Element(":Ref", id=obj.parent.id))
+        e_parent.append(Element(":Ref", id=obj.parent.id, style="Ref"))
         elem.append(e_parent)
 
     return elem
