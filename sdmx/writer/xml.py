@@ -34,14 +34,12 @@ def to_xml(obj, **kwargs):
     Parameters
     ----------
     kwargs
-        Passed to :meth:`lxml.etree.to_string`, e.g. `pretty_print` =
-        :obj:`True`.
+        Passed to :meth:`lxml.etree.to_string`, e.g. `pretty_print` = :obj:`True`.
 
     Raises
     ------
     NotImplementedError
-        If writing specific objects to SDMX-ML has not been implemented in
-        :mod:`sdmx`.
+        If writing specific objects to SDMX-ML has not been implemented in :mod:`sdmx`.
     """
     return etree.tostring(writer.recurse(obj), **kwargs)
 

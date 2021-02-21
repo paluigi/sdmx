@@ -1059,9 +1059,9 @@ def _ms(reader, elem):
         dfd = reader.resolve(cc_content[0])
         cl = getattr(dfd.structure, kind[0])
     except AttributeError:
-        # Failed because the ContentConstraint is attached to something,
-        # e.g. DataProvider, that does not provide an association to a DSD.
-        # Try to get a Component from the current scope with matching ID.
+        # Failed because the ContentConstraint is attached to something, e.g.
+        # DataProvider, that does not provide an association to a DSD. Try to get a
+        # Component from the current scope with matching ID.
         cl = None
         arg["values_for"] = reader.get_single(kind[1], id=elem.attrib["id"])
     else:
