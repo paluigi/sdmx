@@ -498,7 +498,6 @@ class Item(NameableArtefact):
     def __iter__(self, recurse=True):
         yield self
         for c in self.child:
-            yield c
             yield from iter(c)
 
     @property
