@@ -206,6 +206,22 @@ class AnnotableArtefact(BaseModel):
     #: feature.
     annotations: List[Annotation] = []
 
+    def pop_annotation(self, **attrib):
+        """Remove and return a :class:`Annotation` with given `attrib`, e.g. 'id'.
+
+        If more than one `attrib` is given, all must match a particular annotation.
+
+        Raises
+        ------
+        KeyError
+            If there is no matching annotation.
+        """
+        for i, anno in enumerate(self.annotations):
+            if all(getattr(anno, key, None) == value for key, value in attrib.items()):
+                return self.annotations.pop(i)
+
+        raise KeyError(attrib)
+
 
 class _MissingID(str):
     def __str__(self):
