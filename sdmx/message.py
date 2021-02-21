@@ -1,20 +1,19 @@
 """Classes for SDMX messages.
 
 :class:`Message` and related classes are not defined in the SDMX
-:doc:`information model <implementation>`, but in the
-:ref:`SDMX-ML standard <formats>`.
+:doc:`information model <implementation>`, but in the :ref:`SDMX-ML standard <formats>`.
 
-:mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data
-returned by data sources.
+:mod:`sdmx` also uses :class:`DataMessage` to encapsulate SDMX-JSON data returned by
+data sources.
 """
 import logging
 from datetime import datetime
-from typing import List, Optional, Text, Union
+from typing import List, Optional, Text, Union, get_args
 
 from requests import Response
 
 from sdmx import model
-from sdmx.util import BaseModel, DictLike, compare, summarize_dictlike
+from sdmx.util import BaseModel, DictLike, compare, direct_fields, summarize_dictlike
 
 log = logging.getLogger(__name__)
 
@@ -74,21 +73,7 @@ class Header(BaseModel):
         strict : bool, optional
             Passed to :func:`.compare`.
         """
-        return all(
-            compare(attr, self, other, strict)
-            for attr in [
-                "error",
-                "extracted",
-                "id",
-                "prepared",
-                "reporting_begin",
-                "reporting_end",
-                "receiver",
-                "sender",
-                "source",
-                "test",
-            ]
-        )
+        return all(compare(f, self, other, strict) for f in self.__fields__.keys())
 
 
 class Footer(BaseModel):
@@ -115,9 +100,7 @@ class Footer(BaseModel):
         strict : bool, optional
             Passed to :func:`.compare`.
         """
-        return all(
-            compare(attr, self, other, strict) for attr in ["severity", "text", "code"]
-        )
+        return all(compare(f, self, other, strict) for f in self.__fields__.keys())
 
 
 class Message(BaseModel):
@@ -198,17 +181,9 @@ class StructureMessage(Message):
             Passed to :meth:`.DictLike.compare`.
         """
         return super().compare(other, strict) and all(
-            getattr(self, attr).compare(getattr(other, attr), strict)
-            for attr in (
-                "categorisation",
-                "category_scheme",
-                "codelist",
-                "concept_scheme",
-                "constraint",
-                "dataflow",
-                "structure",
-                "organisation_scheme",
-                "provisionagreement",
+            getattr(self, f).compare(getattr(other, f), strict)
+            for f in direct_fields(self).keys()
+        )
             )
         )
 
