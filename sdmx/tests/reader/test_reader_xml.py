@@ -149,7 +149,7 @@ def test_parse_elem(elem, expected):
         result = reader.read_message(tmp)
 
         if not result:
-            stack = list(chain(*reader.stack.values()))
+            stack = list(chain(*[s.values() for s in reader.stack.values()]))
             assert len(stack) == 1
             result = stack[0]
 

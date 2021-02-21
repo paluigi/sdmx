@@ -1282,9 +1282,9 @@ class StructureUsage(MaintainableArtefact):
 class DimensionDescriptor(ComponentList[DimensionComponent]):
     """Describes a set of dimensions.
 
-    IM: “An ordered set of metadata concepts that, combined, classify a
-    statistical series, and whose values, when combined (the key) in an
-    instance such as a data set, uniquely identify a specific observation.”
+    IM: “An ordered set of metadata concepts that, combined, classify a statistical
+    series, and whose values, when combined (the key) in an instance such as a data
+    set, uniquely identify a specific observation.”
 
     :attr:`.components` is a :class:`list` (ordered) of :class:`Dimension`,
     :class:`MeasureDimension`, and/or :class:`TimeDimension`.
