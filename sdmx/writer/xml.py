@@ -5,7 +5,6 @@
 # - writer functions for sdmx.message classes, in the same order as message.py
 # - writer functions for sdmx.model classes, in the same order as model.py
 
-from itertools import chain
 from typing import Iterable, cast
 
 from lxml import etree
@@ -44,36 +43,36 @@ def to_xml(obj, **kwargs):
     return etree.tostring(writer.recurse(obj), **kwargs)
 
 
-def reference(obj, parent=None, tag=None, style="URN"):
-    """Write a reference to `obj`."""
+def reference(obj, parent=None, tag=None, style=None):
+    """Write a reference to `obj`.
+
+    .. todo:: Currently other functions in :mod:`.writer.xml` all pass the `style`
+       argument to this function. As an enhancement, allow user or automatic selection
+       of different reference styles.
+    """
     tag = tag or tag_for_class(obj.__class__)
 
     elem = Element(tag)
 
+    if isinstance(obj, model.MaintainableArtefact):
+        ma = obj
+    else:
+        try:
+            # Get the ItemScheme for an Item
+            parent = parent or obj.get_scheme()
+        except AttributeError:
+            pass
+
+        if not parent:
+            raise NotImplementedError(
+                f"Cannot write reference to {repr(obj)} without parent"
+            )
+
+        ma = parent
+
     if style == "URN":
         ref = Element(":URN", obj.urn)
     elif style == "Ref":
-        if isinstance(obj, model.MaintainableArtefact):
-            ma = obj
-        else:
-            # TODO handle references to non-maintainable children of parent
-            #      objects
-            if not parent:
-                for is_ in chain(
-                    writer._message.concept_scheme.values(),
-                    writer._message.category_scheme.values(),
-                ):
-                    if obj in is_:
-                        parent = is_
-                        break
-
-            if not parent:
-                raise NotImplementedError(
-                    f"Cannot write reference to {repr(obj)} without parent"
-                )
-
-            ma = parent
-
         args = {
             "id": obj.id,
             "maintainableParentID": ma.id if parent else None,
