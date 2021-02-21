@@ -8,12 +8,19 @@ data sources.
 """
 import logging
 from datetime import datetime
-from typing import List, Optional, Text, Union, get_args
+from typing import List, Optional, Text, Union
 
 from requests import Response
 
 from sdmx import model
-from sdmx.util import BaseModel, DictLike, compare, direct_fields, summarize_dictlike
+from sdmx.util import (
+    BaseModel,
+    DictLike,
+    compare,
+    direct_fields,
+    get_args,
+    summarize_dictlike,
+)
 
 log = logging.getLogger(__name__)
 

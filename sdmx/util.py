@@ -8,6 +8,7 @@ from typing import (
     Any,
     List,
     Mapping,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -276,3 +277,12 @@ def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
         for name, info in cls.__fields__.items()
         if name not in set(cls.mro()[1].__fields__.keys())
     }
+
+
+try:
+    from typing import get_args  # typing: ignore
+except ImportError:
+
+    def get_args(tp) -> Tuple[Any, ...]:
+        """For Python <3.8."""
+        return tp.__args__
