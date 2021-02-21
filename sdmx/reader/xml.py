@@ -12,7 +12,7 @@ from collections import ChainMap, defaultdict
 from copy import copy
 from itertools import chain, count, product
 from sys import maxsize
-from typing import Any, Dict, Iterable, Optional, Mapping, Type, Union, cast
+from typing import Any, Dict, Iterable, Mapping, Optional, Type, Union, cast
 
 from dateutil.parser import isoparse
 from lxml import etree
