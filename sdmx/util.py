@@ -280,7 +280,7 @@ def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
 
 
 try:
-    from typing import get_args  # typing: ignore
+    from typing import get_args  # type: ignore [attr-defined]
 except ImportError:
 
     def get_args(tp) -> Tuple[Any, ...]:
