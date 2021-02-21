@@ -11,6 +11,12 @@ What's new?
 Next release
 ============
 
+- :meth:`.ItemScheme.append` now raises :class:`ValueError` on duplicate IDs (:pull:`58`).
+- :attr:`.Item.parent` stores a reference to the containing :class:`.ItemScheme` for top-level Items that have no hierarchy/parent of their own. This allows navigating from any Item to the ItemScheme that contains it. :meth:`.Item.get_scheme` is added as a convenience method (:pull:`58`).
+- :mod:`.reader.xml` internals reworked for significant speedups in parsing of SDMX-ML (:pull:`58`).
+- New convenience method :meth:`.StructureMessage.get` to retrieve objects by ID across the multiple collections in StructureMessage (:pull:`58`).
+- New convenience method :meth:`.AnnotableArtefact.pop_annotation` to locate, remove, and return a Annotation, e.g. by its ID (:pull:`58`).
+- :func:`len` of a :class:`.DataKeySet` gives the length of :attr:`.DataKeySet.keys` (:pull:`58`).
 
 
 v2.0.1 (2021-01-31)
