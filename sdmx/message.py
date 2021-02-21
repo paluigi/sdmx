@@ -184,8 +184,35 @@ class StructureMessage(Message):
             getattr(self, f).compare(getattr(other, f), strict)
             for f in direct_fields(self).keys()
         )
+
+    def get(self, item_or_id):
+        if not isinstance(item_or_id, str):
+            # TODO handle item_or_id is an actual sdmx.model object
+            raise NotImplementedError
+
+        candidates = list(
+            filter(
+                None,
+                map(
+                    lambda f: getattr(self, f).get(item_or_id),
+                    direct_fields(self).keys(),
+                ),
             )
         )
+
+        if len(candidates) > 1:
+            raise ValueError(
+                f"ambiguous; ID {repr(item_or_id)} matches {repr(candidates)}"
+            )
+
+        return candidates[0] if len(candidates) == 1 else None
+
+    def __contains__(self, item):
+        """Return :obj:`True` if `item` is in the StructureMessage."""
+        for field, field_info in direct_fields(self).items():
+            if isinstance(item, get_args(field_info.outer_type_)[1]):
+                return item in getattr(self, field).values()
+        raise TypeError(f"StructureMessage has no collection of {type(item)}")
 
     def __repr__(self):
         """String representation."""
