@@ -2,7 +2,17 @@ import logging
 import typing
 from collections import OrderedDict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
+from functools import lru_cache
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Mapping,
+    Type,
+    TypeVar,
+    Union,
+    no_type_check,
+)
 
 import pydantic
 from pydantic import DictError, Extra, ValidationError, validator  # noqa: F401
@@ -254,7 +264,8 @@ def compare(attr, a, b, strict: bool) -> bool:
     # return result
 
 
-def direct_fields(obj_or_cls):
+@lru_cache()
+def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
     """Return the :mod:`pydantic` fields defined on `obj` or its class.
 
     This is like the ``__fields__`` attribute, but excludes the fields defined on any
@@ -262,6 +273,6 @@ def direct_fields(obj_or_cls):
     """
     return {
         name: info
-        for name, info in obj_or_cls.__fields__.items()
-        if name not in set(obj_or_cls.mro()[1].__fields__.keys())
+        for name, info in cls.__fields__.items()
+        if name not in set(cls.mro()[1].__fields__.keys())
     }

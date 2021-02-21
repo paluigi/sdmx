@@ -182,7 +182,7 @@ class StructureMessage(Message):
         """
         return super().compare(other, strict) and all(
             getattr(self, f).compare(getattr(other, f), strict)
-            for f in direct_fields(self).keys()
+            for f in direct_fields(self.__class__).keys()
         )
 
     def get(self, item_or_id):
@@ -195,7 +195,7 @@ class StructureMessage(Message):
                 None,
                 map(
                     lambda f: getattr(self, f).get(item_or_id),
-                    direct_fields(self).keys(),
+                    direct_fields(self.__class__).keys(),
                 ),
             )
         )
@@ -209,7 +209,7 @@ class StructureMessage(Message):
 
     def __contains__(self, item):
         """Return :obj:`True` if `item` is in the StructureMessage."""
-        for field, field_info in direct_fields(self).items():
+        for field, field_info in direct_fields(self.__class__).items():
             if isinstance(item, get_args(field_info.outer_type_)[1]):
                 return item in getattr(self, field).values()
         raise TypeError(f"StructureMessage has no collection of {type(item)}")
