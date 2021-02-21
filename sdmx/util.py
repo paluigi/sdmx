@@ -252,3 +252,16 @@ def compare(attr, a, b, strict: bool) -> bool:
     # if not result:
     #     log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
     # return result
+
+
+def direct_fields(obj_or_cls):
+    """Return the :mod:`pydantic` fields defined on `obj` or its class.
+
+    This is like the ``__fields__`` attribute, but excludes the fields defined on any
+    parent class(es).
+    """
+    return {
+        name: info
+        for name, info in obj_or_cls.__fields__.items()
+        if name not in set(obj_or_cls.mro()[1].__fields__.keys())
+    }
