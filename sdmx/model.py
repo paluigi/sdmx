@@ -702,9 +702,11 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
             # Instantiate an object of the correct class
             obj = self._Item(**kwargs)
 
-        if obj not in self.items.values():
+        try:
             # Add the object to the ItemScheme
-            self.items[obj.id] = obj
+            self.append(obj)
+        except ValueError:
+            pass  # Already present
 
         return obj
 
