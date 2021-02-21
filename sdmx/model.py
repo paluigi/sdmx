@@ -2080,7 +2080,7 @@ _PACKAGE_CLASS: Dict[str, set] = {
     "categoryscheme": {Category, Categorisation, CategoryScheme},
     "codelist": {Code, Codelist},
     "conceptscheme": {Concept, ConceptScheme},
-    "datastructure": {DataflowDefinition, DataStructureDefinition},
+    "datastructure": {DataflowDefinition, DataStructureDefinition, StructureUsage},
     "registry": {ContentConstraint, ProvisionAgreement},
 }
 
