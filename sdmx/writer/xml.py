@@ -364,6 +364,22 @@ def _cat(obj: model.Categorisation):
 
 
 @writer
+def _dk(obj: model.DataKey):
+    elem = Element("str:Key", isIncluded=str(obj.included).lower())
+    for value_for, cv in obj.key_value.items():
+        elem.append(Element("com:KeyValue", id=value_for.id))
+        elem[-1].append(Element("com:Value", cv.value))
+    return elem
+
+
+@writer
+def _dks(obj: model.DataKeySet):
+    elem = Element("str:DataKeySet", isIncluded=str(obj.included).lower())
+    elem.extend(writer.recurse(dk) for dk in obj.keys)
+    return elem
+
+
+@writer
 def _ms(obj: model.MemberSelection):
     elem = Element("com:KeyValue", id=obj.values_for.id)
     elem.extend(
@@ -387,12 +403,18 @@ def _cc(obj: model.ContentConstraint):
         obj, type=obj.role.role.name.replace("allowable", "allowed").title()
     )
 
-    # Constraint attachment
+    # Constraint attachment: written before data_content_keys or data_content_region
     for ca in obj.content:
         elem.append(Element("str:ConstraintAttachment"))
         elem[-1].append(reference(ca, style="Ref"))
 
+    # NB this is a property of Constraint, not ContentConstraint, so the code should be
+    #    copied/reused for AttachmentConstraint.
+    if obj.data_content_keys is not None:
+        elem.append(writer.recurse(obj.data_content_keys))
+
     elem.extend(writer.recurse(dcr) for dcr in obj.data_content_region)
+
     return elem
 
 
