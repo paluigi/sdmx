@@ -98,7 +98,7 @@ Address any failures before releasing.
 2. Tag the version as a release candidate, i.e. with a ``rcN`` suffix, and push::
 
     $ git tag v1.2.3rc1
-    $ git push --tags master
+    $ git push --tags origin master
 
 3. Check:
 
@@ -115,7 +115,7 @@ Address any failures before releasing.
    Tag the release itself and push::
 
     $ git tag v1.2.3
-    $ git push --tags master
+    $ git push --tags origin master
 
 5. Visit https://github.com/khaeru/sdmx/releases and mark the new release: either using the pushed tag from (4), or by creating the tag and release simultaneously.
 
