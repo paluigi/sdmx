@@ -195,14 +195,18 @@ class StructureMessage(Message):
     def add(self, obj: model.IdentifiableArtefact):
         """Add `obj` to the StructureMessage."""
         for field, field_info in direct_fields(self.__class__).items():
-            if isinstance(obj, get_args(field_info.outer_type_)[1]):
+            # NB for some reason mypy complains here, but not in __contains__(), below
+            if isinstance(
+                obj,
+                get_args(field_info.outer_type_)[1],  # type: ignore [attr-defined]
+            ):
                 getattr(self, field)[obj.id] = obj
                 return
         raise TypeError(type(obj))
 
     def get(
         self, obj_or_id: Union[str, model.IdentifiableArtefact]
-    ) -> model.IdentifiableArtefact:
+    ) -> Optional[model.IdentifiableArtefact]:
         """Retrieve `obj_or_id` from the StructureMessage.
 
         Parameters
@@ -230,7 +234,7 @@ class StructureMessage(Message):
             else obj_or_id
         )
 
-        candidates = list(
+        candidates: List[model.IdentifiableArtefact] = list(
             filter(
                 None,
                 map(
