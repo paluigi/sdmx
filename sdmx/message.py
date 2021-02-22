@@ -192,25 +192,56 @@ class StructureMessage(Message):
             for f in direct_fields(self.__class__).keys()
         )
 
-    def get(self, item_or_id):
-        if not isinstance(item_or_id, str):
-            # TODO handle item_or_id is an actual sdmx.model object
-            raise NotImplementedError
+    def add(self, obj: model.IdentifiableArtefact):
+        """Add `obj` to the StructureMessage."""
+        for field, field_info in direct_fields(self.__class__).items():
+            if isinstance(obj, get_args(field_info.outer_type_)[1]):
+                getattr(self, field)[obj.id] = obj
+                return
+        raise TypeError(type(obj))
+
+    def get(
+        self, obj_or_id: Union[str, model.IdentifiableArtefact]
+    ) -> model.IdentifiableArtefact:
+        """Retrieve `obj_or_id` from the StructureMessage.
+
+        Parameters
+        ----------
+        obj_or_id : str or .IdentifiableArtefact
+            If an IdentifiableArtefact, return an object of the same class and
+            :attr:`~.IdentifiableArtefact.id`; if :class:`str`, an object with this ID.
+
+        Returns
+        -------
+        .IdentifiableArtefact
+            with the given ID and possibly class.
+        None
+            if there is no match.
+
+        Raises
+        ------
+        ValueError
+            if `obj_or_id` is a string and there are ≥2 objects (of different classes)
+            with the same ID.
+        """
+        id = (
+            obj_or_id.id
+            if isinstance(obj_or_id, model.IdentifiableArtefact)
+            else obj_or_id
+        )
 
         candidates = list(
             filter(
                 None,
                 map(
-                    lambda f: getattr(self, f).get(item_or_id),
+                    lambda f: getattr(self, f).get(id),
                     direct_fields(self.__class__).keys(),
                 ),
             )
         )
 
         if len(candidates) > 1:
-            raise ValueError(
-                f"ambiguous; ID {repr(item_or_id)} matches {repr(candidates)}"
-            )
+            raise ValueError(f"ambiguous; {repr(obj_or_id)} matches {repr(candidates)}")
 
         return candidates[0] if len(candidates) == 1 else None
 

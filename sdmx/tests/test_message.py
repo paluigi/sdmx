@@ -4,6 +4,50 @@ from operator import itemgetter
 import pytest
 
 import sdmx
+from sdmx import message, model
+
+
+@pytest.mark.parametrize(
+    "cls",
+    (message.Message, message.DataMessage, message.StructureMessage, message.Footer),
+)
+def test_compare(cls):
+    A = cls()
+    B = cls()
+
+    assert A.compare(B) is True
+
+
+def test_add_contains_get():
+    dsd = model.DataStructureDefinition(id="foo")
+
+    msg = message.StructureMessage()
+
+    # add() stores the object
+    msg.add(dsd)
+
+    assert 1 == len(msg.structure)
+
+    # __contains__() works
+    assert dsd in msg
+
+    # get() retrieves the object
+    assert dsd is msg.get("foo")
+
+    # add() with an object not collected in a StructureMessage raises TypeError
+    item = model.Item(id="bar")
+    with pytest.raises(TypeError):
+        msg.add(item)
+
+    # __contains__() also raises TypeError
+    with pytest.raises(TypeError):
+        item in msg
+
+    # get() with two objects of the same ID raises ValueError
+    msg.add(model.DataflowDefinition(id="foo"))
+    with pytest.raises(ValueError):
+        msg.get("foo")
+
 
 EXPECTED = [
     # Structure messages
@@ -80,4 +124,5 @@ def test_message_repr(specimen, pattern, expected):
     if isinstance(expected, re.Pattern):
         assert expected.fullmatch(repr(msg))
     else:
-        assert expected == repr(msg)
+        # __repr__() and __str__() give the same, expected result
+        assert expected == repr(msg) == str(msg)
