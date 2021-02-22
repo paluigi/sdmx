@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.1.0 (2021-02-22)
+===================
 
 - :meth:`.ItemScheme.append` now raises :class:`ValueError` on duplicate IDs (:pull:`58`).
 - :attr:`.Item.parent` stores a reference to the containing :class:`.ItemScheme` for top-level Items that have no hierarchy/parent of their own. This allows navigating from any Item to the ItemScheme that contains it. :meth:`.Item.get_scheme` is added as a convenience method (:pull:`58`).
