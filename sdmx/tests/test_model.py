@@ -29,6 +29,22 @@ from sdmx.model import (
 )
 
 
+class TestAnnotableArtefact:
+    def test_pop_annotation(self):
+        aa = model.AnnotableArtefact()
+        anno = model.Annotation(id="foo", text="bar")
+
+        assert 0 == len(aa.annotations)
+        aa.annotations.append(anno)
+        assert 1 == len(aa.annotations)
+
+        with pytest.raises(KeyError):
+            aa.pop_annotation(id="baz")
+
+        assert anno == aa.pop_annotation(id="foo")
+        assert 0 == len(aa.annotations)
+
+
 def test_contentconstraint():
     crole = ConstraintRole(role=ConstraintRoleType["allowable"])
     cr = ContentConstraint(role=crole)
