@@ -1065,7 +1065,7 @@ class DataKeySet(BaseModel):
     #: :obj:`False` if they are excluded.
     included: bool
     #: :class:`DataKeys <.DataKey>` appearing in the set.
-    keys: List[DataKey]
+    keys: List[DataKey] = []
 
     def __len__(self):
         """:func:`len` of the DataKeySet = :func:`len` of its :attr:`keys`."""

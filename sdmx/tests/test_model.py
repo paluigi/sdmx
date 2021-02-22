@@ -423,6 +423,16 @@ def test_observation():
     assert obs.attrib[da.id] == "baz"
 
 
+class TestDataKeySet:
+    @pytest.fixture
+    def dks(self):
+        return model.DataKeySet(included=True)
+
+    def test_len(self, dks):
+        """__len__() works."""
+        assert 0 == len(dks)
+
+
 def test_get_class():
     with pytest.raises(ValueError, match="Package 'codelist' invalid for Category"):
         model.get_class(name="Category", package="codelist")
