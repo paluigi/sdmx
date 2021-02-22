@@ -381,6 +381,8 @@ def _maybe_convert_datetime(df, arg, obj, dsd=None):
         From the `obj` argument to :meth:`write_dataset`.
     dsd: ~.DataStructureDefinition, optional
     """
+    # TODO simplify this method. It has McCabe complexity of 27; the maximum in the rest
+    #      of the code is 17.
     if not arg:
         # False, None, empty dict: no datetime conversion
         return df
