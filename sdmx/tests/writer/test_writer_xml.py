@@ -24,23 +24,37 @@ def obs(dsd):
     return Observation(dimension=dsd.make_key(Key, dict(FOO=1, BAR=2)), value=42.0)
 
 
+@pytest.fixture
+def dks(dsd):
+    dim = dsd.dimensions.get("FOO")
+    yield m.DataKeySet(
+        included=True,
+        keys=[
+            m.DataKey(
+                included=True,
+                key_value={dim: m.ComponentValue(value_for=dim, value="foo0")},
+            )
+        ],
+    )
+
+
 def test_codelist(tmp_path, codelist):
     result = sdmx.to_xml(codelist, pretty_print=True)
     print(result.decode())
 
 
-def test_dks(dsd):
+def test_DataKeySet(dks):
     """:class:`.DataKeySet` can be written to XML."""
-    dim = dsd.dimensions.get("FOO")
+    sdmx.to_xml(dks)
+
+
+def test_ContentConstraint(dsd, dks):
+    """:class:`.ContentConstraint` can be written to XML."""
     sdmx.to_xml(
-        m.DataKeySet(
-            included=True,
-            keys=[
-                m.DataKey(
-                    included=True,
-                    key_value={dim: m.ComponentValue(value_for=dim, value="foo0")},
-                )
-            ],
+        m.ContentConstraint(
+            role=m.ConstraintRole(role=m.ConstraintRoleType.allowable),
+            content=[dsd],
+            data_content_keys=dks,
         )
     )
 
