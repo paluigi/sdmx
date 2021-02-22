@@ -78,7 +78,7 @@ jobs:
     - name: Check typing with mypy
       run: |
         pip install mypy
-        mypy .
+        mypy --show-error-codes .
 
     - name: Test documentation build using Sphinx
       if: ${{ contains(matrix.os, 'ubuntu') }}

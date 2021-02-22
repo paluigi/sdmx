@@ -41,11 +41,11 @@ class BaseWriter:
     def recurse(self, obj, *args, **kwargs):
         """Recursively write *obj*.
 
-        If there is no :meth:`register` 'ed function to write the class of
-        `obj`, then the parent class of `obj` is used to find a method.
+        If there is no :meth:`register` 'ed function to write the class of `obj`, then
+        the parent class of `obj` is used to find a method.
         """
-        # TODO use a cache to speed up the MRO does not need to be traversed
-        #      for every object instance
+        # TODO use a cache to speed up, so the MRO does not need to be traversed for
+        #      every object instance
 
         dispatcher = getattr(self, "_dispatcher")
         try:

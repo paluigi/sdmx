@@ -29,6 +29,22 @@ from sdmx.model import (
 )
 
 
+class TestAnnotableArtefact:
+    def test_pop_annotation(self):
+        aa = model.AnnotableArtefact()
+        anno = model.Annotation(id="foo", text="bar")
+
+        assert 0 == len(aa.annotations)
+        aa.annotations.append(anno)
+        assert 1 == len(aa.annotations)
+
+        with pytest.raises(KeyError):
+            aa.pop_annotation(id="baz")
+
+        assert anno == aa.pop_annotation(id="foo")
+        assert 0 == len(aa.annotations)
+
+
 def test_contentconstraint():
     crole = ConstraintRole(role=ConstraintRoleType["allowable"])
     cr = ContentConstraint(role=crole)
@@ -289,7 +305,7 @@ def test_itemscheme():
 
     # extend()
     is0.items = [foo0]
-    is0.extend(items_list)
+    is0.extend(items_list[1:])
     assert is0.items == items_dict
 
     # setdefault()
@@ -405,6 +421,16 @@ def test_observation():
     av = AttributeValue(value_for=da, value="baz")
     obs.attached_attribute[da.id] = av
     assert obs.attrib[da.id] == "baz"
+
+
+class TestDataKeySet:
+    @pytest.fixture
+    def dks(self):
+        return model.DataKeySet(included=True)
+
+    def test_len(self, dks):
+        """__len__() works."""
+        assert 0 == len(dks)
 
 
 def test_get_class():

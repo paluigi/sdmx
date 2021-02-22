@@ -5,7 +5,6 @@
 # - writer functions for sdmx.message classes, in the same order as message.py
 # - writer functions for sdmx.model classes, in the same order as model.py
 
-from itertools import chain
 from typing import Iterable, cast
 
 from lxml import etree
@@ -34,48 +33,48 @@ def to_xml(obj, **kwargs):
     Parameters
     ----------
     kwargs
-        Passed to :meth:`lxml.etree.to_string`, e.g. `pretty_print` =
-        :obj:`True`.
+        Passed to :meth:`lxml.etree.to_string`, e.g. `pretty_print` = :obj:`True`.
 
     Raises
     ------
     NotImplementedError
-        If writing specific objects to SDMX-ML has not been implemented in
-        :mod:`sdmx`.
+        If writing specific objects to SDMX-ML has not been implemented in :mod:`sdmx`.
     """
     return etree.tostring(writer.recurse(obj), **kwargs)
 
 
-def reference(obj, parent=None, tag=None, style="URN"):
-    """Write a reference to `obj`."""
+def reference(obj, parent=None, tag=None, style=None):
+    """Write a reference to `obj`.
+
+    .. todo:: Currently other functions in :mod:`.writer.xml` all pass the `style`
+       argument to this function. As an enhancement, allow user or automatic selection
+       of different reference styles.
+    """
     tag = tag or tag_for_class(obj.__class__)
 
     elem = Element(tag)
 
+    if isinstance(obj, model.MaintainableArtefact):
+        ma = obj
+    else:
+        try:
+            # Get the ItemScheme for an Item
+            parent = parent or obj.get_scheme()
+        except AttributeError:  # pragma: no cover
+            # No `parent` and `obj` is not an Item with a .get_scheme() method
+            # NB this does not occur in the test suite
+            pass
+
+        if not parent:
+            raise NotImplementedError(
+                f"Cannot write reference to {repr(obj)} without parent"
+            )
+
+        ma = parent
+
     if style == "URN":
         ref = Element(":URN", obj.urn)
     elif style == "Ref":
-        if isinstance(obj, model.MaintainableArtefact):
-            ma = obj
-        else:
-            # TODO handle references to non-maintainable children of parent
-            #      objects
-            if not parent:
-                for is_ in chain(
-                    writer._message.concept_scheme.values(),
-                    writer._message.category_scheme.values(),
-                ):
-                    if obj in is_:
-                        parent = is_
-                        break
-
-            if not parent:
-                raise NotImplementedError(
-                    f"Cannot write reference to {repr(obj)} without parent"
-                )
-
-            ma = parent
-
         args = {
             "id": obj.id,
             "maintainableParentID": ma.id if parent else None,
@@ -264,10 +263,10 @@ def maintainable(obj, **kwargs):
 def _item(obj: model.Item, **kwargs):
     elem = nameable(obj, **kwargs)
 
-    if obj.parent:
+    if isinstance(obj.parent, obj.__class__):
         # Reference to parent Item
         e_parent = Element("str:Parent")
-        e_parent.append(Element(":Ref", id=obj.parent.id))
+        e_parent.append(Element(":Ref", id=obj.parent.id, style="Ref"))
         elem.append(e_parent)
 
     return elem
@@ -366,6 +365,22 @@ def _cat(obj: model.Categorisation):
 
 
 @writer
+def _dk(obj: model.DataKey):
+    elem = Element("str:Key", isIncluded=str(obj.included).lower())
+    for value_for, cv in obj.key_value.items():
+        elem.append(Element("com:KeyValue", id=value_for.id))
+        elem[-1].append(Element("com:Value", cv.value))
+    return elem
+
+
+@writer
+def _dks(obj: model.DataKeySet):
+    elem = Element("str:DataKeySet", isIncluded=str(obj.included).lower())
+    elem.extend(writer.recurse(dk) for dk in obj.keys)
+    return elem
+
+
+@writer
 def _ms(obj: model.MemberSelection):
     elem = Element("com:KeyValue", id=obj.values_for.id)
     elem.extend(
@@ -389,12 +404,18 @@ def _cc(obj: model.ContentConstraint):
         obj, type=obj.role.role.name.replace("allowable", "allowed").title()
     )
 
-    # Constraint attachment
+    # Constraint attachment: written before data_content_keys or data_content_region
     for ca in obj.content:
         elem.append(Element("str:ConstraintAttachment"))
         elem[-1].append(reference(ca, style="Ref"))
 
+    # NB this is a property of Constraint, not ContentConstraint, so the code should be
+    #    copied/reused for AttachmentConstraint.
+    if obj.data_content_keys is not None:
+        elem.append(writer.recurse(obj.data_content_keys))
+
     elem.extend(writer.recurse(dcr) for dcr in obj.data_content_region)
+
     return elem
 
 

@@ -18,8 +18,8 @@ Details of the implementation:
   appear out of order so that dependent classes are defined first.
 
 """
-# TODO for complete implementation of the IM, enforce TimeKeyValue (instead of
-#      KeyValue) for {Generic,StructureSpecific} TimeSeriesDataSet.
+# TODO for complete implementation of the IM, enforce TimeKeyValue (instead of KeyValue)
+#      for {Generic,StructureSpecific} TimeSeriesDataSet.
 
 import logging
 from collections import ChainMap
@@ -186,8 +186,7 @@ class InternationalString:
 
 
 class Annotation(BaseModel):
-    #: Can be used to disambiguate multiple annotations for one
-    #: AnnotableArtefact.
+    #: Can be used to disambiguate multiple annotations for one AnnotableArtefact.
     id: Optional[str] = None
     #: Title, used to identify an annotation.
     title: Optional[str] = None
@@ -203,9 +202,25 @@ class Annotation(BaseModel):
 class AnnotableArtefact(BaseModel):
     #: :class:`Annotations <.Annotation>` of the object.
     #:
-    #: :mod:`pandaSDMX` implementation: The IM does not specify the name of
-    #: this feature.
+    #: :mod:`pandaSDMX` implementation: The IM does not specify the name of this
+    #: feature.
     annotations: List[Annotation] = []
+
+    def pop_annotation(self, **attrib):
+        """Remove and return a :class:`Annotation` with given `attrib`, e.g. 'id'.
+
+        If more than one `attrib` is given, all must match a particular annotation.
+
+        Raises
+        ------
+        KeyError
+            If there is no matching annotation.
+        """
+        for i, anno in enumerate(self.annotations):
+            if all(getattr(anno, key, None) == value for key, value in attrib.items()):
+                return self.annotations.pop(i)
+
+        raise KeyError(attrib)
 
 
 class _MissingID(str):
@@ -431,21 +446,20 @@ ActionType = Enum("ActionType", "delete replace append information")
 
 UsageStatus = Enum("UsageStatus", "mandatory conditional")
 
-# NB three diagrams in the spec show this enumeration containing
-#    'gregorianYearMonth' but not 'gregorianYear' or 'gregorianMonth'. The
-#    table in §3.6.3.3 Representation Constructs does the opposite. One ESTAT
-#    query (via SGR) shows a real-world usage of 'gregorianYear'; while one NB
-#    query shows usage of 'gregorianYearMonth'; so all three are included.
+# NB three diagrams in the spec show this enumeration containing 'gregorianYearMonth'
+#    but not 'gregorianYear' or 'gregorianMonth'. The table in §3.6.3.3 Representation
+#    Constructs does the opposite. One ESTAT query (via SGR) shows a real-world usage
+#    of 'gregorianYear'; while one query shows usage of 'gregorianYearMonth'; so all
+#    three are included.
 FacetValueType = Enum(
     "FacetValueType",
-    """string bigInteger integer long short decimal float double boolean uri
-    count inclusiveValueRange alpha alphaNumeric numeric exclusiveValueRange
-    incremental observationalTimePeriod standardTimePeriod basicTimePeriod
-    gregorianTimePeriod gregorianYear gregorianMonth gregorianYearMonth
-    gregorianDay reportingTimePeriod reportingYear reportingSemester
-    reportingTrimester reportingQuarter reportingMonth reportingWeek
-    reportingDay dateTime timesRange month monthDay day time duration keyValues
-    identifiableReference dataSetReference""",
+    """string bigInteger integer long short decimal float double boolean uri count
+    inclusiveValueRange alpha alphaNumeric numeric exclusiveValueRange incremental
+    observationalTimePeriod standardTimePeriod basicTimePeriod gregorianTimePeriod
+    gregorianYear gregorianMonth gregorianYearMonth gregorianDay reportingTimePeriod
+    reportingYear reportingSemester reportingTrimester reportingQuarter reportingMonth
+    reportingWeek reportingDay dateTime timesRange month monthDay day time duration
+    keyValues identifiableReference dataSetReference""",
 )
 
 ConstraintRoleType = Enum("ConstraintRoleType", "allowable actual")
@@ -455,7 +469,7 @@ ConstraintRoleType = Enum("ConstraintRoleType", "allowable actual")
 
 
 class Item(NameableArtefact):
-    parent: Optional["Item"] = None
+    parent: Optional[Union["Item", "ItemScheme"]] = None
     child: List["Item"] = []
 
     # NB this is required to prevent RecursionError in pydantic;
@@ -484,7 +498,6 @@ class Item(NameableArtefact):
     def __iter__(self, recurse=True):
         yield self
         for c in self.child:
-            yield c
             yield from iter(c)
 
     @property
@@ -498,7 +511,11 @@ class Item(NameableArtefact):
         --------
         .ItemScheme.get_hierarchical
         """
-        return (f"{self.parent.hierarchical_id}." if self.parent else "") + self.id
+        return (
+            f"{self.parent.hierarchical_id}.{self.id}"
+            if isinstance(self.parent, self.__class__)
+            else self.id
+        )
 
     def append_child(self, other):
         if other not in self.child:
@@ -512,8 +529,16 @@ class Item(NameableArtefact):
                 return c
         raise ValueError(id)
 
+    def get_scheme(self):
+        """Return the :class:`ItemScheme` to which the Item belongs, if any."""
+        try:
+            # Recurse
+            return self.parent.get_scheme()
+        except AttributeError:
+            # Either this Item is a top-level Item whose .parent refers to the
+            # ItemScheme, or it has no parent
+            return self.parent
 
-Item.update_forward_refs()
 
 IT = TypeVar("IT", bound=Item)
 
@@ -521,15 +546,14 @@ IT = TypeVar("IT", bound=Item)
 class ItemScheme(MaintainableArtefact, Generic[IT]):
     """SDMX-IM Item Scheme.
 
-    The IM states that ItemScheme “defines a *set* of :class:`Items <.Item>`…”
-    To simplify indexing/retrieval, this implementation uses a :class:`dict`
-    for the :attr:`items` attribute, in which the keys are the
-    :attr:`~.IdentifiableArtefact.id` of the Item.
+    The IM states that ItemScheme “defines a *set* of :class:`Items <.Item>`…” To
+    simplify indexing/retrieval, this implementation uses a :class:`dict` for the
+    :attr:`items` attribute, in which the keys are the :attr:`~.IdentifiableArtefact.id`
+    of the Item.
 
-    Because this may change in future versions of pandaSDMX, user code should
-    not access :attr:`items` directly. Instead, use the :func:`getattr` and
-    indexing features of ItemScheme, or the public methods, to access and
-    manipulate Items:
+    Because this may change in future versions of pandaSDMX, user code should not access
+    :attr:`items` directly. Instead, use the :func:`getattr` and indexing features of
+    ItemScheme, or the public methods, to access and manipulate Items:
 
     >>> foo = ItemScheme(id='foo')
     >>> bar = Item(id='bar')
@@ -546,14 +570,13 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
 
     is_partial: Optional[bool]
 
-    #: Members of the ItemScheme. Both ItemScheme and Item are abstract
-    #: classes. Concrete classes are paired: for example, a
-    #: :class:`.Codelist` contains :class:`Codes <.Code>`.
+    #: Members of the ItemScheme. Both ItemScheme and Item are abstract classes.
+    #: Concrete classes are paired: for example, a :class:`.Codelist` contains
+    #: :class:`Codes <.Code>`.
     items: Dict[str, IT] = {}
 
-    # The type of the Items in the ItemScheme. This is necessary because the
-    # type hint in the class declaration is static; not meant to be available
-    # at runtime.
+    # The type of the Items in the ItemScheme. This is necessary because the type hint
+    # in the class declaration is static; not meant to be available at runtime.
     _Item: Type = Item
 
     @validator("items", pre=True)
@@ -587,8 +610,7 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         """Check containment.
 
         No recursive search on children is performed as these are assumed to be
-        included in :attr:`items`. Allow searching by Item or its id
-        attribute.
+        included in :attr:`items`. Allow searching by Item or its id attribute.
         """
         if isinstance(item, str):
             return item in self.items
@@ -598,15 +620,15 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         return iter(self.items.values())
 
     def extend(self, items: Iterable[IT]):
-        """Extend the ItemScheme with members of *items*.
+        """Extend the ItemScheme with members of `items`.
 
         Parameters
         ----------
         items : iterable of :class:`.Item`
             Elements must be of the same class as :attr:`items`.
         """
-        # TODO enhance to accept an ItemScheme
-        self.items.update({i.id: i for i in items})
+        for i in items:
+            self.append(i)
 
     def __len__(self):
         return len(self.items)
@@ -619,7 +641,11 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
         item : same class as :attr:`items`
             Item to add.
         """
+        if item.id in self.items:
+            raise ValueError(f"Item with id {repr(item.id)} already exists")
         self.items[item.id] = item
+        if item.parent is None:
+            item.parent = self
 
     def compare(self, other, strict=True):
         """Return :obj:`True` if `self` is the same as `other`.
@@ -659,12 +685,12 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
     def setdefault(self, obj=None, **kwargs) -> IT:
         """Retrieve the item *name*, or add it with *kwargs* and return it.
 
-        The returned object is a reference to an object in the ItemScheme, and
-        is of the appropriate class.
+        The returned object is a reference to an object in the ItemScheme, and is of
+        the appropriate class.
         """
         if obj and len(kwargs):
             raise ValueError(
-                "cannot give both *obj* and keyword arguments to " "setdefault()"
+                "cannot give both *obj* and keyword arguments to setdefault()"
             )
 
         if not obj:
@@ -676,11 +702,16 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
             # Instantiate an object of the correct class
             obj = self._Item(**kwargs)
 
-        if obj not in self.items.values():
+        try:
             # Add the object to the ItemScheme
-            self.items[obj.id] = obj
+            self.append(obj)
+        except ValueError:
+            pass  # Already present
 
         return obj
+
+
+Item.update_forward_refs()
 
 
 # §3.6: Structure
@@ -1022,28 +1053,30 @@ class ComponentValue(BaseModel):
 
 
 class DataKey(BaseModel):
-    #: :obj:`True` if the :attr:`keys` are included in the
-    #: :class:`.Constraint`; :obj:`False` if they are excluded.
+    #: :obj:`True` if the :attr:`keys` are included in the :class:`.Constraint`;
+    # :obj:`False` if they are excluded.
     included: bool
-    #: Mapping from :class:`.Component` to :class:`.ComponentValue` comprising
-    #: the key.
+    #: Mapping from :class:`.Component` to :class:`.ComponentValue` comprising the key.
     key_value: Dict[Component, ComponentValue]
 
 
 class DataKeySet(BaseModel):
-    #: :obj:`True` if the :attr:`keys` are included in the
-    #: :class:`.Constraint`; :obj:`False` if they are excluded.
+    #: :obj:`True` if the :attr:`keys` are included in the :class:`.Constraint`;
+    #: :obj:`False` if they are excluded.
     included: bool
     #: :class:`DataKeys <.DataKey>` appearing in the set.
-    keys: List[DataKey]
+    keys: List[DataKey] = []
+
+    def __len__(self):
+        """:func:`len` of the DataKeySet = :func:`len` of its :attr:`keys`."""
+        return len(self.keys)
 
 
 class Constraint(MaintainableArtefact):
     #: :class:`.DataKeySet` included in the Constraint.
     data_content_keys: Optional[DataKeySet] = None
     # metadata_content_keys: MetadataKeySet = None
-    # NB the spec gives 1..* for this attribute, but this implementation allows
-    # only 1
+    # NB the spec gives 1..* for this attribute, but this implementation allows only 1
     role: ConstraintRole
 
     # NB this is required to prevent “unhashable type: 'dict'” in pydantic
@@ -1251,9 +1284,9 @@ class StructureUsage(MaintainableArtefact):
 class DimensionDescriptor(ComponentList[DimensionComponent]):
     """Describes a set of dimensions.
 
-    IM: “An ordered set of metadata concepts that, combined, classify a
-    statistical series, and whose values, when combined (the key) in an
-    instance such as a data set, uniquely identify a specific observation.”
+    IM: “An ordered set of metadata concepts that, combined, classify a statistical
+    series, and whose values, when combined (the key) in an instance such as a data
+    set, uniquely identify a specific observation.”
 
     :attr:`.components` is a :class:`list` (ordered) of :class:`Dimension`,
     :class:`MeasureDimension`, and/or :class:`TimeDimension`.
@@ -1401,9 +1434,9 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     def from_keys(cls, keys):
         """Return a new DSD given some *keys*.
 
-        The DSD's :attr:`dimensions` refers to a set of new :class:`Concepts
-        <Concept>` and :class:`Codelists <Codelist>`, created to represent all
-        the values observed across *keys* for each dimension.
+        The DSD's :attr:`dimensions` refers to a set of new :class:`Concepts <Concept>`
+        and :class:`Codelists <Codelist>`, created to represent all the values observed
+        across *keys* for each dimension.
 
         Parameters
         ----------
@@ -1412,9 +1445,14 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         """
         iter_keys = iter(keys)
         dd = DimensionDescriptor.from_key(next(iter_keys))
+
         for k in iter_keys:
             for i, (id, kv) in enumerate(k.values.items()):
-                dd[i].local_representation.enumerated.append(Code(id=kv.value))
+                try:
+                    dd[i].local_representation.enumerated.append(Code(id=kv.value))
+                except ValueError:
+                    pass  # Item already exists
+
         return cls(dimensions=dd)
 
     def make_key(self, key_cls, values: Mapping, extend=False, group_id=None):
@@ -1727,7 +1765,7 @@ class Key(BaseModel):
         try:
             return self.__getitem__(name)
         except KeyError as e:
-            raise e
+            raise AttributeError(e)
 
     # Copying
     def __copy__(self):
@@ -2043,7 +2081,7 @@ _PACKAGE_CLASS: Dict[str, set] = {
     "categoryscheme": {Category, Categorisation, CategoryScheme},
     "codelist": {Code, Codelist},
     "conceptscheme": {Concept, ConceptScheme},
-    "datastructure": {DataflowDefinition, DataStructureDefinition},
+    "datastructure": {DataflowDefinition, DataStructureDefinition, StructureUsage},
     "registry": {ContentConstraint, ProvisionAgreement},
 }
 

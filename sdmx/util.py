@@ -2,7 +2,18 @@ import logging
 import typing
 from collections import OrderedDict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, List, Type, TypeVar, Union, no_type_check
+from functools import lru_cache
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Mapping,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    no_type_check,
+)
 
 import pydantic
 from pydantic import DictError, Extra, ValidationError, validator  # noqa: F401
@@ -252,3 +263,26 @@ def compare(attr, a, b, strict: bool) -> bool:
     # if not result:
     #     log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
     # return result
+
+
+@lru_cache()
+def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
+    """Return the :mod:`pydantic` fields defined on `obj` or its class.
+
+    This is like the ``__fields__`` attribute, but excludes the fields defined on any
+    parent class(es).
+    """
+    return {
+        name: info
+        for name, info in cls.__fields__.items()
+        if name not in set(cls.mro()[1].__fields__.keys())
+    }
+
+
+try:
+    from typing import get_args  # type: ignore [attr-defined]
+except ImportError:
+
+    def get_args(tp) -> Tuple[Any, ...]:
+        """For Python <3.8."""
+        return tp.__args__

@@ -8,11 +8,11 @@
 
 import logging
 import re
-from collections import defaultdict
+from collections import ChainMap, defaultdict
 from copy import copy
-from itertools import chain, product
-from operator import itemgetter
+from itertools import chain, count, product
 from sys import maxsize
+from typing import Any, Dict, Iterable, Mapping, Optional, Type, Union, cast
 
 from dateutil.parser import isoparse
 from lxml import etree
@@ -51,15 +51,9 @@ def add_localizations(target: model.InternationalString, values: list) -> None:
     target.localizations.update({locale: label for locale, label in values})
 
 
-# filter() conditions; see get_unique() and pop_single()
-
-
 def matching_class(cls):
+    """Filter condition; see :meth:`.get_single` and :meth:`.pop_all`."""
     return lambda item: isinstance(item, type) and issubclass(item, cls)
-
-
-def matching_class0(cls):
-    return lambda item: isinstance(item[0], type) and issubclass(item[0], cls)
 
 
 def setdefault_attrib(target, elem, *names):
@@ -212,19 +206,32 @@ class Reader(BaseReader):
     ]
     suffixes = [".xml"]
 
+    # One-way counter for use in stacks
+    _count = None
+
+    def __init__(self):
+        # Initialize counter
+        self._count = count()
+
     @classmethod
     def detect(cls, content):
         return content.startswith(b"<")
 
-    def read_message(self, source, dsd=None):
+    def read_message(
+        self, source, dsd: model.DataStructureDefinition = None
+    ) -> message.Message:
         # Initialize stacks
-        self.stack = defaultdict(list)
+        self.stack: Dict[Union[Type, str], Dict[Union[str, int], Any]] = defaultdict(
+            dict
+        )
 
-        # If calling code provided a DSD, add it to a stack
-        self.ignore = set([id(dsd)])
+        # Elements to ignore when parsing finishes
+        self.ignore = set()
 
-        # Let it be ignored when parsing is complete
+        # If calling code provided a DSD, add it to a stack, and let it be ignored when
+        # parsing finishes
         self.push(dsd)
+        self.ignore.add(id(dsd))
 
         try:
             # Use the etree event-driven parser
@@ -257,7 +264,8 @@ class Reader(BaseReader):
             print(etree.tostring(element, pretty_print=True).decode())
             raise XMLParseError from exc
 
-        # Parsing complete
+        # Parsing complete; count uncollected items from the stacks, which represent
+        # parsing errors
 
         # Remove some internal items
         self.pop_single("SS without DSD")
@@ -266,13 +274,15 @@ class Reader(BaseReader):
         # Count only non-ignored items
         uncollected = -1
         for key, objects in self.stack.items():
-            uncollected += sum([1 if id(o) not in self.ignore else 0 for o in objects])
+            uncollected += sum(
+                [1 if id(o) not in self.ignore else 0 for o in objects.values()]
+            )
 
         if uncollected > 0:  # pragma: no cover
             self._dump()
             raise RuntimeError(f"{uncollected} uncollected items")
 
-        return self.get_single(message.Message)
+        return cast(message.Message, self.get_single(message.Message, subclass=True))
 
     def _clean(self):  # pragma: no cover
         """Remove empty stacks."""
@@ -281,6 +291,7 @@ class Reader(BaseReader):
                 self.stack.pop(key)
 
     def _dump(self):  # pragma: no cover
+        """Print the stacks, for debugging."""
         self._clean()
         print("\n\n")
         for key, values in self.stack.items():
@@ -290,96 +301,106 @@ class Reader(BaseReader):
         """Push an object onto a stack."""
         if stack_or_obj is None:
             return
-
-        if obj is None:
+        elif obj is None:
             # Add the object to a stack based on its class
-            self.stack[stack_or_obj.__class__].append(stack_or_obj)
+            obj = stack_or_obj
+            s = stack_or_obj.__class__
+        elif isinstance(stack_or_obj, str):
+            # Stack with a string name
+            s = stack_or_obj
         else:
-            # Add to stack with a string name
-            stack = (
-                stack_or_obj
-                if isinstance(stack_or_obj, str)
-                # Element; use its local name
-                else QName(stack_or_obj).localname
-            )
-            self.stack[stack].append(obj)
+            # Element; use its local name
+            s = QName(stack_or_obj).localname
+
+        # Get the ID for the element in the stack: its .id attribute, if any, else a
+        # unique number
+        id = getattr(obj, "id", next(self._count)) or next(self._count)
+
+        if id in self.stack[s]:
+            # Avoid a collision for two distinct objects with the same ID, e.g. with
+            # different maintainers (ECB:AGENCIES vs. SDMX:AGENCIES). Re-insert with
+            # numerical keys. This means the objects cannot be retrieved by their ID,
+            # but the code does not rely on this.
+            self.stack[s][next(self._count)] = self.stack[s].pop(id)
+            id = next(self._count)
+
+        self.stack[s][id] = obj
 
     def stash(self, *stacks):
         """Temporarily hide all objects in the given `stacks`."""
-        self.stack["_stash"].append({s: self.pop_all(s, strict=True) for s in stacks})
+        self.push("_stash", {s: self.stack.pop(s, dict()) for s in stacks})
 
     def unstash(self):
-        """Restore the objects hidden by the last stash() call to their stacks."""
-        try:
-            for key, values in self.stack["_stash"].pop(-1).items():
-                self.stack[key].extend(values)
-        except IndexError:  # No stashes
-            pass
+        """Restore the objects hidden by the last :meth:`stash` call to their stacks.
 
-    def get_single(self, cls_or_name, id=None, strict=False):
+        Calls to :meth:`.stash` and :meth:`.unstash` should be matched 1-to-1; if the
+        latter outnumber the former, this will raise :class:`.KeyError`.
+        """
+        for s, values in self.pop_single("_stash").items():
+            self.stack[s].update(values)
+
+    def get_single(
+        self, cls_or_name: Union[Type, str], id: str = None, subclass: bool = False
+    ) -> Optional[Any]:
         """Return a reference to an object while leaving it in its stack.
 
-        Always returns 1 object. Returns None if no matching object exists, or if 2 or
-        more objects match.
+        Always returns 1 object. Returns :obj:`None` if no matching object exists, or if
+        2 or more objects meet the conditions.
 
         If `id` is given, only return an IdentifiableArtefact with the matching ID.
 
-        If `cls_or_name` is a class and `strict` is False; all objects in *any* stack
-        that are instances of `cls_or_name` *or any a subclass* are collected and
-        checked. If `strict` is True, only the corresponding stack is checked.
+        If `cls_or_name` is a class and `subclass` is :obj:`True`; check all objects in
+        the stack `cls_or_name` *or any stack for a subclass of this class*.
         """
-        if strict or isinstance(cls_or_name, str):
-            results = self.stack.get(cls_or_name, [])
-        else:
-            results = chain(
-                *map(
-                    itemgetter(1),
-                    filter(matching_class0(cls_or_name), self.stack.items()),
-                )
+        if subclass:
+            keys: Iterable[Union[Type, str]] = filter(
+                matching_class(cls_or_name), self.stack.keys()
             )
+            results: Mapping = ChainMap(*[self.stack[k] for k in keys])
+        else:
+            results = self.stack.get(cls_or_name, dict())
 
         if id:
-            results = [obj for obj in results if obj.id == id]
+            return results.get(id)
+        elif len(results) != 1:
+            # 0 or ≥2 results
+            return None
         else:
-            results = list(results)
+            return next(iter(results.values()))
 
-        return None if len(results) != 1 else results[0]
-
-    def pop_all(self, cls_or_name, strict=False):
+    def pop_all(self, cls_or_name: Union[Type, str], subclass=False) -> Iterable:
         """Pop all objects from stack *cls_or_name* and return.
 
-        If `cls_or_name` is a class and `strict` is False; all objects in *any* stack
-        that are instances of `cls_or_name` *or any a subclass* are collected and
-        returned. If `strict` is True, only the corresponding stack is checked.
+        If `cls_or_name` is a class and `subclass` is :obj:`True`; return all objects in
+        the stack `cls_or_name` *or any stack for a subclass of this class*.
         """
-        if strict or isinstance(cls_or_name, str):
-            return self.stack.pop(cls_or_name, [])
-        else:
-            cond = matching_class(cls_or_name)
-            return list(
-                chain(
-                    *[
-                        self.stack.pop(k) if cond(k) else []
-                        for k in list(self.stack.keys())
-                    ]
-                )
+        if subclass:
+            keys: Iterable[Union[Type, str]] = list(
+                filter(matching_class(cls_or_name), self.stack.keys())
             )
+            result: Iterable = chain(*[self.stack.pop(k).values() for k in keys])
+        else:
+            result = self.stack.pop(cls_or_name, dict()).values()
 
-    def pop_single(self, cls_or_name):
+        return list(result)
+
+    def pop_single(self, cls_or_name: Union[Type, str]):
         """Pop a single object from the stack for `cls_or_name` and return."""
         try:
-            return self.stack[cls_or_name].pop(-1)
-        except (IndexError, KeyError):
+            return self.stack[cls_or_name].popitem()[1]
+        except KeyError:
             return None
 
-    def peek(self, cls_or_name):
+    def peek(self, cls_or_name: Union[Type, str]):
         """Get the object at the top of stack `cls_or_name` without removing it."""
         try:
-            return self.stack[cls_or_name][-1]
-        except IndexError:  # pragma: no cover
+            key, value = self.stack[cls_or_name].popitem()
+            self.stack[cls_or_name][key] = value
+            return value
+        except KeyError:  # pragma: no cover
             return None
 
-    def pop_resolved_ref(self, cls_or_name):
+    def pop_resolved_ref(self, cls_or_name: Union[Type, str]):
         """Pop a reference to `cls_or_name` and resolve it."""
         return self.resolve(self.pop_single(cls_or_name))
 
@@ -390,7 +411,7 @@ class Reader(BaseReader):
             return ref
 
         # Try to get the target directly
-        target = self.get_single(ref.target_cls, ref.target_id)
+        target = self.get_single(ref.target_cls, ref.target_id, subclass=True)
 
         if target:
             return target
@@ -488,7 +509,7 @@ class Reader(BaseReader):
             obj.maintainer = maint
 
         # Maybe retrieve an existing object of the same class and ID
-        existing = self.get_single(cls, obj.id, strict=True)
+        existing = self.get_single(cls, obj.id)
 
         if existing and (
             existing.compare(obj, strict=True) or existing.urn == sdmx.urn.make(obj)
@@ -509,7 +530,9 @@ class Reader(BaseReader):
             # Discard the candidate
             obj = existing
         elif obj.is_external_reference:
-            # Push a new external reference onto the stack to be located by next calls
+            # A new external reference. Ensure it has a URN.
+            obj.urn = obj.urn or sdmx.urn.make(obj)
+            # Push onto the stack to be located by next calls
             self.push(obj)
 
         return obj
@@ -569,7 +592,7 @@ def _header(reader, elem):
     )
     add_localizations(header.source, reader.pop_all("Source"))
 
-    reader.get_single(message.Message).header = header
+    reader.get_single(message.Message, subclass=True).header = header
 
     # TODO add these to the Message class
     # Appearing in data messages from WB_WDI and the footer.xml specimen
@@ -596,7 +619,7 @@ def _header_structure(reader, elem):
     if elem.getparent() is None:
         return
 
-    msg = reader.get_single(message.Message)
+    msg = reader.get_single(message.DataMessage)
 
     # Retrieve a DSD supplied to the parser, e.g. for a structure specific message
     provided_dsd = reader.get_single(model.DataStructureDefinition)
@@ -676,7 +699,7 @@ def _footer(reader, elem):
     if "code" in args:
         args["code"] = int(args["code"])
 
-    reader.get_single(message.Message).footer = message.Footer(
+    reader.get_single(message.Message, subclass=True).footer = message.Footer(
         text=list(map(model.InternationalString, reader.pop_all("Text"))), **args
     )
 
@@ -684,7 +707,7 @@ def _footer(reader, elem):
 @end("mes:Structures")
 def _structures(reader, elem):
     """End of a structure message."""
-    msg = reader.get_single(message.Message)
+    msg = reader.get_single(message.StructureMessage)
 
     # Populate dictionaries by ID
     for attr, name in (
@@ -698,7 +721,7 @@ def _structures(reader, elem):
         ("provisionagreement", model.ProvisionAgreement),
         ("structure", model.DataStructureDefinition),
     ):
-        for obj in reader.pop_all(name):
+        for obj in reader.pop_all(name, subclass=True):
             getattr(msg, attr)[obj.id] = obj
 
 
@@ -826,14 +849,25 @@ def _item(reader, elem):
 def _itemscheme(reader, elem):
     cls = class_for_tag(elem.tag)
 
+    is_ = reader.maintainable(cls, elem)
+
     # Iterate over all Item objects *and* their children
     iter_all = chain(*[iter(item) for item in reader.pop_all(cls._Item)])
+
     # Set of objects already added to `items`
     seen = dict()
-    # Flatten the list, with each item appearing only once
-    items = [seen.setdefault(i, i) for i in iter_all if i not in seen]
 
-    return reader.maintainable(cls, elem, items=items)
+    # Flatten the list, with each item appearing only once
+    for i in filter(lambda i: i not in seen, iter_all):
+        try:
+            is_.append(seen.setdefault(i, i))
+        except ValueError:  # pragma: no cover
+            # Existing item, e.g. created by a reference in the same message
+            # TODO "no cover" since this doesn't occur in the test suite; check whether
+            #      this try/except can be removed.
+            pass
+
+    return is_
 
 
 # §3.6: Structure
@@ -861,8 +895,8 @@ def _facet(reader, elem):
 def _rep(reader, elem):
     return model.Representation(
         enumerated=reader.pop_resolved_ref("Enumeration"),
-        non_enumerated=(
-            reader.pop_all("EnumerationFormat") + reader.pop_all("TextFormat")
+        non_enumerated=list(
+            chain(reader.pop_all("EnumerationFormat"), reader.pop_all("TextFormat"))
         ),
     )
 
@@ -904,7 +938,7 @@ def _component(reader, elem):
         pass
 
     # DataAttribute only
-    ar = reader.pop_all(model.AttributeRelationship)
+    ar = reader.pop_all(model.AttributeRelationship, subclass=True)
     if len(ar):
         assert len(ar) == 1
         args["related_to"] = ar[0]
@@ -925,7 +959,7 @@ def _cl(reader, elem):
     assert dsd is not None
 
     # Retrieve the components
-    args = dict(components=reader.pop_all(model.Component))
+    args = dict(components=reader.pop_all(model.Component, subclass=True))
 
     # Determine the class
     localname = QName(elem).localname
@@ -1051,22 +1085,31 @@ def _ms(reader, elem):
     }.get(QName(elem).localname)
 
     try:
-        # Navigate from the current ContentConstraint to a
-        # ConstrainableArtefact. If this is a DataFlow, it has a DSD, which
-        # has an Attribute- or DimensionDescriptor
+        # Navigate from the current ContentConstraint to a ConstrainableArtefact
         cc_content = reader.stack[Reference]
-        assert len(cc_content) == 1
-        dfd = reader.resolve(cc_content[0])
-        cl = getattr(dfd.structure, kind[0])
-    except AttributeError:
-        # Failed because the ContentConstraint is attached to something,
-        # e.g. DataProvider, that does not provide an association to a DSD.
-        # Try to get a Component from the current scope with matching ID.
-        cl = None
-        arg["values_for"] = reader.get_single(kind[1], id=elem.attrib["id"])
-    else:
+        assert len(cc_content) == 1, (cc_content, reader.stack, elem.attrib)
+        obj = reader.resolve(next(iter(cc_content.values())))
+
+        if isinstance(obj, model.DataflowDefinition):
+            # The constrained DFD has a corresponding DSD, which has a Dimension- or
+            # AttributeDescriptor
+            cl = getattr(obj.structure, kind[0])
+        elif isinstance(obj, model.DataStructureDefinition):
+            # The DSD is constrained directly
+            cl = getattr(obj, kind[0])
+        else:
+            log.warning(f"Not implemented: constraints attached to {type(obj)}")
+            cl = None
+
         # Get the Component
         arg["values_for"] = cl.get(elem.attrib["id"])
+    except AttributeError:
+        # Failed because the ContentConstraint is attached to something, e.g.
+        # DataProvider, that does not provide an association to a DSD. Try to get a
+        # Component from the current scope with matching ID.
+        arg["values_for"] = reader.get_single(
+            kind[1], id=elem.attrib["id"], subclass=True
+        )
 
     # Convert to SelectionValue
     mvs = reader.pop_all("Value")
@@ -1131,7 +1174,7 @@ def _ar(reader, elem):
 
     # Iterate over parsed references to Components
     args = dict(dimensions=list())
-    for ref in reader.pop_all(Reference, strict=True):
+    for ref in reader.pop_all(Reference):
         # Use the <Ref id="..."> to retrieve a Component from the DSD
         if issubclass(ref.target_cls, model.DimensionComponent):
             component = dsd.dimensions.get(ref.target_id)
@@ -1159,6 +1202,12 @@ def _ar(reader, elem):
 
 @start("str:DataStructure", only=False)
 def _dsd_start(reader, elem):
+    try:
+        # <str:DataStructure> may be a reference, e.g. in <str:ConstraintAttachment>
+        return Reference(elem)
+    except NotReference:
+        pass
+
     # Get any external reference created earlier, or instantiate a new object.
     dsd = reader.maintainable(model.DataStructureDefinition, elem)
 
@@ -1174,10 +1223,11 @@ def _dsd_start(reader, elem):
 def _dsd_end(reader, elem):
     dsd = reader.pop_single("current DSD")
 
-    # Collect annotations, name, and description
-    dsd.annotations = reader.pop_all(model.Annotation, strict=True)
-    add_localizations(dsd.name, reader.pop_all("Name"))
-    add_localizations(dsd.description, reader.pop_all("Description"))
+    if dsd:
+        # Collect annotations, name, and description
+        dsd.annotations = list(reader.pop_all(model.Annotation))
+        add_localizations(dsd.name, reader.pop_all("Name"))
+        add_localizations(dsd.description, reader.pop_all("Description"))
 
 
 @end("str:Dataflow")
@@ -1285,7 +1335,7 @@ def _group_ss(reader, elem):
 
 @end("gen:Obs")
 def _obs(reader, elem):
-    dim_at_obs = reader.get_single(message.Message).observation_dimension
+    dim_at_obs = reader.get_single(message.DataMessage).observation_dimension
     dsd = reader.get_single("DataSet").structured_by
 
     args = dict()
@@ -1362,7 +1412,7 @@ def _ds_end(reader, elem):
         ds._add_group_refs(obs)
 
     # Add the data set to the message
-    reader.get_single(message.Message).data.append(ds)
+    reader.get_single(message.DataMessage).data.append(ds)
 
 
 # §11: Data Provisioning

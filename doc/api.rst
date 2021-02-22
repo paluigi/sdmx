@@ -52,6 +52,8 @@ SDMX-ML
 
 :mod:`sdmx` supports the several types of SDMX-ML messages.
 
+.. automodule:: sdmx.reader.xml
+
 .. autoclass:: sdmx.reader.xml.Reader
     :members:
     :undoc-members:
