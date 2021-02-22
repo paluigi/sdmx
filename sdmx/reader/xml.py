@@ -331,12 +331,13 @@ class Reader(BaseReader):
         self.push("_stash", {s: self.stack.pop(s, dict()) for s in stacks})
 
     def unstash(self):
-        """Restore the objects hidden by the last :meth:`stash` call to their stacks."""
-        try:
-            for s, values in self.pop_single("_stash").items():
-                self.stack[s].update(values)
-        except KeyError:
-            pass  # Nothing was stashed
+        """Restore the objects hidden by the last :meth:`stash` call to their stacks.
+
+        Calls to :meth:`.stash` and :meth:`.unstash` should be matched 1-to-1; if the
+        latter outnumber the former, this will raise :class:`.KeyError`.
+        """
+        for s, values in self.pop_single("_stash").items():
+            self.stack[s].update(values)
 
     def get_single(
         self, cls_or_name: Union[Type, str], id: str = None, subclass: bool = False
@@ -860,8 +861,11 @@ def _itemscheme(reader, elem):
     for i in filter(lambda i: i not in seen, iter_all):
         try:
             is_.append(seen.setdefault(i, i))
-        except ValueError:
-            pass  # Existing item, e.g. created by a reference in the same message
+        except ValueError:  # pragma: no cover
+            # Existing item, e.g. created by a reference in the same message
+            # TODO "no cover" since this doesn't occur in the test suite; check whether
+            #      this try/except can be removed.
+            pass
 
     return is_
 
