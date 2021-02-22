@@ -60,7 +60,9 @@ def reference(obj, parent=None, tag=None, style=None):
         try:
             # Get the ItemScheme for an Item
             parent = parent or obj.get_scheme()
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
+            # No `parent` and `obj` is not an Item with a .get_scheme() method
+            # NB this does not occur in the test suite
             pass
 
         if not parent:

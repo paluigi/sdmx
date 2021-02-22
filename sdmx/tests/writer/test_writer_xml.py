@@ -3,6 +3,7 @@ import logging
 import pytest
 
 import sdmx
+from sdmx import model as m
 from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
 
 log = logging.getLogger(__name__)
@@ -26,6 +27,22 @@ def obs(dsd):
 def test_codelist(tmp_path, codelist):
     result = sdmx.to_xml(codelist, pretty_print=True)
     print(result.decode())
+
+
+def test_dks(dsd):
+    """:class:`.DataKeySet` can be written to XML."""
+    dim = dsd.dimensions.get("FOO")
+    sdmx.to_xml(
+        m.DataKeySet(
+            included=True,
+            keys=[
+                m.DataKey(
+                    included=True,
+                    key_value={dim: m.ComponentValue(value_for=dim, value="foo0")},
+                )
+            ],
+        )
+    )
 
 
 def test_ds(dsd, obs):
