@@ -8,8 +8,10 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add :file:`py.typed` to support type checking (e.g. with `mypy <https://mypy.readthedocs.io>`_) in packages that depend on :mod:`sdmx`.
 
 v2.1.0 (2021-02-22)
 ===================
