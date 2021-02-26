@@ -206,6 +206,22 @@ class AnnotableArtefact(BaseModel):
     #: feature.
     annotations: List[Annotation] = []
 
+    def get_annotation(self, **attrib):
+        """Return a :class:`Annotation` with given `attrib`, e.g. 'id'.
+
+        If more than one `attrib` is given, all must match a particular annotation.
+
+        Raises
+        ------
+        KeyError
+            If there is no matching annotation.
+        """
+        for anno in self.annotations:
+            if all(getattr(anno, key, None) == value for key, value in attrib.items()):
+                return anno
+
+        raise KeyError(attrib)
+
     def pop_annotation(self, **attrib):
         """Remove and return a :class:`Annotation` with given `attrib`, e.g. 'id'.
 
