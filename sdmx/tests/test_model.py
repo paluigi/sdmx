@@ -30,6 +30,26 @@ from sdmx.model import (
 
 
 class TestAnnotableArtefact:
+    def test_get_annotation(self):
+        aa = model.AnnotableArtefact(
+            annotations=[
+                model.Annotation(id="foo", text="bar"),
+                model.Annotation(id="baz", title="baz_title", text="baz_text"),
+            ]
+        )
+
+        with pytest.raises(KeyError):
+            aa.get_annotation(id="bar")
+
+        # Retrieve with 1 key
+        assert "bar" == str(aa.get_annotation(id="foo").text)
+
+        # Retrieve with 2 keys
+        assert "baz_text" == str(aa.get_annotation(id="baz", title="baz_title").text)
+
+        # Annotations are not removed
+        assert 2 == len(aa.annotations)
+
     def test_pop_annotation(self):
         aa = model.AnnotableArtefact()
         anno = model.Annotation(id="foo", text="bar")
