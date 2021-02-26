@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.2.0 (2021-02-26)
+===================
 
 - New convenience method :meth:`.AnnotableArtefact.get_annotation` to return but not remove an Annotation, e.g. by its ID (:pull:`60`).
 - Add :file:`py.typed` to support type checking (e.g. with `mypy <https://mypy.readthedocs.io>`_) in packages that depend on :mod:`sdmx`.
