@@ -11,6 +11,8 @@ What's new?
 .. Next release
 .. ============
 
+- Temporary exclude :mod:`pydantic` versions >= 1.8 (:pull:`62`).
+
 v2.2.0 (2021-02-26)
 ===================
 
