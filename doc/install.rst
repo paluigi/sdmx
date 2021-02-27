@@ -18,6 +18,9 @@ Dependencies
 
 - `pandas <http://pandas.pydata.org>`_ for data structures,
 - `pydantic <https://pydantic-docs.helpmanual.io>`_ to implement the IM,
+
+  - :mod:`sdmx` is currently not compatible with pydantic >= 1.8; see :pull:`62`.
+
 - `requests <https://pypi.python.org/pypi/requests/>`_ for HTTP requests, and
 - `lxml <http://www.lxml.de>`_ for XML processing.
 
