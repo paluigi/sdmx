@@ -14,6 +14,8 @@ import sdmx.urn
 from sdmx import message, model
 from sdmx.format.xml import NS, qname, tag_for_class
 from sdmx.writer.base import BaseWriter
+from sdmx.model import StructureSpecificDataSet
+from sdmx.model import StructureSpecificTimeSeriesDataSet
 
 _element_maker = ElementMaker(nsmap={k: v for k, v in NS.items() if v is not None})
 
@@ -98,7 +100,17 @@ def reference(obj, parent=None, tag=None, style=None):
 
 @writer
 def _dm(obj: message.DataMessage):
-    elem = Element("mes:GenericData")
+    struct_spec = False
+    if len(obj.data):
+        struct_spec = isinstance(obj.data[0], (
+            StructureSpecificDataSet,
+            StructureSpecificTimeSeriesDataSet
+        ))
+
+    if struct_spec:
+        elem = Element("mes:StructureSpecificData")
+    else:
+        elem = Element("mes:GenericData")
 
     header = writer.recurse(obj.header)
     elem.append(header)
@@ -128,7 +140,7 @@ def _dm(obj: message.DataMessage):
             structures.add(id(ds.structured_by))
 
         # Add data
-        elem.append(writer.recurse(ds))
+        elem.append(writer.recurse(ds, struct_spec=struct_spec))
 
     return elem
 
@@ -517,29 +529,49 @@ def _sk(obj: model.SeriesKey):
 
 
 @writer
-def _obs(obj: model.Observation):
-    elem = Element("gen:Obs")
+def _obs(obj: model.Observation, struct_spec):
+    if struct_spec:
+        obs_attached_attribute = {
+            key: obj.attached_attribute[key].value
+            for key in obj.attached_attribute
+        }
+        obs_value = {}
+        if obj.value:
+            obs_value[obj.value_for.id] = str(obj.value)
+        obs_dimension = {}
+        if obj.dimension:
+            obs_dimension = {
+                key: obj.dimension.values[key].value
+                for key in obj.dimension.values
+            }
 
-    if obj.dimension:
-        if len(obj.dimension) == 1:
-            # Observation in a series; at most one dimension given by the Key
-            elem.append(
-                Element("gen:ObsDimension", value=obj.dimension.values[0].value)
-            )
-        else:
-            # Top-level observation, not associated with a SeriesKey
-            elem.append(_kv("gen:ObsKey", obj.dimension))
+        elem = Element("data:Obs",
+            **obs_attached_attribute,
+            **obs_value,
+            **obs_dimension,
+        )
+    else:
+        elem = Element("gen:Obs")
+        if obj.dimension:
+            if len(obj.dimension) == 1:
+                # Observation in a series; at most one dimension given by the Key
+                elem.append(
+                    Element("gen:ObsDimension", value=obj.dimension.values[0].value)
+                )
+            else:
+                # Top-level observation, not associated with a SeriesKey
+                elem.append(_kv("gen:ObsKey", obj.dimension))
 
-    elem.append(Element("gen:ObsValue", value=str(obj.value)))
+        elem.append(Element("gen:ObsValue", value=str(obj.value)))
 
-    if len(obj.attached_attribute):
-        elem.append(_av("gen:Attributes", obj.attached_attribute.values()))
+        if len(obj.attached_attribute):
+            elem.append(_av("gen:Attributes", obj.attached_attribute.values()))
 
     return elem
 
 
 @writer
-def _ds(obj: model.DataSet):
+def _ds(obj: model.DataSet, struct_spec):
     if len(obj.group):
         raise NotImplementedError("to_xml() for DataSet with groups")
 
@@ -553,13 +585,19 @@ def _ds(obj: model.DataSet):
     obs_to_write = set(map(id, obj.obs))
 
     for sk, observations in obj.series.items():
-        elem.append(Element("gen:Series"))
-        elem[-1].extend(writer.recurse(sk))
-        elem[-1].extend(writer.recurse(obs) for obs in observations)
+        if struct_spec:
+            sk_values = { key: sk[key].value for key in sk.values }
+            sk_attrib = { key: sk.attrib[key].value for key in sk.attrib }
+            elem.append(Element("data:Series", **sk_values, **sk_attrib))
+        else:
+            elem.append(Element("gen:Series"))
+            elem[-1].extend(writer.recurse(sk, struct_spec=struct_spec))
+        elem[-1].extend(writer.recurse(obs, struct_spec=struct_spec)
+            for obs in observations)
         obs_to_write -= set(map(id, observations))
 
     # Observations not in any series
     for obs in filter(lambda o: id(o) in obs_to_write, obj.obs):
-        elem.append(writer.recurse(obs))
+        elem.append(writer.recurse(obs, struct_spec=struct_spec))
 
     return elem
