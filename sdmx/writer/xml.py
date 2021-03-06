@@ -138,7 +138,7 @@ def _dm(obj: message.DataMessage):
             structures.add(id(ds.structured_by))
 
         # Add data
-        elem.append(writer.recurse(ds, struct_spec=struct_spec))
+        elem.append(writer.recurse(ds))
 
     return elem
 
@@ -530,7 +530,7 @@ def _sk(obj: model.SeriesKey):
 def _obs(obj: model.Observation, struct_spec=False):
     if struct_spec:
         obs_attached_attribute = {
-            key: obj.attached_attribute[key].value for key in obj.attached_attribute
+            key: str(obj.attached_attribute[key].value) for key in obj.attached_attribute
         }
         obs_value = {}
         if obj.value and obj.value_for:
@@ -538,7 +538,7 @@ def _obs(obj: model.Observation, struct_spec=False):
         obs_dimension = {}
         if obj.dimension:
             obs_dimension = {
-                key: obj.dimension.values[key].value for key in obj.dimension.values
+                key: str(obj.dimension.values[key].value) for key in obj.dimension.values
             }
 
         elem = Element(
@@ -571,7 +571,7 @@ def _obs(obj: model.Observation, struct_spec=False):
 
 
 @writer
-def _ds(obj: model.DataSet, struct_spec=False):
+def _ds(obj: model.DataSet):
     if len(obj.group):
         raise NotImplementedError("to_xml() for DataSet with groups")
 
@@ -583,6 +583,10 @@ def _ds(obj: model.DataSet, struct_spec=False):
     elem = Element("mes:DataSet", **attrib)
 
     obs_to_write = set(map(id, obj.obs))
+
+    struct_spec = isinstance(
+        obj, (StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet)
+    )
 
     for sk, observations in obj.series.items():
         if struct_spec:
