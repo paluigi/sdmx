@@ -13,9 +13,8 @@ from lxml.builder import ElementMaker
 import sdmx.urn
 from sdmx import message, model
 from sdmx.format.xml import NS, qname, tag_for_class
+from sdmx.model import StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet
 from sdmx.writer.base import BaseWriter
-from sdmx.model import StructureSpecificDataSet
-from sdmx.model import StructureSpecificTimeSeriesDataSet
 
 _element_maker = ElementMaker(nsmap={k: v for k, v in NS.items() if v is not None})
 
