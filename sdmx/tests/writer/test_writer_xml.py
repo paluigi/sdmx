@@ -4,7 +4,7 @@ import pytest
 
 import sdmx
 from sdmx import model as m
-from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
+from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation, StructureSpecificDataSet
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +62,15 @@ def test_ContentConstraint(dsd, dks):
 def test_ds(dsd, obs):
     # Write DataSet with Observations not in Series
     ds = DataSet(structured_by=dsd)
+    ds.obs.append(obs)
+
+    result = sdmx.to_xml(ds, pretty_print=True)
+    print(result.decode())
+
+
+def test_ds_structurespecific(dsd, obs):
+    # Write DataSet with Observations not in Series
+    ds = StructureSpecificDataSet(structured_by=dsd)
     ds.obs.append(obs)
 
     result = sdmx.to_xml(ds, pretty_print=True)
