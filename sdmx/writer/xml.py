@@ -527,7 +527,7 @@ def _sk(obj: model.SeriesKey):
 
 
 @writer
-def _obs(obj: model.Observation, struct_spec):
+def _obs(obj: model.Observation, struct_spec=False):
     if struct_spec:
         obs_attached_attribute = {
             key: obj.attached_attribute[key].value for key in obj.attached_attribute
@@ -571,7 +571,7 @@ def _obs(obj: model.Observation, struct_spec):
 
 
 @writer
-def _ds(obj: model.DataSet, struct_spec):
+def _ds(obj: model.DataSet, struct_spec=False):
     if len(obj.group):
         raise NotImplementedError("to_xml() for DataSet with groups")
 
