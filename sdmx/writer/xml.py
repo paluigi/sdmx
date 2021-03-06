@@ -102,10 +102,9 @@ def reference(obj, parent=None, tag=None, style=None):
 def _dm(obj: message.DataMessage):
     struct_spec = False
     if len(obj.data):
-        struct_spec = isinstance(obj.data[0], (
-            StructureSpecificDataSet,
-            StructureSpecificTimeSeriesDataSet
-        ))
+        struct_spec = isinstance(
+            obj.data[0], (StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet)
+        )
 
     if struct_spec:
         elem = Element("mes:StructureSpecificData")
@@ -532,8 +531,7 @@ def _sk(obj: model.SeriesKey):
 def _obs(obj: model.Observation, struct_spec):
     if struct_spec:
         obs_attached_attribute = {
-            key: obj.attached_attribute[key].value
-            for key in obj.attached_attribute
+            key: obj.attached_attribute[key].value for key in obj.attached_attribute
         }
         obs_value = {}
         if obj.value:
@@ -541,11 +539,11 @@ def _obs(obj: model.Observation, struct_spec):
         obs_dimension = {}
         if obj.dimension:
             obs_dimension = {
-                key: obj.dimension.values[key].value
-                for key in obj.dimension.values
+                key: obj.dimension.values[key].value for key in obj.dimension.values
             }
 
-        elem = Element("data:Obs",
+        elem = Element(
+            "data:Obs",
             **obs_attached_attribute,
             **obs_value,
             **obs_dimension,
@@ -589,14 +587,15 @@ def _ds(obj: model.DataSet, struct_spec):
 
     for sk, observations in obj.series.items():
         if struct_spec:
-            sk_values = { key: sk[key].value for key in sk.values }
-            sk_attrib = { key: sk.attrib[key].value for key in sk.attrib }
+            sk_values = {key: sk[key].value for key in sk.values}
+            sk_attrib = {key: sk.attrib[key].value for key in sk.attrib}
             elem.append(Element("data:Series", **sk_values, **sk_attrib))
         else:
             elem.append(Element("gen:Series"))
             elem[-1].extend(writer.recurse(sk, struct_spec=struct_spec))
-        elem[-1].extend(writer.recurse(obs, struct_spec=struct_spec)
-            for obs in observations)
+        elem[-1].extend(
+            writer.recurse(obs, struct_spec=struct_spec) for obs in observations
+        )
         obs_to_write -= set(map(id, observations))
 
     # Observations not in any series
