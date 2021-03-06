@@ -533,7 +533,7 @@ def _obs(obj: model.Observation, struct_spec=False):
             key: obj.attached_attribute[key].value for key in obj.attached_attribute
         }
         obs_value = {}
-        if obj.value:
+        if obj.value and obj.value_for:
             obs_value[obj.value_for.id] = str(obj.value)
         obs_dimension = {}
         if obj.dimension:
