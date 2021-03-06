@@ -99,11 +99,9 @@ def reference(obj, parent=None, tag=None, style=None):
 
 @writer
 def _dm(obj: message.DataMessage):
-    struct_spec = False
-    if len(obj.data):
-        struct_spec = isinstance(
-            obj.data[0], (StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet)
-        )
+    struct_spec = len(obj.data) and isinstance(
+        obj.data[0], (StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet)
+    )
 
     if struct_spec:
         elem = Element("mes:StructureSpecificData")
