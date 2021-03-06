@@ -591,7 +591,7 @@ def _ds(obj: model.DataSet, struct_spec=False):
             elem.append(Element("data:Series", **sk_values, **sk_attrib))
         else:
             elem.append(Element("gen:Series"))
-            elem[-1].extend(writer.recurse(sk, struct_spec=struct_spec))
+            elem[-1].extend(writer.recurse(sk))
         elem[-1].extend(
             writer.recurse(obs, struct_spec=struct_spec) for obs in observations
         )
