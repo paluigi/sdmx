@@ -4,7 +4,14 @@ import pytest
 
 import sdmx
 from sdmx import model as m
-from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation, StructureSpecificDataSet
+from sdmx.model import (
+    DataSet,
+    DataStructureDefinition,
+    Dimension,
+    Key,
+    Observation,
+    StructureSpecificDataSet,
+)
 
 log = logging.getLogger(__name__)
 

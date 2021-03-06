@@ -530,7 +530,8 @@ def _sk(obj: model.SeriesKey):
 def _obs(obj: model.Observation, struct_spec=False):
     if struct_spec:
         obs_attached_attribute = {
-            key: str(obj.attached_attribute[key].value) for key in obj.attached_attribute
+            key: str(obj.attached_attribute[key].value)
+            for key in obj.attached_attribute
         }
         obs_value = {}
         if obj.value and obj.value_for:
@@ -538,7 +539,8 @@ def _obs(obj: model.Observation, struct_spec=False):
         obs_dimension = {}
         if obj.dimension:
             obs_dimension = {
-                key: str(obj.dimension.values[key].value) for key in obj.dimension.values
+                key: str(obj.dimension.values[key].value)
+                for key in obj.dimension.values
             }
 
         elem = Element(
