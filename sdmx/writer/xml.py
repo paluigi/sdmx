@@ -550,22 +550,25 @@ def _obs(obj: model.Observation, struct_spec):
             **obs_value,
             **obs_dimension,
         )
-    else:
-        elem = Element("gen:Obs")
-        if obj.dimension:
-            if len(obj.dimension) == 1:
-                # Observation in a series; at most one dimension given by the Key
-                elem.append(
-                    Element("gen:ObsDimension", value=obj.dimension.values[0].value)
-                )
-            else:
-                # Top-level observation, not associated with a SeriesKey
-                elem.append(_kv("gen:ObsKey", obj.dimension))
 
-        elem.append(Element("gen:ObsValue", value=str(obj.value)))
+        return elem
 
-        if len(obj.attached_attribute):
-            elem.append(_av("gen:Attributes", obj.attached_attribute.values()))
+    elem = Element("gen:Obs")
+
+    if obj.dimension:
+        if len(obj.dimension) == 1:
+            # Observation in a series; at most one dimension given by the Key
+            elem.append(
+                Element("gen:ObsDimension", value=obj.dimension.values[0].value)
+            )
+        else:
+            # Top-level observation, not associated with a SeriesKey
+            elem.append(_kv("gen:ObsKey", obj.dimension))
+
+    elem.append(Element("gen:ObsValue", value=str(obj.value)))
+
+    if len(obj.attached_attribute):
+        elem.append(_av("gen:Attributes", obj.attached_attribute.values()))
 
     return elem
 
