@@ -76,7 +76,7 @@ def test_ds(dsd, obs):
 
 
 def test_ds_structurespecific(dsd, obs):
-    # Write DataSet with Observations not in Series
+    # Write StructureSpecificDataSet with Observations not in Series
     ds = StructureSpecificDataSet(structured_by=dsd)
     ds.obs.append(obs)
 
