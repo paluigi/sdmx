@@ -80,14 +80,14 @@ def test_ds(dsd, obs):
 def test_ds_structurespecific(dsd, obs):
     series_key = dsd.make_key(SeriesKey, dict(FOO=1, BAR=2))
     dimension_key = dsd.make_key(Key, dict(BAZ=3))
-    primary_measure = PrimaryMeasure(id='OBS_VALUE')
+    primary_measure = PrimaryMeasure(id="OBS_VALUE")
     observation = Observation(
         series_key=series_key,
         dimension=dimension_key,
         value_for=primary_measure,
         value=25,
     )
-    series = { series_key: [observation] }
+    series = {series_key: [observation]}
     ds = StructureSpecificDataSet(structured_by=dsd, series=series)
     ds.obs.append(observation)
     result = sdmx.to_xml(ds, pretty_print=True)
