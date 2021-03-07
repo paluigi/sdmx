@@ -10,9 +10,9 @@ from sdmx.model import (
     Dimension,
     Key,
     Observation,
+    PrimaryMeasure,
     SeriesKey,
     StructureSpecificDataSet,
-    PrimaryMeasure,
 )
 
 log = logging.getLogger(__name__)
