@@ -4,6 +4,7 @@ import pytest
 
 import sdmx
 from sdmx import model as m
+from sdmx.message import DataMessage
 from sdmx.model import (
     DataSet,
     DataStructureDefinition,
@@ -77,7 +78,7 @@ def test_ds(dsd, obs):
     print(result.decode())
 
 
-def test_ds_structurespecific(dsd, obs):
+def test_ds_structurespecific(dsd):
     series_key = dsd.make_key(SeriesKey, dict(FOO=1, BAR=2))
     dimension_key = dsd.make_key(Key, dict(BAZ=3))
     primary_measure = PrimaryMeasure(id="OBS_VALUE")
@@ -89,9 +90,14 @@ def test_ds_structurespecific(dsd, obs):
     )
     series = {series_key: [observation]}
     ds = StructureSpecificDataSet(structured_by=dsd, series=series)
-    ds.obs.append(observation)
-    result = sdmx.to_xml(ds, pretty_print=True)
-    print(result.decode())
+    dm = DataMessage(data=[ds])
+    result = sdmx.to_xml(dm, pretty_print=True)
+    exp = (
+        '    <data:Series FOO="1" BAR="2">\n'
+        '      <data:Obs OBS_VALUE="25" BAZ="3"/>\n'
+        "    </data:Series>"
+    )
+    assert exp in result.decode()
 
 
 def test_obs(obs):
