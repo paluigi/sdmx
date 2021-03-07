@@ -590,8 +590,8 @@ def _ds(obj: model.DataSet):
 
     for sk, observations in obj.series.items():
         if struct_spec:
-            sk_values = {key: sk[key].value for key in sk.values}
-            sk_attrib = {key: sk.attrib[key].value for key in sk.attrib}
+            sk_values = {key: str(sk[key].value) for key in sk.values}
+            sk_attrib = {key: str(sk.attrib[key].value) for key in sk.attrib}
             elem.append(Element("data:Series", **sk_values, **sk_attrib))
         else:
             elem.append(Element("gen:Series"))
