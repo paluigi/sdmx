@@ -103,10 +103,7 @@ def _dm(obj: message.DataMessage):
         (model.StructureSpecificDataSet, model.StructureSpecificTimeSeriesDataSet),
     )
 
-    if struct_spec:
-        elem = Element("mes:StructureSpecificData")
-    else:
-        elem = Element("mes:GenericData")
+    elem = Element("mes:StructureSpecificData" if struct_spec else "mes:GenericData")
 
     header = writer.recurse(obj.header)
     elem.append(header)
@@ -527,28 +524,16 @@ def _sk(obj: model.SeriesKey):
 @writer
 def _obs(obj: model.Observation, struct_spec=False):
     if struct_spec:
-        obs_attached_attribute = {
-            key: str(obj.attached_attribute[key].value)
-            for key in obj.attached_attribute
-        }
-        obs_value = {}
+        obs_attrs = {}
+        for key, av in obj.attached_attribute.items():
+            obs_attrs[key] = str(av.value)
         if obj.value and obj.value_for:
-            obs_value[obj.value_for.id] = str(obj.value)
-        obs_dimension = {}
+            obs_attrs[obj.value_for.id] = str(obj.value)
         if obj.dimension:
-            obs_dimension = {
-                key: str(obj.dimension.values[key].value)
-                for key in obj.dimension.values
-            }
+            for key, dv in obj.dimension.values.items():
+                obs_attrs[key] = str(dv.value)
 
-        elem = Element(
-            "data:Obs",
-            **obs_attached_attribute,
-            **obs_value,
-            **obs_dimension,
-        )
-
-        return elem
+        return Element("data:Obs", **obs_attrs)
 
     elem = Element("gen:Obs")
 
@@ -590,9 +575,12 @@ def _ds(obj: model.DataSet):
 
     for sk, observations in obj.series.items():
         if struct_spec:
-            sk_values = {key: str(sk.values[key].value) for key in sk.values}
-            sk_attrib = {key: str(sk.attrib[key].value) for key in sk.attrib}
-            elem.append(Element("data:Series", **sk_values, **sk_attrib))
+            series_attrs = {}
+            for key, sk_dim in sk.values.items():
+                series_attrs[key] = str(sk_dim.value)
+            for key, sk_att in sk.attrib.items():
+                series_attrs[key] = str(sk_att.value)
+            elem.append(Element("data:Series", **series_attrs))
         else:
             elem.append(Element("gen:Series"))
             elem[-1].extend(writer.recurse(sk))
