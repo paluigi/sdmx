@@ -3,18 +3,9 @@ import logging
 import pytest
 
 import sdmx
+from sdmx import message
 from sdmx import model as m
-from sdmx.message import DataMessage
-from sdmx.model import (
-    DataSet,
-    DataStructureDefinition,
-    Dimension,
-    Key,
-    Observation,
-    PrimaryMeasure,
-    SeriesKey,
-    StructureSpecificDataSet,
-)
+from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
 
 log = logging.getLogger(__name__)
 
@@ -79,18 +70,18 @@ def test_ds(dsd, obs):
 
 
 def test_ds_structurespecific(dsd):
-    series_key = dsd.make_key(SeriesKey, dict(FOO=1, BAR=2))
-    dimension_key = dsd.make_key(Key, dict(BAZ=3))
-    primary_measure = PrimaryMeasure(id="OBS_VALUE")
-    observation = Observation(
+    series_key = dsd.make_key(m.SeriesKey, dict(FOO=1, BAR=2))
+    dimension_key = dsd.make_key(m.Key, dict(BAZ=3))
+    primary_measure = m.PrimaryMeasure(id="OBS_VALUE")
+    observation = m.Observation(
         series_key=series_key,
         dimension=dimension_key,
         value_for=primary_measure,
         value=25,
     )
     series = {series_key: [observation]}
-    ds = StructureSpecificDataSet(structured_by=dsd, series=series)
-    dm = DataMessage(data=[ds])
+    ds = m.StructureSpecificDataSet(structured_by=dsd, series=series)
+    dm = message.DataMessage(data=[ds])
     result = sdmx.to_xml(dm, pretty_print=True)
     exp = (
         '    <data:Series FOO="1" BAR="2">\n'

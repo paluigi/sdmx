@@ -13,7 +13,6 @@ from lxml.builder import ElementMaker
 import sdmx.urn
 from sdmx import message, model
 from sdmx.format.xml import NS, qname, tag_for_class
-from sdmx.model import StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet
 from sdmx.writer.base import BaseWriter
 
 _element_maker = ElementMaker(nsmap={k: v for k, v in NS.items() if v is not None})
@@ -100,7 +99,8 @@ def reference(obj, parent=None, tag=None, style=None):
 @writer
 def _dm(obj: message.DataMessage):
     struct_spec = len(obj.data) and isinstance(
-        obj.data[0], (StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet)
+        obj.data[0],
+        (model.StructureSpecificDataSet, model.StructureSpecificTimeSeriesDataSet),
     )
 
     if struct_spec:
@@ -585,7 +585,7 @@ def _ds(obj: model.DataSet):
     obs_to_write = set(map(id, obj.obs))
 
     struct_spec = isinstance(
-        obj, (StructureSpecificDataSet, StructureSpecificTimeSeriesDataSet)
+        obj, (model.StructureSpecificDataSet, model.StructureSpecificTimeSeriesDataSet)
     )
 
     for sk, observations in obj.series.items():
