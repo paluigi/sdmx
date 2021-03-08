@@ -84,9 +84,9 @@ def test_ds_structurespecific(dsd):
     dm = message.DataMessage(data=[ds])
     result = sdmx.to_xml(dm, pretty_print=True)
     exp = (
-        '    <data:Series FOO="1" BAR="2">\n'
-        '      <data:Obs OBS_VALUE="25" BAZ="3"/>\n'
-        "    </data:Series>"
+        '    <Series FOO="1" BAR="2">\n'
+        '      <Obs OBS_VALUE="25" BAZ="3"/>\n'
+        "    </Series>"
     )
     assert exp in result.decode()
 

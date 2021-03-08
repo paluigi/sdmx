@@ -533,7 +533,7 @@ def _obs(obj: model.Observation, struct_spec=False):
             for key, dv in obj.dimension.values.items():
                 obs_attrs[key] = str(dv.value)
 
-        return Element("data:Obs", **obs_attrs)
+        return Element(":Obs", **obs_attrs)
 
     elem = Element("gen:Obs")
 
@@ -580,7 +580,7 @@ def _ds(obj: model.DataSet):
                 series_attrs[key] = str(sk_dim.value)
             for key, sk_att in sk.attrib.items():
                 series_attrs[key] = str(sk_att.value)
-            elem.append(Element("data:Series", **series_attrs))
+            elem.append(Element(":Series", **series_attrs))
         else:
             elem.append(Element("gen:Series"))
             elem[-1].extend(writer.recurse(sk))
