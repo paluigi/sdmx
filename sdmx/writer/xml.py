@@ -527,8 +527,9 @@ def _obs(obj: model.Observation, struct_spec=False):
         obs_attrs = {}
         for key, av in obj.attached_attribute.items():
             obs_attrs[key] = str(av.value)
-        if obj.value and obj.value_for:
-            obs_attrs[obj.value_for.id] = str(obj.value)
+        if obj.value:
+            value_key = obj.value_for.id if obj.value_for else "OBS_VALUE"
+            obs_attrs[value_key] = str(obj.value)
         if obj.dimension:
             for key, dv in obj.dimension.values.items():
                 obs_attrs[key] = str(dv.value)
