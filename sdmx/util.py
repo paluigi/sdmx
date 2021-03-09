@@ -3,17 +3,7 @@ import typing
 from collections import OrderedDict
 from enum import Enum
 from functools import lru_cache
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    List,
-    Mapping,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    no_type_check,
-)
+from typing import Any, Mapping, Tuple, TypeVar, Union
 
 import pydantic
 from pydantic import DictError, Extra, ValidationError, validator  # noqa: F401
@@ -79,83 +69,12 @@ class Resource(str, Enum):
         return "{" + " ".join(v.name for v in cls._member_map_.values()) + "}"
 
 
-if TYPE_CHECKING:
-    Model = TypeVar("Model", bound="BaseModel")
-
-
 class BaseModel(pydantic.BaseModel):
-    """Shim for pydantic.BaseModel.
-
-    This class changes two behaviours in pydantic. The methods are direct
-    copies from pydantic's code, with marked changes.
-
-    1. https://github.com/samuelcolvin/pydantic/issues/524
-
-       - "Multiple RecursionErrors with self-referencing models"
-       - In e.g. :class:`.Item`, having both .parent and .child references
-         leads to infinite recursion during validation.
-       - Fix: override BaseModel.__setattr__.
-       - New value 'limited' for Config.validate_assignment: no sibling
-         field values are passed to Field.validate().
-       - New key Config.validate_assignment_exclude: list of field names that
-         are not validated per se *and* not passed to Field.validate() when
-         validating a sibling field.
-    2. https://github.com/samuelcolvin/pydantic/issues/521
-
-       - "Assignment to attribute changes id() but not referenced object,"
-         marked as wontfix by pydantic maintainer.
-       - When cls.attr is typed as BaseModel (or a subclass), then
-         a.attr is b.attr is always False, even when set to the same reference.
-       - Fix: override BaseModel.validate() without copy().
-    """
+    """Common settings for :class:`pydantic.BaseModel` in :mod:`sdmx`."""
 
     class Config:
-        validate_assignment = "limited"
-        validate_assignment_exclude: List[str] = []
-
-    # Workaround for https://github.com/samuelcolvin/pydantic/issues/521
-    @classmethod
-    def validate(cls: Type["Model"], value: Any) -> "Model":
-        if isinstance(value, dict):
-            return cls(**value)
-        elif isinstance(value, cls):
-            return value  # ***
-        elif cls.__config__.orm_mode:
-            return cls.from_orm(value)
-        else:
-            try:
-                value_as_dict = dict(value)
-            except (TypeError, ValueError) as e:
-                raise DictError() from e
-            return cls(**value_as_dict)
-
-    # Workaround for https://github.com/samuelcolvin/pydantic/issues/524
-    @no_type_check
-    def __setattr__(self, name, value):
-        if self.__config__.extra is not Extra.allow and name not in self.__fields__:
-            raise ValueError(
-                f'"{self.__class__.__name__}" object has no field' f' "{name}"'
-            )
-        elif not self.__config__.allow_mutation:
-            raise TypeError(
-                f'"{self.__class__.__name__}" is immutable and '
-                "does not support item assignment"
-            )
-        elif (
-            self.__config__.validate_assignment
-            and name not in self.__config__.validate_assignment_exclude
-        ):
-            if self.__config__.validate_assignment == "limited":
-                kw = {"include": {}}
-            else:
-                kw = {"exclude": {name}}
-            known_field = self.__fields__.get(name, None)
-            if known_field:
-                value, error_ = known_field.validate(value, self.dict(**kw), loc=name)
-                if error_:
-                    raise ValidationError([error_], type(self))
-        self.__dict__[name] = value
-        self.__fields_set__.add(name)
+        copy_on_model_validation = False
+        validate_assignment = True
 
 
 class DictLike(OrderedDict, typing.MutableMapping[KT, VT]):

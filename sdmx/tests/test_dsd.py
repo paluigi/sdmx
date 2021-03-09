@@ -83,6 +83,7 @@ class TestECB_EXR1(MessageTest):
         assert msg.structure["ECB_EXR1"].uri == expected
 
 
+@pytest.mark.xfail(reason="Constrained codes not implemented")
 def test_exr_constraints(specimen):
     with specimen("1/structure-full.xml") as f:
         m = sdmx.read_sdmx(f)
@@ -106,32 +107,33 @@ def test_exr_constraints(specimen):
     assert ad[-1].id == "UNIT_MULT"
     assert "5" in ad.get("UNIT_MULT")
 
-    pytest.xfail("constrained codes not implemented")
     assert len(m._constrained_codes), 14
 
-    assert "W" not in m._constrained_codes.FREQ
-
-    key = {"FREQ": ["W"]}
-
-    assert m.in_codes(key)
-
-    assert not m.in_constraints(key, raise_error=False)
-
-    with pytest.raises(ValueError):
-        m.in_constraints(key)
-
-    assert m.in_constraints({"CURRENCY": ["CHF"]})
-
-    # test with invalid key
-    with pytest.raises(TypeError):
-        m._in_constraints({"FREQ": "A"})
-
-    # structure writer with constraints
-    out = sdmx.to_pandas(m)
-    cl = out.codelist
-    assert cl.shape == (3555, 2)
-
-    # unconstrained codelists
-    out = sdmx.to_pandas(m, constraint=False)
-    cl = out.codelist
-    assert cl.shape, (4177, 2)
+    # TODO uncomment these lines once implemented
+    #
+    # assert "W" not in m._constrained_codes.FREQ
+    #
+    # key = {"FREQ": ["W"]}
+    #
+    # assert m.in_codes(key)
+    #
+    # assert not m.in_constraints(key, raise_error=False)
+    #
+    # with pytest.raises(ValueError):
+    #     m.in_constraints(key)
+    #
+    # assert m.in_constraints({"CURRENCY": ["CHF"]})
+    #
+    # # test with invalid key
+    # with pytest.raises(TypeError):
+    #     m._in_constraints({"FREQ": "A"})
+    #
+    # # structure writer with constraints
+    # out = sdmx.to_pandas(m)
+    # cl = out.codelist
+    # assert cl.shape == (3555, 2)
+    #
+    # # unconstrained codelists
+    # out = sdmx.to_pandas(m, constraint=False)
+    # cl = out.codelist
+    # assert cl.shape, (4177, 2)

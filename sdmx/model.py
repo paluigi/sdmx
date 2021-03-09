@@ -1,7 +1,7 @@
 """SDMX Information Model (SDMX-IM).
 
-This module implements many of the classes described in the SDMX-IM
-specification ('spec'), which is available from:
+This module implements many of the classes described in the SDMX-IM specification
+('spec'), which is available from:
 
 - https://sdmx.org/?page_id=5008
 - https://sdmx.org/wp-content/uploads/
@@ -9,13 +9,12 @@ specification ('spec'), which is available from:
 
 Details of the implementation:
 
-- Python typing and pydantic are used to enforce the types of attributes
-  that reference instances of other classes.
-- Some classes have convenience attributes not mentioned in the spec, to ease
-  navigation between related objects. These are marked “:mod:`pandaSDMX`
-  extension not in the IM.”
-- Class definitions are grouped by section of the spec, but these sections
-  appear out of order so that dependent classes are defined first.
+- Python typing and pydantic are used to enforce the types of attributes that reference
+  instances of other classes.
+- Some classes have convenience attributes not mentioned in the spec, to ease navigation
+  between related objects. These are marked “:mod:`sdmx` extension not in the IM.”
+- Class definitions are grouped by section of the spec, but these sections appear out
+  of order so that dependent classes are defined first.
 
 """
 # TODO for complete implementation of the IM, enforce TimeKeyValue (instead of KeyValue)
@@ -49,8 +48,8 @@ from sdmx.util import BaseModel, DictLike, compare, validate_dictlike, validator
 
 log = logging.getLogger(__name__)
 
-# TODO read this from the environment, or use any value set in the SDMX XML
-# spec. Currently set to 'en' because test_dsd.py expects it
+# TODO read this from the environment, or use any value set in the SDMX-ML spec.
+#      Currently set to 'en' because test_dsd.py expects it.
 DEFAULT_LOCALE = "en"
 
 
@@ -60,14 +59,14 @@ DEFAULT_LOCALE = "en"
 class InternationalString:
     """SDMX-IM InternationalString.
 
-    SDMX-IM LocalisedString is not implemented. Instead, the 'localizations' is
-    a mapping where:
+    SDMX-IM LocalisedString is not implemented. Instead, the 'localizations' is a
+    mapping where:
 
      - keys correspond to the 'locale' property of LocalisedString.
      - values correspond to the 'label' property of LocalisedString.
 
-    When used as a type hint with pydantic, InternationalString fields can be
-    assigned to in one of four ways::
+    When used as a type hint with pydantic, InternationalString fields can be assigned
+    to in one of four ways::
 
         class Foo(BaseModel):
              name: InternationalString = InternationalString()
@@ -89,8 +88,8 @@ class InternationalString:
         # Using a bare string, implicitly for the DEFAULT_LOCALE
         f.name = "Name in DEFAULT_LOCALE language"
 
-    Only the first method preserves existing localizations; the latter three
-    replace them.
+    Only the first method preserves existing localizations; the latter three replace
+    them.
 
     """
 
@@ -163,7 +162,10 @@ class InternationalString:
         )
 
     def __eq__(self, other):
-        return self.localizations == other.localizations
+        try:
+            return self.localizations == other.localizations
+        except AttributeError:
+            return NotImplemented
 
     @classmethod
     def __get_validators__(cls):
@@ -278,9 +280,8 @@ class IdentifiableArtefact(AnnotableArtefact):
     def __eq__(self, other):
         """Equality comparison.
 
-        IdentifiableArtefacts can be compared to other instances. For
-        convenience, a string containing the object's ID is also equal to the
-        object.
+        IdentifiableArtefacts can be compared to other instances. For convenience, a
+        string containing the object's ID is also equal to the object.
         """
         if isinstance(other, self.__class__):
             return self.id == other.id
@@ -483,15 +484,12 @@ ConstraintRoleType = Enum("ConstraintRoleType", "allowable actual")
 
 # §3.5: Item Scheme
 
+IT = TypeVar("IT", bound="Item")
 
-class Item(NameableArtefact):
-    parent: Optional[Union["Item", "ItemScheme"]] = None
-    child: List["Item"] = []
 
-    # NB this is required to prevent RecursionError in pydantic;
-    #    see https://github.com/samuelcolvin/pydantic/issues/524
-    class Config:
-        validate_assignment_exclude = "parent"
+class Item(NameableArtefact, Generic[IT]):
+    parent: Optional[Union[IT, "ItemScheme"]] = None
+    child: List[IT] = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -533,12 +531,12 @@ class Item(NameableArtefact):
             else self.id
         )
 
-    def append_child(self, other):
+    def append_child(self, other: IT):
         if other not in self.child:
             self.child.append(other)
         other.parent = self
 
-    def get_child(self, id):
+    def get_child(self, id) -> IT:
         """Return the child with the given *id*."""
         for c in self.child:
             if c.id == id:
@@ -554,9 +552,6 @@ class Item(NameableArtefact):
             # Either this Item is a top-level Item whose .parent refers to the
             # ItemScheme, or it has no parent
             return self.parent
-
-
-IT = TypeVar("IT", bound=Item)
 
 
 class ItemScheme(MaintainableArtefact, Generic[IT]):
@@ -625,8 +620,8 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
     def __contains__(self, item: Union[str, IT]) -> bool:
         """Check containment.
 
-        No recursive search on children is performed as these are assumed to be
-        included in :attr:`items`. Allow searching by Item or its id attribute.
+        No recursive search on children is performed as these are assumed to be included
+        in :attr:`items`. Allow searching by Item or its id attribute.
         """
         if isinstance(item, str):
             return item in self.items
@@ -701,8 +696,8 @@ class ItemScheme(MaintainableArtefact, Generic[IT]):
     def setdefault(self, obj=None, **kwargs) -> IT:
         """Retrieve the item *name*, or add it with *kwargs* and return it.
 
-        The returned object is a reference to an object in the ItemScheme, and is of
-        the appropriate class.
+        The returned object is a reference to an object in the ItemScheme, and is of the
+        appropriate class.
         """
         if obj and len(kwargs):
             raise ValueError(
@@ -807,7 +802,7 @@ class ISOConceptReference(BaseModel):
     scheme_id: str
 
 
-class Concept(Item):
+class Concept(Item["Concept"]):
     #:
     core_representation: Optional[Representation] = None
     #:
@@ -835,7 +830,7 @@ class Component(IdentifiableArtefact):
             enum = getattr(repr, "enumerated", None)
             if enum is not None:
                 return value in enum
-        raise TypeError("membership not defined for non-enumerated" "representations")
+        raise TypeError("membership not defined for non-enumerated representations")
 
 
 CT = TypeVar("CT", bound=Component)
@@ -868,8 +863,7 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         """Return or create the component with the given *id*.
 
         If the component is automatically created, its :attr:`.Dimension.order`
-        attribute is set to the value of :attr:`auto_order`, which is then
-        incremented.
+        attribute is set to the value of :attr:`auto_order`, which is then incremented.
 
         Parameters
         ----------
@@ -878,9 +872,8 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
         cls : type, optional
             Hint for the class of a new object.
         kwargs
-            Passed to the constructor of :class:`.Component`, or a Component
-            subclass if :attr:`.components` is overridden in a subclass of
-            ComponentList.
+            Passed to the constructor of :class:`.Component`, or a Component subclass if
+            :attr:`.components` is overridden in a subclass of ComponentList.
         """
         try:
             return self.get(id)
@@ -954,7 +947,7 @@ class ComponentList(IdentifiableArtefact, Generic[CT]):
 # §4.3: Codelist
 
 
-class Code(Item):
+class Code(Item["Code"]):
     """SDMX-IM Code."""
 
 
@@ -965,7 +958,7 @@ class Codelist(ItemScheme[Code]):
 # §4.5: Category Scheme
 
 
-class Category(Item):
+class Category(Item["Category"]):
     """SDMX-IM Category."""
 
 
@@ -986,9 +979,9 @@ class Categorisation(MaintainableArtefact):
 class Contact(BaseModel):
     """Organization contact information.
 
-    IMF is the only data provider that returns messages with :class:`Contact`
-    information. These differ from the IM in several ways. This class reflects
-    these differences:
+    IMF is the only known data provider that returns messages with :class:`Contact`
+    information. These differ from the IM in several ways. This class reflects these
+    differences:
 
     - 'name' and 'org_unit' are InternationalString, instead of strings.
     - 'email' may be a list of e-mail addresses, rather than a single address.
@@ -1009,7 +1002,7 @@ class Contact(BaseModel):
     uri: List[str]
 
 
-class Organisation(Item):
+class Organisation(Item["Organisation"]):
     #:
     contact: List[Contact] = []
 
@@ -1148,11 +1141,33 @@ class MemberSelection(BaseModel):
         return any(mv == value for mv in self.values)
 
 
+# NB CubeRegion and ContentConstraint are moved below, after Dimension, since CubeRegion
+#   references that class.
+
+
+class AttachmentConstraint(Constraint):
+    #:
+    attachment: Set[ConstrainableArtefact] = set()
+
+
+# §5.2: Data Structure Definition
+
+
+class DimensionComponent(Component):
+    #:
+    order: Optional[int] = None
+
+
+class Dimension(DimensionComponent):
+    """SDMX-IM Dimension."""
+
+
+# (continued from §10.3)
 class CubeRegion(BaseModel):
     #:
     included: bool = True
     #:
-    member: Dict["Dimension", MemberSelection] = {}
+    member: Dict[Dimension, MemberSelection] = {}
 
     def __contains__(self, key):
         for ms in self.member.values():
@@ -1174,17 +1189,13 @@ class CubeRegion(BaseModel):
         return ".".join(all_values)
 
 
+# (continued from §10.3)
 class ContentConstraint(Constraint):
     #: :class:`CubeRegions <.CubeRegion>` included in the ContentConstraint.
     data_content_region: List[CubeRegion] = []
     #:
     content: Set[ConstrainableArtefact] = set()
     # metadata_content_region: MetadataTargetRegion = None
-
-    # NB this is required to prevent RecursionError in pydantic;
-    #    see https://github.com/samuelcolvin/pydantic/issues/524
-    class Config:
-        validate_assignment_exclude = "data_content_region"
 
     def __contains__(self, value):
         if self.data_content_region:
@@ -1203,26 +1214,6 @@ class ContentConstraint(Constraint):
             return self.data_content_region[0].to_query_string(structure)
         except IndexError:
             raise RuntimeError("ContentConstraint does not contain a CubeRegion.")
-
-
-class AttachmentConstraint(Constraint):
-    #:
-    attachment: Set[ConstrainableArtefact] = set()
-
-
-# §5.2: Data Structure Definition
-
-
-class DimensionComponent(Component):
-    #:
-    order: Optional[int] = None
-
-
-class Dimension(DimensionComponent):
-    """SDMX-IM Dimension."""
-
-
-CubeRegion.update_forward_refs()
 
 
 class TimeDimension(DimensionComponent):
@@ -1301,8 +1292,8 @@ class DimensionDescriptor(ComponentList[DimensionComponent]):
     """Describes a set of dimensions.
 
     IM: “An ordered set of metadata concepts that, combined, classify a statistical
-    series, and whose values, when combined (the key) in an instance such as a data
-    set, uniquely identify a specific observation.”
+    series, and whose values, when combined (the key) in an instance such as a data set,
+    uniquely identify a specific observation.”
 
     :attr:`.components` is a :class:`list` (ordered) of :class:`Dimension`,
     :class:`MeasureDimension`, and/or :class:`TimeDimension`.
@@ -1375,11 +1366,11 @@ GroupRelationship.update_forward_refs()
 class DataStructureDefinition(Structure, ConstrainableArtefact):
     """SDMX-IM DataStructureDefinition (‘DSD’)."""
 
-    #: A :class:`AttributeDescriptor` that describes the attributes of the
-    #: data structure.
+    #: A :class:`AttributeDescriptor` that describes the attributes of the data
+    #: structure.
     attributes: AttributeDescriptor = AttributeDescriptor()
-    #: A :class:`DimensionDescriptor` that describes the dimensions of the
-    #: data structure.
+    #: A :class:`DimensionDescriptor` that describes the dimensions of the data
+    #: structure.
     dimensions: DimensionDescriptor = DimensionDescriptor()
     #: A :class:`.MeasureDescriptor`.
     measures: MeasureDescriptor = MeasureDescriptor()
@@ -1389,34 +1380,33 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
 
     # Convenience methods
     def make_constraint(self, key):
-        """Return a constraint for *key*.
+        """Return a constraint for `key`.
 
-        *key* is a :class:`dict` wherein:
+        `key` is a :class:`dict` wherein:
 
-        - keys are :class:`str` ids of Dimensions appearing in this
-          DSD's :attr:`dimensions`, and
-        - values are '+'-delimited :class:`str` containing allowable values,
-          _or_ iterables of :class:`str`, each an allowable value.
+        - keys are :class:`str` ids of Dimensions appearing in this DSD's
+          :attr:`dimensions`, and
+        - values are '+'-delimited :class:`str` containing allowable values, *or*
+          iterables of :class:`str`, each an allowable value.
 
         For example::
 
             cc2 = dsd.make_constraint({'foo': 'bar+baz', 'qux': 'q1+q2+q3'})
 
-        ``cc2`` includes any key where the 'foo' dimension is 'bar' *or* 'baz',
-        *and* the 'qux' dimension is one of 'q1', 'q2', or 'q3'.
+        ``cc2`` includes any key where the 'foo' dimension is 'bar' *or* 'baz', *and*
+        the 'qux' dimension is one of 'q1', 'q2', or 'q3'.
 
         Returns
         -------
         ContentConstraint
             A constraint with one :class:`CubeRegion` in its
-            :attr:`data_content_region <ContentConstraint.data_content_region>`
-            , including only the values appearing in *keys*.
+            :attr:`data_content_region <ContentConstraint.data_content_region>` ,
+            including only the values appearing in `key`.
 
         Raises
         ------
         ValueError
-            if *key* contains a dimension IDs not appearing in
-            :attr:`dimensions`.
+            if `key` contains a dimension IDs not appearing in :attr:`dimensions`.
         """
         # Make a copy to avoid pop()'ing off the object in the calling scope
         key = key.copy()
@@ -1481,10 +1471,10 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         values : dict
             Used to construct :attr:`.Key.values`.
         extend : bool, optional
-            If :obj:`True`, make_key will not return :class:`KeyError` on
-            mission dimensions. Instead :attr:`dimensions` (`key_cls` is
-            Key or SeriesKey) or :attr:`group_dimensions` (`key_cls` is
-            GroupKey) will be extended by creating new Dimension objects.
+            If :obj:`True`, make_key will not return :class:`KeyError` on missing
+            dimensions. Instead :attr:`dimensions` (`key_cls` is Key or SeriesKey) or
+            :attr:`group_dimensions` (`key_cls` is GroupKey) will be extended by
+            creating new Dimension objects.
         group_id : str, optional
             When `key_cls` is :class`.GroupKey`, the ID of the
             :class:`.GroupDimensionDescriptor` that structures the key.
@@ -1497,8 +1487,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         Raises
         ------
         KeyError
-            If any of the keys of `values` is not a Dimension or Attribute in
-            the DSD.
+            If any of the keys of `values` is not a Dimension or Attribute in the DSD.
         """
         # Methods to get dimensions and attributes
         get_method = "getdefault" if extend else "get"
@@ -1639,8 +1628,8 @@ TimeKeyValue = KeyValue
 class AttributeValue(BaseModel):
     """SDMX-IM AttributeValue.
 
-    In the spec, AttributeValue is an abstract class. Here, it serves as both
-    the concrete subclasses CodedAttributeValue and UncodedAttributeValue.
+    In the spec, AttributeValue is an abstract class. Here, it serves as both the
+    concrete subclasses CodedAttributeValue and UncodedAttributeValue.
     """
 
     # TODO separate and enforce properties of Coded- and UncodedAttributeValue
@@ -1685,8 +1674,8 @@ class AttributeValue(BaseModel):
 class Key(BaseModel):
     """SDMX Key class.
 
-    The constructor takes an optional list of keyword arguments; the keywords
-    are used as Dimension or Attribute IDs, and the values as KeyValues.
+    The constructor takes an optional list of keyword arguments; the keywords are used
+    as Dimension or Attribute IDs, and the values as KeyValues.
 
     For convience, the values of the key may be accessed directly:
 
@@ -1700,9 +1689,9 @@ class Key(BaseModel):
     ----------
     dsd : DataStructureDefinition
         If supplied, the :attr:`~.DataStructureDefinition.dimensions` and
-        :attr:`~.DataStructureDefinition.attributes` are used to separate the
-        *kwargs* into :class:`KeyValues <.KeyValue>` and
-        :class:`AttributeValues <.AttributeValue>`. The *kwarg* for
+        :attr:`~.DataStructureDefinition.attributes` are used to separate the `kwargs`
+        into :class:`KeyValues <.KeyValue>` and
+        :class:`AttributeValues <.AttributeValue>`. The `kwargs` for
         :attr:`described_by`, if any, must be
         :attr:`~.DataStructureDefinition.dimensions` or appear in
         :attr:`~.DataStructureDefinition.group_dimensions`.
@@ -1727,8 +1716,8 @@ class Key(BaseModel):
         if arg:
             if len(kwargs):
                 raise ValueError(
-                    "Key() accepts either a single argument, or "
-                    "keyword arguments; not both."
+                    "Key() accepts either a single argument, or keyword arguments; not "
+                    "both."
                 )
             kwargs.update(arg)
 
