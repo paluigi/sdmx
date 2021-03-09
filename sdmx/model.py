@@ -163,7 +163,10 @@ class InternationalString:
         )
 
     def __eq__(self, other):
-        return self.localizations == other.localizations
+        try:
+            return self.localizations == other.localizations
+        except AttributeError:
+            return NotImplemented
 
     @classmethod
     def __get_validators__(cls):
@@ -489,11 +492,6 @@ IT = TypeVar("IT", bound="Item")
 class Item(NameableArtefact, Generic[IT]):
     parent: Optional[Union[IT, "ItemScheme"]] = None
     child: List[IT] = []
-
-    # NB this is required to prevent RecursionError in pydantic;
-    #    see https://github.com/samuelcolvin/pydantic/issues/524
-    class Config:
-        validate_assignment_exclude = "parent"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1147,11 +1145,33 @@ class MemberSelection(BaseModel):
         return any(mv == value for mv in self.values)
 
 
+# NB CubeRegion and ContentConstraint are moved below, after Dimension, since CubeRegion
+#   references that class.
+
+
+class AttachmentConstraint(Constraint):
+    #:
+    attachment: Set[ConstrainableArtefact] = set()
+
+
+# §5.2: Data Structure Definition
+
+
+class DimensionComponent(Component):
+    #:
+    order: Optional[int] = None
+
+
+class Dimension(DimensionComponent):
+    """SDMX-IM Dimension."""
+
+
+# (continued from §10.3)
 class CubeRegion(BaseModel):
     #:
     included: bool = True
     #:
-    member: Dict["Dimension", MemberSelection] = {}
+    member: Dict[Dimension, MemberSelection] = {}
 
     def __contains__(self, key):
         for ms in self.member.values():
@@ -1173,6 +1193,7 @@ class CubeRegion(BaseModel):
         return ".".join(all_values)
 
 
+# (continued from §10.3)
 class ContentConstraint(Constraint):
     #: :class:`CubeRegions <.CubeRegion>` included in the ContentConstraint.
     data_content_region: List[CubeRegion] = []
@@ -1202,26 +1223,6 @@ class ContentConstraint(Constraint):
             return self.data_content_region[0].to_query_string(structure)
         except IndexError:
             raise RuntimeError("ContentConstraint does not contain a CubeRegion.")
-
-
-class AttachmentConstraint(Constraint):
-    #:
-    attachment: Set[ConstrainableArtefact] = set()
-
-
-# §5.2: Data Structure Definition
-
-
-class DimensionComponent(Component):
-    #:
-    order: Optional[int] = None
-
-
-class Dimension(DimensionComponent):
-    """SDMX-IM Dimension."""
-
-
-CubeRegion.update_forward_refs()
 
 
 class TimeDimension(DimensionComponent):

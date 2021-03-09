@@ -13,7 +13,7 @@ Next release
 
 - Improve typing of :class:`.Item` and subclasses, e.g. :class:`.Code` (:pull:`66`).
   :attr:`~Item.parent` and :attr:`~Item.child` elements are typed the same as a subclass.
-- Allow :mod:`pydantic` versions >= 1.8.1 (:pull:`66`).
+- Require :mod:`pydantic` >= 1.8.1, and remove workarounds for limitations in earlier versions (:pull:`66`).
 
 Bug fixes
 ---------
