@@ -1197,11 +1197,6 @@ class ContentConstraint(Constraint):
     content: Set[ConstrainableArtefact] = set()
     # metadata_content_region: MetadataTargetRegion = None
 
-    # NB this is required to prevent RecursionError in pydantic;
-    #    see https://github.com/samuelcolvin/pydantic/issues/524
-    class Config:
-        validate_assignment_exclude = "data_content_region"
-
     def __contains__(self, value):
         if self.data_content_region:
             return any(value in cr for cr in self.data_content_region)
