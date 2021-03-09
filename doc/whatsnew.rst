@@ -8,8 +8,17 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Improve typing of :class:`.Item` and subclasses, e.g. :class:`.Code` (:pull:`66`).
+  :attr:`~Item.parent` and :attr:`~Item.child` elements are typed the same as a subclass.
+- Allow :mod:`pydantic` versions >= 1.8.1 (:pull:`66`).
+
+Bug fixes
+---------
+
+- ``sdmx.__version__`` always gives `999` (:issue:`68`, :pull:`69`).
 
 v2.2.1 (2021-02-27)
 ===================
