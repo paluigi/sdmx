@@ -943,6 +943,13 @@ def _component(reader, elem):
         assert len(ar) == 1
         args["related_to"] = ar[0]
 
+    if cls is model.PrimaryMeasure and "id" not in elem.attrib:
+        # SDMX spec §3A, part III, p.140: “The id attribute holds an explicit
+        # identification of the component. If this identifier is not supplied, then it
+        # is assumed to be the same as the identifier of the concept referenced from
+        # the concept identity.”
+        args["id"] = args["concept_identity"].id
+
     return reader.identifiable(cls, elem, **args)
 
 
