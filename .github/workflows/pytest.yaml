@@ -1,10 +1,10 @@
-name: Pytest
+name: Test
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   schedule:  # 05:00 UTC = 06:00 CET = 07:00 CEST
   - cron: "0 5 * * *"
 

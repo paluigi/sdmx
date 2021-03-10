@@ -86,7 +86,7 @@ Releasing
 
 Before releasing, check:
 
-- https://github.com/khaeru/sdmx/actions?query=workflow:pytest+branch:master to ensure that the push and scheduled builds are passing.
+- https://github.com/khaeru/sdmx/actions?query=workflow:test+branch:main to ensure that the push and scheduled builds are passing.
 - https://readthedocs.org/projects/sdmx1/builds/ to ensure that the docs build is passing.
 
 Address any failures before releasing.
@@ -98,7 +98,7 @@ Address any failures before releasing.
 2. Tag the version as a release candidate, i.e. with a ``rcN`` suffix, and push::
 
     $ git tag v1.2.3rc1
-    $ git push --tags origin master
+    $ git push --tags origin main
 
 3. Check:
 
@@ -115,7 +115,7 @@ Address any failures before releasing.
    Tag the release itself and push::
 
     $ git tag v1.2.3
-    $ git push --tags origin master
+    $ git push --tags origin main
 
 5. Visit https://github.com/khaeru/sdmx/releases and mark the new release: either using the pushed tag from (4), or by creating the tag and release simultaneously.
 

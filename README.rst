@@ -3,7 +3,7 @@ sdmx: Statistical data and metadata exchange
 
 .. image:: https://github.com/khaeru/sdmx/workflows/pytest/badge.svg
    :target: https://github.com/khaeru/sdmx/actions
-.. image:: https://codecov.io/gh/khaeru/sdmx/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/khaeru/sdmx/branch/main/graph/badge.svg
    :target: https://codecov.io/gh/khaeru/sdmx
 .. image:: https://readthedocs.org/projects/sdmx1/badge/?version=latest
    :target: https://sdmx1.readthedocs.io/en/latest
@@ -33,7 +33,7 @@ sdmx: Statistical data and metadata exchange
 Documentation
 -------------
 
-See https://sdmx1.readthedocs.io/en/latest/ for the latest docs per the ``master`` branch, or https://sdmx1.readthedocs.io/en/stable/ for the most recent release.
+See https://sdmx1.readthedocs.io/en/latest/ for the latest docs per the ``main`` branch, or https://sdmx1.readthedocs.io/en/stable/ for the most recent release.
 
 
 License

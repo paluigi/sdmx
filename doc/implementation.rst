@@ -219,7 +219,7 @@ SDMX-CSV
 :mod:`sdmx`:
 
 - reads all kinds of SDMX-ML and SDMX-JSON messages.
-- contains, in the `tests/data/ <https://github.com/khaeru/sdmx/tree/master/tests/data>`_ source directory, specimens of messages in both data formats.
+- uses, via `sdmx-test-data <https://github.com/khaeru/sdmx-test-data/>`_, specimens of messages in both data formats.
   These are used by the test suite to check that the code functions as intended, but can also be viewed to understand the data formats.
 
 

@@ -300,7 +300,7 @@ SDMX-ML or SDMX-JSON —
      dsd = msg.structure[0]
 
   The resulting object `dsd` can be passed as an argument to a :meth:`.Client.get` data query.
-  See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/master/sdmx/tests/test_sources.py>`_ for an example.
+  See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/main/sdmx/tests/test_sources.py>`_ for an example.
 
 
 ``WB``: World Bank Group “World Integrated Trade Solution”
