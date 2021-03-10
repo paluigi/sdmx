@@ -1384,8 +1384,8 @@ def _obs_ss(reader, elem):
             # TODO also add an external reference to the SDMX cross-domain concept
             pm = model.PrimaryMeasure(id="OBS_VALUE")
             dsd.measures.append(pm)
-        else:
-            raise
+        else:  # pragma: no cover
+            raise  # DSD was provided but lacks a PrimaryMeasure
 
     # StructureSpecificData message—all information stored as XML attributes of the
     # <Observation>

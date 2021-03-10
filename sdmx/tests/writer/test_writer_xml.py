@@ -6,6 +6,7 @@ import sdmx
 from sdmx import message
 from sdmx import model as m
 from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
+from sdmx.writer.xml import writer as XMLWriter
 
 log = logging.getLogger(__name__)
 
@@ -98,6 +99,13 @@ def test_obs(obs):
         '<gen:Value id="BAR" value="2"/></gen:ObsKey>'
     )
     assert exp in sdmx.to_xml(obs).decode()
+
+    # Exception raised in structure-specific data because `obs` fixture has no value_for
+    with pytest.raises(
+        ValueError,
+        match="Observation.value_for is None when writing structure-specific data",
+    ):
+        XMLWriter.recurse(obs, struct_spec=True)
 
 
 def test_structuremessage(tmp_path, structuremessage):
