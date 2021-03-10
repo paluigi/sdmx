@@ -3,8 +3,10 @@ import logging
 import pytest
 
 import sdmx
+from sdmx import message
 from sdmx import model as m
 from sdmx.model import DataSet, DataStructureDefinition, Dimension, Key, Observation
+from sdmx.writer.xml import writer as XMLWriter
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +70,28 @@ def test_ds(dsd, obs):
     print(result.decode())
 
 
+def test_ds_structurespecific(dsd):
+    series_key = dsd.make_key(m.SeriesKey, dict(FOO=1, BAR=2))
+    dimension_key = dsd.make_key(m.Key, dict(BAZ=3))
+    primary_measure = m.PrimaryMeasure(id="OBS_VALUE")
+    observation = m.Observation(
+        series_key=series_key,
+        dimension=dimension_key,
+        value_for=primary_measure,
+        value=25,
+    )
+    series = {series_key: [observation]}
+    ds = m.StructureSpecificDataSet(structured_by=dsd, series=series)
+    dm = message.DataMessage(data=[ds])
+    result = sdmx.to_xml(dm, pretty_print=True)
+    exp = (
+        '    <Series FOO="1" BAR="2">\n'
+        '      <Obs OBS_VALUE="25" BAZ="3"/>\n'
+        "    </Series>"
+    )
+    assert exp in result.decode()
+
+
 def test_obs(obs):
     # Generate <gen:ObsKey> element for 2+-dimensional Observation.dimension
     exp = (
@@ -75,6 +99,13 @@ def test_obs(obs):
         '<gen:Value id="BAR" value="2"/></gen:ObsKey>'
     )
     assert exp in sdmx.to_xml(obs).decode()
+
+    # Exception raised in structure-specific data because `obs` fixture has no value_for
+    with pytest.raises(
+        ValueError,
+        match="Observation.value_for is None when writing structure-specific data",
+    ):
+        XMLWriter.recurse(obs, struct_spec=True)
 
 
 def test_structuremessage(tmp_path, structuremessage):
@@ -115,6 +146,7 @@ _xf_not_equal = pytest.mark.xfail(raises=AssertionError)
         ("INSEE/IPI-2010-A21.xml", "INSEE/IPI-2010-A21-structure.xml"),
         ("ECB_EXR/1/M.USD.EUR.SP00.A.xml", "ECB_EXR/1/structure.xml"),
         ("ECB_EXR/ng-ts.xml", "ECB_EXR/ng-structure-full.xml"),
+        ("ECB_EXR/ng-ts-ss.xml", "ECB_EXR/ng-structure-full.xml"),
         # DSD reference does not round-trip correctly
         pytest.param(
             "ECB_EXR/rg-xs.xml",

@@ -98,7 +98,12 @@ def reference(obj, parent=None, tag=None, style=None):
 
 @writer
 def _dm(obj: message.DataMessage):
-    elem = Element("mes:GenericData")
+    struct_spec = len(obj.data) and isinstance(
+        obj.data[0],
+        (model.StructureSpecificDataSet, model.StructureSpecificTimeSeriesDataSet),
+    )
+
+    elem = Element("mes:StructureSpecificData" if struct_spec else "mes:GenericData")
 
     header = writer.recurse(obj.header)
     elem.append(header)
@@ -517,7 +522,25 @@ def _sk(obj: model.SeriesKey):
 
 
 @writer
-def _obs(obj: model.Observation):
+def _obs(obj: model.Observation, struct_spec=False):
+    if struct_spec:
+        obs_attrs = {}
+        for key, av in obj.attached_attribute.items():
+            obs_attrs[key] = str(av.value)
+        if obj.value:
+            if obj.value_for is None:
+                raise ValueError(
+                    "Observation.value_for is None when writing structure-specific data"
+                )
+            # NB this is usually OBS_VALUE, but not necessarily; see #67.
+            value_key = obj.value_for.id
+            obs_attrs[value_key] = str(obj.value)
+        if obj.dimension:
+            for key, dv in obj.dimension.values.items():
+                obs_attrs[key] = str(dv.value)
+
+        return Element(":Obs", **obs_attrs)
+
     elem = Element("gen:Obs")
 
     if obj.dimension:
@@ -552,14 +575,28 @@ def _ds(obj: model.DataSet):
 
     obs_to_write = set(map(id, obj.obs))
 
+    struct_spec = isinstance(
+        obj, (model.StructureSpecificDataSet, model.StructureSpecificTimeSeriesDataSet)
+    )
+
     for sk, observations in obj.series.items():
-        elem.append(Element("gen:Series"))
-        elem[-1].extend(writer.recurse(sk))
-        elem[-1].extend(writer.recurse(obs) for obs in observations)
+        if struct_spec:
+            series_attrs = {}
+            for key, sk_dim in sk.values.items():
+                series_attrs[key] = str(sk_dim.value)
+            for key, sk_att in sk.attrib.items():
+                series_attrs[key] = str(sk_att.value)
+            elem.append(Element(":Series", **series_attrs))
+        else:
+            elem.append(Element("gen:Series"))
+            elem[-1].extend(writer.recurse(sk))
+        elem[-1].extend(
+            writer.recurse(obs, struct_spec=struct_spec) for obs in observations
+        )
         obs_to_write -= set(map(id, observations))
 
     # Observations not in any series
     for obs in filter(lambda o: id(o) in obs_to_write, obj.obs):
-        elem.append(writer.recurse(obs))
+        elem.append(writer.recurse(obs, struct_spec=struct_spec))
 
     return elem
