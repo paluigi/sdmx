@@ -528,6 +528,10 @@ def _obs(obj: model.Observation, struct_spec=False):
         for key, av in obj.attached_attribute.items():
             obs_attrs[key] = str(av.value)
         if obj.value:
+            if obj.value_for is None:
+                raise ValueError(
+                    "Observation.value_for=None when writing structure-specific data"
+                )
             # NB this is usually OBS_VALUE, but not necessarily; see #67.
             value_key = obj.value_for.id
             obs_attrs[value_key] = str(obj.value)
