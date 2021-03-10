@@ -1367,24 +1367,43 @@ def _obs(reader, elem):
 
 @end(":Obs")
 def _obs_ss(reader, elem):
-    # StructureSpecificData message—all information stored as XML
-    # attributes of the <Observation>.
+    # True if the user failed to provide a DSD to use in parsing structure-specific data
+    extend = reader.peek("SS without DSD")
+
+    # Retrieve the PrimaryMeasure from the DSD for the current data set
+    dsd = reader.get_single("DataSet").structured_by
+
+    try:
+        # Retrieve the PrimaryMeasure in a supplied DSD, or one created in a previous
+        # call to _obs_ss()
+        pm = dsd.measures[0]
+    except IndexError:
+        # No measures in the DSD
+        if extend:
+            # Create one, assuming the ID OBS_VALUE
+            # TODO also add an external reference to the SDMX cross-domain concept
+            pm = model.PrimaryMeasure(id="OBS_VALUE")
+            dsd.measures.append(pm)
+        else:
+            raise
+
+    # StructureSpecificData message—all information stored as XML attributes of the
+    # <Observation>
     attrib = copy(elem.attrib)
 
-    # Value of the observation
-    value = attrib.pop("OBS_VALUE", None)
-
-    # Use the DSD to separate dimensions and attributes
-    dsd = reader.get_single(model.DataStructureDefinition)
+    # Observation value from an attribute; usually "OBS_VALUE"
+    value = attrib.pop(pm.id, None)
 
     # Extend the DSD if the user failed to provide it
-    key = dsd.make_key(model.Key, attrib, extend=reader.peek("SS without DSD"))
+    key = dsd.make_key(model.Key, attrib, extend=extend)
 
     # Remove attributes from the Key to be attached to the Observation
     aa = key.attrib
     key.attrib = {}
 
-    return model.Observation(dimension=key, value=value, attached_attribute=aa)
+    return model.Observation(
+        dimension=key, value=value, value_for=pm, attached_attribute=aa
+    )
 
 
 @start("mes:DataSet", only=False)
