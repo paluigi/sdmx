@@ -8,13 +8,17 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.3.0 (2021-03-10)
+===================
 
 - :func:`.to_xml` can produce structure-specific SDMX-ML (:pull:`67`).
 - Improve typing of :class:`.Item` and subclasses, e.g. :class:`.Code` (:pull:`66`).
   :attr:`~Item.parent` and :attr:`~Item.child` elements are typed the same as a subclass.
 - Require :mod:`pydantic` >= 1.8.1, and remove workarounds for limitations in earlier versions (:pull:`66`).
+- The default branch of the :mod:`sdmx` GitHub repository is renamed ``main``.
 
 Bug fixes
 ---------
