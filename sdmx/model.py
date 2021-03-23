@@ -1177,8 +1177,8 @@ class CubeRegion(BaseModel):
     def __contains__(self, key):
         for ms in self.member.values():
             if key[ms.values_for.id] not in ms:
-                return False
-        return True
+                return not self.included
+        return self.included
 
     def to_query_string(self, structure):
         all_values = []
