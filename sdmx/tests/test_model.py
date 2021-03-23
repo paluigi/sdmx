@@ -5,7 +5,6 @@ import pydantic
 import pytest
 from pytest import raises
 
-import sdmx
 from sdmx import model
 from sdmx.model import (
     DEFAULT_LOCALE,
