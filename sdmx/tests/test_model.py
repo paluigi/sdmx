@@ -131,7 +131,7 @@ def test_dimensiondescriptor():
 
 
 class TestIdentifiableArtefact:
-    def test_general():
+    def test_general(self):
         urn = (
             "urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=IT1:VARIAB_ALL"
             "(9.6)"
