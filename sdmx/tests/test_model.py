@@ -131,8 +131,23 @@ class TestDataStructureDefinition:
         # Create a ContentConstraint (containing a single CubeRegion(included=True))
         cc0 = dsd.make_constraint(dict(foo="1", bar="2+5", baz="3+6"))
 
+        # Resulting Keys have only "1" for the "foo" dimension
         keys2 = list(dsd.iter_keys(constraint=cc0))
         assert 1 * 2 ** 2 == len(keys2)
+
+        # Use make_constraint() to create & modify a different CubeRegion
+        cc1 = dsd.make_constraint(dict(baz="6"))
+        cr = cc1.data_content_region[0]
+        # Exclude this region
+        cr.included = False
+
+        # Add to `cc0` so that there are two CubeRegions
+        cc0.data_content_region.append(cr)
+
+        # Resulting keys have only "1" for the "foo" dimension, and not "6" for the
+        # "baz" dimension
+        keys3 = list(dsd.iter_keys(constraint=cc0))
+        assert 1 * 2 * 1 == len(keys3)
 
 
 def test_dimension():
