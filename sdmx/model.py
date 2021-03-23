@@ -1384,6 +1384,25 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
 
     # Convenience methods
+    def iter_keys(self, constraint=None, dimensions=[]):
+        """Iterate over keys."""
+        kvs: List[List[KeyValue]] = []
+        for dim in self.dimensions.components:
+            try:
+                # Convert to KeyValues
+                kvs.append(
+                    [
+                        KeyValue(id=dim.id, value=item.id, value_for=dim)
+                        for item in dim.local_representation.enumerated
+                    ]
+                )
+            except AttributeError:
+                # `dim` is not enumerated by an ItemScheme; create a placeholder
+                kvs.append([KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim)])
+
+        # Create Key objects from Cartesian product of KeyValues along each dimension
+        yield from [Key({kv.id: kv for kv in key}) for key in product(*kvs)]
+
     def make_constraint(self, key):
         """Return a constraint for `key`.
 

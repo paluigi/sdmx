@@ -5,6 +5,7 @@ import pydantic
 import pytest
 from pytest import raises
 
+import sdmx
 from sdmx import model
 from sdmx.model import (
     DEFAULT_LOCALE,
@@ -79,38 +80,48 @@ def test_dataset():
     DataSet(action=ActionType["information"])
 
 
-def test_datastructuredefinition():
-    dsd = DataStructureDefinition()
+class TestDataStructureDefinition:
+    def test_general(self):
+        dsd = DataStructureDefinition()
 
-    # Convenience methods
-    da = dsd.attributes.getdefault(id="foo")
-    assert isinstance(da, DataAttribute)
+        # Convenience methods
+        da = dsd.attributes.getdefault(id="foo")
+        assert isinstance(da, DataAttribute)
 
-    d = dsd.dimensions.getdefault(id="baz", order=-1)
-    assert isinstance(d, Dimension)
+        d = dsd.dimensions.getdefault(id="baz", order=-1)
+        assert isinstance(d, Dimension)
 
-    # make_key(GroupKey, ..., extend=True, group_id=None)
-    gk = dsd.make_key(GroupKey, dict(foo=1, bar=2), extend=True, group_id=None)
+        # make_key(GroupKey, ..., extend=True, group_id=None)
+        gk = dsd.make_key(GroupKey, dict(foo=1, bar=2), extend=True, group_id=None)
 
-    # … does not create a GroupDimensionDescriptor (anonymous group)
-    assert gk.described_by is None
-    assert len(dsd.group_dimensions) == 0
+        # … does not create a GroupDimensionDescriptor (anonymous group)
+        assert gk.described_by is None
+        assert len(dsd.group_dimensions) == 0
 
-    # But does create the 'bar' dimension
-    assert "bar" in dsd.dimensions
+        # But does create the 'bar' dimension
+        assert "bar" in dsd.dimensions
 
-    # make_key(..., group_id=...) creates a GroupDimensionDescriptor
-    gk = dsd.make_key(GroupKey, dict(foo=1, baz2=4), extend=True, group_id="g1")
-    assert gk.described_by is dsd.group_dimensions["g1"]
-    assert len(dsd.group_dimensions) == 1
+        # make_key(..., group_id=...) creates a GroupDimensionDescriptor
+        gk = dsd.make_key(GroupKey, dict(foo=1, baz2=4), extend=True, group_id="g1")
+        assert gk.described_by is dsd.group_dimensions["g1"]
+        assert len(dsd.group_dimensions) == 1
 
-    # …also creates the "baz2" dimension and adds it to the GDD
-    assert dsd.dimensions.get("baz2") is dsd.group_dimensions["g1"].get("baz2")
+        # …also creates the "baz2" dimension and adds it to the GDD
+        assert dsd.dimensions.get("baz2") is dsd.group_dimensions["g1"].get("baz2")
 
-    # from_keys()
-    key1 = Key(foo=1, bar=2, baz=3)
-    key2 = Key(foo=4, bar=5, baz=6)
-    DataStructureDefinition.from_keys([key1, key2])
+        # from_keys()
+        key1 = Key(foo=1, bar=2, baz=3)
+        key2 = Key(foo=4, bar=5, baz=6)
+        DataStructureDefinition.from_keys([key1, key2])
+
+    def test_iter_keys(self, specimen):
+        key1 = Key(foo=1, bar=2, baz=3)
+        key2 = Key(foo=4, bar=5, baz=6)
+        dsd = DataStructureDefinition.from_keys([key1, key2])
+
+        keys = list(dsd.iter_keys())
+        assert all(isinstance(k, model.Key) for k in keys)
+        assert 2 ** 3 == len(keys)
 
 
 def test_dimension():
