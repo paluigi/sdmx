@@ -28,6 +28,7 @@ from copy import copy
 from datetime import date, datetime, timedelta
 from enum import Enum
 from inspect import isclass
+from itertools import product
 from operator import attrgetter
 from typing import (
     Any,
@@ -1097,6 +1098,12 @@ class Constraint(MaintainableArtefact):
     class Config:
         validate_assignment = False
 
+    def __contains__(self, value):
+        if self.data_content_keys:
+            return value in self.data_content_keys
+        else:
+            raise NotImplementedError("Constraint does not contain a DataKeySet")
+
 
 class SelectionValue(BaseModel):
     """SDMX-IM SelectionValue."""
@@ -1400,18 +1407,22 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
 
         all_kvs: List[List[KeyValue]] = []
         for dim in self.dimensions.components:
-            if dim.id in dims and dim.local_representation.enumerated:
+            if (
+                dim.id not in dims
+                or dim.local_representation is None
+                or dim.local_representation.enumerated is None
+            ):
+                # `dim` is not enumerated by an ItemScheme; create a placeholder
                 all_kvs.append(
-                    # Create a KeyValue for each Item in the ItemScheme
+                    [KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim)]
+                )
+            else:
+                # Create a KeyValue for each Item in the ItemScheme
+                all_kvs.append(
                     [
                         KeyValue(id=dim.id, value=item.id, value_for=dim)
                         for item in dim.local_representation.enumerated
                     ]
-                )
-            else:
-                # `dim` is not enumerated by an ItemScheme; create a placeholder
-                all_kvs.append(
-                    [KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim)]
                 )
 
         # Create Key objects from Cartesian product of KeyValues along each dimension
