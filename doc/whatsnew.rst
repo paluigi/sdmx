@@ -8,8 +8,10 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- :class:`.IdentifiableArtefact` can be :func:`.sorted` (:pull:`71`).
 
 v2.3.0 (2021-03-10)
 ===================
