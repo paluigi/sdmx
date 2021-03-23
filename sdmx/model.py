@@ -308,6 +308,11 @@ class IdentifiableArtefact(AnnotableArtefact):
     def __hash__(self):
         return id(self) if self.id == MissingID else hash(self.id)
 
+    def __lt__(self, other):
+        return (
+            self.id < other.id if isinstance(other, self.__class__) else NotImplemented
+        )
+
     def __str__(self):
         return self.id
 
