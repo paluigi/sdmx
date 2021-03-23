@@ -1384,24 +1384,41 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
 
     # Convenience methods
-    def iter_keys(self, constraint=None, dimensions=[]):
-        """Iterate over keys."""
-        kvs: List[List[KeyValue]] = []
+    def iter_keys(self, constraint: Constraint = None, dims=[]):
+        """Iterate over keys.
+
+        Parameters
+        ----------
+        constraint : Constraint, optional
+            If given, only yield Keys that are within the constraint.
+        dims : list of str, optional
+            If given, only iterate over allowable values for the given dimensions.
+            Other dimensions have only a single value like "(DIM_ID)", where DIM_ID is
+            the if of the dimension.
+        """
+        dims = dims or [dim.id for dim in self.dimensions.components]
+
+        all_kvs: List[List[KeyValue]] = []
         for dim in self.dimensions.components:
-            try:
-                # Convert to KeyValues
-                kvs.append(
+            if dim.id in dims and dim.local_representation.enumerated:
+                all_kvs.append(
+                    # Create a KeyValue for each Item in the ItemScheme
                     [
                         KeyValue(id=dim.id, value=item.id, value_for=dim)
                         for item in dim.local_representation.enumerated
                     ]
                 )
-            except AttributeError:
+            else:
                 # `dim` is not enumerated by an ItemScheme; create a placeholder
-                kvs.append([KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim)])
+                all_kvs.append(
+                    [KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim)]
+                )
 
         # Create Key objects from Cartesian product of KeyValues along each dimension
-        yield from [Key({kv.id: kv for kv in key}) for key in product(*kvs)]
+        yield from filter(
+            lambda k: constraint is None or k in constraint,
+            [Key({kv.id: kv for kv in kvs}) for kvs in product(*all_kvs)],
+        )
 
     def make_constraint(self, key):
         """Return a constraint for `key`.

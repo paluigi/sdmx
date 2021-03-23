@@ -114,14 +114,25 @@ class TestDataStructureDefinition:
         key2 = Key(foo=4, bar=5, baz=6)
         DataStructureDefinition.from_keys([key1, key2])
 
-    def test_iter_keys(self, specimen):
-        key1 = Key(foo=1, bar=2, baz=3)
-        key2 = Key(foo=4, bar=5, baz=6)
-        dsd = DataStructureDefinition.from_keys([key1, key2])
+    def test_iter_keys(self):
+        dsd = DataStructureDefinition.from_keys(
+            [Key(foo=1, bar=2, baz=3), Key(foo=4, bar=5, baz=6)]
+        )
 
-        keys = list(dsd.iter_keys())
-        assert all(isinstance(k, model.Key) for k in keys)
-        assert 2 ** 3 == len(keys)
+        keys0 = list(dsd.iter_keys())
+        assert all(isinstance(k, model.Key) for k in keys0)
+        assert 2 ** 3 == len(keys0)
+
+        # Iterate over only some dimensions
+        keys1 = list(dsd.iter_keys(dims=["foo"]))
+        assert 2 == len(keys1)
+        assert "<Key: foo=1, bar=(bar), baz=(baz)>" == repr(keys1[0])
+
+        # Create a ContentConstraint (containing a single CubeRegion(included=True))
+        cc0 = dsd.make_constraint(dict(foo="1", bar="2+5", baz="3+6"))
+
+        keys2 = list(dsd.iter_keys(constraint=cc0))
+        assert 1 * 2 ** 2 == len(keys2)
 
 
 def test_dimension():
