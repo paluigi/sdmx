@@ -130,23 +130,44 @@ def test_dimensiondescriptor():
     assert list(key1.values.keys()) == list(key3.values.keys())
 
 
-def test_identifiable():
-    urn = "urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=IT1:VARIAB_ALL(9.6)"
-    urn_pat = urn.replace("(", r"\(").replace(")", r"\)")
+class TestIdentifiableArtefact:
+    def test_general():
+        urn = (
+            "urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=IT1:VARIAB_ALL"
+            "(9.6)"
+        )
+        urn_pat = urn.replace("(", r"\(").replace(")", r"\)")
 
-    with pytest.raises(ValueError, match=f"ID BAD_URN does not match URN {urn_pat}"):
-        model.IdentifiableArtefact(id="BAD_URN", urn=urn)
+        with pytest.raises(
+            ValueError, match=f"ID BAD_URN does not match URN {urn_pat}"
+        ):
+            model.IdentifiableArtefact(id="BAD_URN", urn=urn)
 
-    # IdentifiableArtefact is hashable
-    ia = IdentifiableArtefact()
-    assert hash(ia) == id(ia)
+        # IdentifiableArtefact is hashable
+        ia = IdentifiableArtefact()
+        assert hash(ia) == id(ia)
 
-    ia = IdentifiableArtefact(id="foo")
-    assert hash(ia) == hash("foo")
+        ia = IdentifiableArtefact(id="foo")
+        assert hash(ia) == hash("foo")
 
-    # Subclass is hashable
-    ad = AttributeDescriptor()
-    assert hash(ad) == id(ad)
+        # Subclass is hashable
+        ad = AttributeDescriptor()
+        assert hash(ad) == id(ad)
+
+    def test_sort(self):
+        """Test IdentifiableArtefact.__lt__."""
+        # Items of the same class can be sorted
+        items = [Item(id="b"), Item(id="a")]
+        assert list(reversed(items)) == sorted(items)
+
+        with pytest.raises(
+            TypeError,
+            match=(
+                "'<' not supported between instances of 'Item' and "
+                "'DataStructureDefinition'"
+            ),
+        ):
+            sorted([DataStructureDefinition(id="c")] + items)
 
 
 def test_nameable(caplog):
@@ -249,35 +270,36 @@ def test_internationalstring():
     assert is1 == is2
 
 
-def test_item():
-    # Add a tree of 10 items
-    items = []
-    for i in range(10):
-        items.append(Item(id="Foo {}".format(i)))
+class TestItem:
+    def test_general(self):
+        # Add a tree of 10 items
+        items = []
+        for i in range(10):
+            items.append(Item(id="Foo {}".format(i)))
 
-        if i > 0:
-            items[-1].parent = items[-2]
-            items[-2].child.append(items[-1])
+            if i > 0:
+                items[-1].parent = items[-2]
+                items[-2].child.append(items[-1])
 
-    # __init__(parent=...)
-    Item(id="Bar 1", parent=items[0])
-    assert len(items[0].child) == 2
+        # __init__(parent=...)
+        Item(id="Bar 1", parent=items[0])
+        assert len(items[0].child) == 2
 
-    # __init__(child=)
-    bar2 = Item(id="Bar 2", child=[items[0]])
+        # __init__(child=)
+        bar2 = Item(id="Bar 2", child=[items[0]])
 
-    # __contains__()
-    assert items[0] in bar2
-    assert items[-1] in items[0]
+        # __contains__()
+        assert items[0] in bar2
+        assert items[-1] in items[0]
 
-    # get_child()
-    assert items[0].get_child("Foo 1") == items[1]
+        # get_child()
+        assert items[0].get_child("Foo 1") == items[1]
 
-    with raises(ValueError):
-        items[0].get_child("Foo 2")
+        with raises(ValueError):
+            items[0].get_child("Foo 2")
 
-    # Hierarchical IDs constructed automatically
-    assert items[0].child[0].hierarchical_id == "Bar 2.Foo 0.Foo 1"
+        # Hierarchical IDs constructed automatically
+        assert items[0].child[0].hierarchical_id == "Bar 2.Foo 0.Foo 1"
 
 
 def test_itemscheme():
