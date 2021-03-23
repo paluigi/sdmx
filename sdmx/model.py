@@ -1204,7 +1204,7 @@ class ContentConstraint(Constraint):
 
     def __contains__(self, value):
         if self.data_content_region:
-            return any(value in cr for cr in self.data_content_region)
+            return all(value in cr for cr in self.data_content_region)
         else:
             raise NotImplementedError(
                 "ContentConstraint does not contain a CubeRegion."
