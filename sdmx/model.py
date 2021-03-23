@@ -33,6 +33,7 @@ from operator import attrgetter
 from typing import (
     Any,
     Dict,
+    Generator,
     Generic,
     Iterable,
     List,
@@ -1227,6 +1228,17 @@ class ContentConstraint(Constraint):
         except IndexError:
             raise RuntimeError("ContentConstraint does not contain a CubeRegion.")
 
+    def iter_keys(
+        self,
+        obj: Union["DataStructureDefinition", "DataflowDefinition"],
+        dims: List[str] = [],
+    ) -> Generator["Key", None, None]:
+        """Iterate over keys."""
+        if obj not in self.content:
+            log.warning(f"{repr(obj)} is not in {repr(self)}.content")
+
+        yield from obj.iter_keys(constraint=self, dims=dims)
+
 
 class TimeDimension(DimensionComponent):
     """SDMX-IM TimeDimension."""
@@ -1391,7 +1403,9 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
 
     # Convenience methods
-    def iter_keys(self, constraint: Constraint = None, dims=[]):
+    def iter_keys(
+        self, constraint: Constraint = None, dims: List[str] = []
+    ) -> Generator["Key", None, None]:
         """Iterate over keys.
 
         Parameters
@@ -1626,6 +1640,11 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
 class DataflowDefinition(StructureUsage, ConstrainableArtefact):
     #:
     structure: DataStructureDefinition = DataStructureDefinition()
+
+    def iter_keys(
+        self, constraint: Constraint = None, dims: List[str] = []
+    ) -> Generator["Key", None, None]:
+        yield from self.structure.iter_keys(constraint=constraint, dims=dims)
 
 
 # §5.4: Data Set
