@@ -1730,17 +1730,16 @@ class Key(BaseModel):
         values = []
         for order, (id, value) in enumerate(kwargs.items()):
             args = dict(id=id, value=value)
-            try:
+            if dd:
+                # Reference the Dimension
                 args["value_for"] = dd.get(id)
-            except AttributeError:
-                # No DimensionDescriptor
-                pass
-            else:
                 # Use the existing Dimension's order attribute
                 order = args["value_for"].order
 
             # Store a KeyValue, to be sorted later
-            values.append((order, KeyValue(**args)))
+            values.append(
+                (order, value if isinstance(value, KeyValue) else KeyValue(**args))
+            )
 
         # Sort the values according to *order*
         self.values.update({kv.id: kv for _, kv in sorted(values)})
