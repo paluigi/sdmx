@@ -65,6 +65,17 @@ class TestAnnotableArtefact:
         assert 0 == len(aa.annotations)
 
 
+class TestConstraint:
+    def test_contains(self):
+        c = model.Constraint(
+            role=model.ConstraintRole(role=ConstraintRoleType["allowable"])
+        )
+        with pytest.raises(
+            NotImplementedError, match="Constraint does not contain a DataKeySet"
+        ):
+            Key(foo=1) in c
+
+
 def test_contentconstraint():
     crole = ConstraintRole(role=ConstraintRoleType["allowable"])
     cr = ContentConstraint(role=crole)
