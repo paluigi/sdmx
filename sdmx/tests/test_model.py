@@ -113,7 +113,7 @@ class TestDataStructureDefinition:
         key2 = Key(foo=4, bar=5, baz=6)
         DataStructureDefinition.from_keys([key1, key2])
 
-    def test_iter_keys(self):
+    def test_iter_keys(self, caplog):
         dsd = DataStructureDefinition.from_keys(
             [Key(foo=1, bar=2, baz=3), Key(foo=4, bar=5, baz=6)]
         )
@@ -147,6 +147,26 @@ class TestDataStructureDefinition:
         # "baz" dimension
         keys3 = list(dsd.iter_keys(constraint=cc0))
         assert 1 * 2 * 1 == len(keys3)
+
+        # Call ContentConstraint.iter_keys()
+
+        # Message is logged
+        assert 1 * 2 * 1 == len(list(cc0.iter_keys(dsd)))
+        assert (
+            "<DataStructureDefinition (missing id)> is not in "
+            "<ContentConstraint (missing id)>.content" in caplog.messages
+        )
+        caplog.clear()
+
+        # Add the DSD to the content referenced by the ContentConstraint
+        cc0.content.add(dsd)
+        assert 1 * 2 * 1 == len(list(cc0.iter_keys(dsd)))
+        assert 0 == len(caplog.messages)
+
+        # Call DataflowDefinition.iter_keys()
+        dfd = DataflowDefinition(structure=dsd)
+        keys4 = list(dfd.iter_keys(constraint=cc0))
+        assert 1 * 2 * 1 == len(keys4)
 
 
 def test_dimension():
