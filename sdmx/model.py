@@ -1120,10 +1120,7 @@ class MemberValue(SelectionValue):
         return hash(self.value)
 
     def __eq__(self, other):
-        if isinstance(other, KeyValue):
-            return self.value == other.value
-        else:
-            return self.value == other
+        return self.value == (other.value if isinstance(other, KeyValue) else other)
 
 
 class TimeRangeValue(SelectionValue):
