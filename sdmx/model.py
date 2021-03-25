@@ -1414,6 +1414,16 @@ DimensionRelationship.update_forward_refs()
 GroupRelationship.update_forward_refs()
 
 
+class _NullConstraintClass:
+    """Constraint that allows anything."""
+
+    def __contains__(self, value):
+        return True
+
+
+_NullConstraint = _NullConstraintClass()
+
+
 @validate_dictlike
 class DataStructureDefinition(Structure, ConstrainableArtefact):
     """SDMX-IM DataStructureDefinition (‘DSD’)."""
