@@ -118,9 +118,12 @@ class DictLike(dict, typing.MutableMapping[KT, VT]):
         super().__setitem__(*self._validate_entry(key, value))
 
     def __copy__(self):
-        """Return a copy of the DictLike."""
-        # Call copy() explicitly to avoid returning the parent class dict()
+        # Construct explicitly to avoid returning the parent class, dict()
         return DictLike(**self)
+
+    def copy(self):
+        """Return a copy of the DictLike."""
+        return self.__copy__()
 
     # pydantic compat
 
