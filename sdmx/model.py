@@ -1383,7 +1383,7 @@ DimensionRelationship.update_forward_refs()
 GroupRelationship.update_forward_refs()
 
 
-@validate_dictlike("group_dimensions")
+@validate_dictlike
 class DataStructureDefinition(Structure, ConstrainableArtefact):
     """SDMX-IM DataStructureDefinition (‘DSD’)."""
 
@@ -1670,7 +1670,7 @@ class KeyValue(BaseModel):
 
     def __init__(self, *args, **kwargs):
         args, kwargs = value_for_dsd_ref("dimension", args, kwargs)
-        super(KeyValue, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __eq__(self, other):
         """Compare the value to a Python built-in type, e.g. str."""
@@ -1738,7 +1738,7 @@ class AttributeValue(BaseModel):
         )
 
 
-@validate_dictlike("attrib", "values")
+@validate_dictlike
 class Key(BaseModel):
     """SDMX Key class.
 
@@ -1929,7 +1929,7 @@ class SeriesKey(Key):
         return view
 
 
-@validate_dictlike("attached_attribute")
+@validate_dictlike
 class Observation(BaseModel):
     """SDMX-IM Observation.
 
@@ -2000,7 +2000,7 @@ class Observation(BaseModel):
         )
 
 
-@validate_dictlike("attrib")
+@validate_dictlike
 class DataSet(AnnotableArtefact):
     # SDMX-IM features
     #:
