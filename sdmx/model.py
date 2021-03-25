@@ -1814,7 +1814,7 @@ class Key(BaseModel):
             attrib=kwargs.pop("attrib", DictLike()), described_by=dd, values=DictLike()
         )
 
-        if arg:
+        if arg and isinstance(arg, Mapping):
             if len(kwargs):
                 raise ValueError(
                     "Key() accepts either a single argument, or keyword arguments; not "
@@ -1822,23 +1822,33 @@ class Key(BaseModel):
                 )
             kwargs.update(arg)
 
-        # Convert keyword arguments to KeyValue
-        values = []
-        for order, (id, value) in enumerate(kwargs.items()):
-            args = dict(id=id, value=value)
-            if dd:
-                # Reference the Dimension
-                args["value_for"] = dd.get(id)
-                # Use the existing Dimension's order attribute
-                order = args["value_for"].order
+        if isinstance(arg, Sequence):
+            # Sequence of already-prepared KeyValues; assume already sorted
+            kvs: Iterable[Tuple] = map(lambda kv: (kv.id, kv), arg)
+        else:
+            # Convert bare keyword arguments to KeyValue
+            kvs = []
+            for order, (id, value) in enumerate(kwargs.items()):
+                args = dict(id=id, value=value)
+                if dd:
+                    # Reference the Dimension
+                    args["value_for"] = dd.get(id)
+                    # Use the existing Dimension's order attribute
+                    order = args["value_for"].order
 
-            # Store a KeyValue, to be sorted later
-            values.append(
-                (order, value if isinstance(value, KeyValue) else KeyValue(**args))
-            )
+                # Store a KeyValue, to be sorted later
+                kvs.append((order, (id, KeyValue(**args))))
 
-        # Sort the values according to *order*
-        self.values.update({kv.id: kv for _, kv in sorted(values)})
+            # Sort the values according to *order*, then unwrap
+            kvs = map(itemgetter(1), sorted(kvs))
+
+        for id, kv in kvs:
+            self.values[id] = kv
+
+    @classmethod
+    def _fast(cls, kvs):
+        """Use :meth:`pydantic.BaseModel.construct` for faster construction."""
+        return cls.construct(values=DictLike(kvs))
 
     def __len__(self):
         """The length of the Key is the number of KeyValues it contains."""
