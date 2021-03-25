@@ -7,7 +7,7 @@ from typing import Any, Mapping, Tuple, TypeVar, Union
 import pydantic
 from pydantic import ValidationError, validator  # noqa: F401
 from pydantic.class_validators import make_generic_validator
-from pydantic.typing import get_origin
+from pydantic.typing import get_origin  # type: ignore [attr-defined]
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")

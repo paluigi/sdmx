@@ -36,7 +36,6 @@ from typing import (
     Generator,
     Generic,
     Iterable,
-    Iterator,
     List,
     Mapping,
     Optional,
@@ -1455,32 +1454,56 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
             Other dimensions have only a single value like "(DIM_ID)", where DIM_ID is
             the if of the dimension.
         """
+        # NB for performance, the implementation tries to use iterators and avoid
+        #    constructing full-length tuples/lists at any point
+
+        _constraint = constraint or _NullConstraint
         dims = dims or [dim.id for dim in self.dimensions.components]
 
-        all_kvs: List[List[KeyValue]] = []
+        # Utility to return an immutable function that produces KeyValues. The
+        # arguments are frozen so these can be set using loop variables and stored in a
+        # map() object that isn't modified on future loops
+        def make_factory(id=None, value_for=None):
+            return lambda value: KeyValue.construct(
+                id=id, value=value, value_for=value_for
+            )
+
+        # List of iterables of (dim.id, KeyValues) along each dimension
+        all_kvs: List[Iterable[Tuple[str, KeyValue]]] = []
+
+        # Iterate over dimensions
         for dim in self.dimensions.components:
             if (
                 dim.id not in dims
                 or dim.local_representation is None
                 or dim.local_representation.enumerated is None
             ):
-                # `dim` is not enumerated by an ItemScheme; create a placeholder
+                # `dim` is not enumerated by an ItemScheme, or not included in the
+                # `dims` argument and not to be iterated over. Create a placeholder.
                 all_kvs.append(
-                    [KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim)]
+                    [(dim.id, KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim))]
                 )
             else:
-                # Create a KeyValue for each Item in the ItemScheme
+                # Create a KeyValue for each Item in the ItemScheme; filter through any
+                # constraint.
                 all_kvs.append(
-                    [
-                        KeyValue(id=dim.id, value=item.id, value_for=dim)
-                        for item in dim.local_representation.enumerated
-                    ]
+                    map(
+                        lambda kv: (kv.id, kv),
+                        filter(
+                            _constraint.__contains__,
+                            map(
+                                make_factory(id=dim.id, value_for=dim),
+                                dim.local_representation.enumerated,
+                            ),
+                        ),
+                    )
                 )
 
         # Create Key objects from Cartesian product of KeyValues along each dimension
+        # NB this does not work with DataKeySet
+        # TODO improve to work with DataKeySet
         yield from filter(
-            lambda k: constraint is None or k in constraint,
-            [Key({kv.id: kv for kv in kvs}) for kvs in product(*all_kvs)],
+            _NullConstraint.__contains__, map(Key._fast, product(*all_kvs))
         )
 
     def make_constraint(self, key):
