@@ -110,7 +110,6 @@ def test_obs(obs):
 
 def test_structuremessage(tmp_path, structuremessage):
     result = sdmx.to_xml(structuremessage, pretty_print=True)
-    print(result.decode())
 
     # Message can be round-tripped to/from file
     path = tmp_path / "output.xml"
