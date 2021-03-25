@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 import sdmx
 from sdmx import model
 from sdmx.testing import MessageTest
