@@ -29,17 +29,20 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from inspect import isclass
 from itertools import product
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 from typing import (
     Any,
     Dict,
     Generator,
     Generic,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Optional,
+    Sequence,
     Set,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -1797,17 +1800,19 @@ class Key(BaseModel):
     """
 
     #:
-    attrib: DictLike[str, AttributeValue] = DictLike()
+    attrib: DictLike[str, AttributeValue]
     #:
-    described_by: Optional[DimensionDescriptor] = None
+    described_by: Optional[DimensionDescriptor]
     #: Individual KeyValues that describe the key.
-    values: DictLike[str, KeyValue] = DictLike()
+    values: DictLike[str, KeyValue]
 
-    def __init__(self, arg: Mapping = None, **kwargs):
+    def __init__(self, arg: Union[Mapping, Sequence[KeyValue]] = None, **kwargs):
         # DimensionDescriptor
         dd = kwargs.pop("described_by", None)
 
-        super().__init__(described_by=dd)
+        super().__init__(
+            attrib=kwargs.pop("attrib", DictLike()), described_by=dd, values=DictLike()
+        )
 
         if arg:
             if len(kwargs):
