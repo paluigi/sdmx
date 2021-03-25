@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import Any, Mapping, Tuple, TypeVar, Union
 
 import pydantic
-from pydantic import ValidationError, validator  # noqa: F401
+from pydantic import Field, ValidationError, validator
 from pydantic.class_validators import make_generic_validator
 from pydantic.typing import get_origin  # type: ignore [attr-defined]
 
@@ -13,6 +13,17 @@ KT = TypeVar("KT")
 VT = TypeVar("VT")
 
 log = logging.getLogger(__name__)
+
+__all__ = [
+    "BaseModel",
+    "DictLike",
+    "Resource",
+    "compare",
+    "dictlike_field",
+    "summarize_dictlike",
+    "validate_dictlike",
+    "validator",
+]
 
 
 class Resource(str, Enum):
@@ -178,6 +189,11 @@ class DictLike(dict, typing.MutableMapping[KT, VT]):
 # These are defined in separate functions to avoid collisions with keys and the
 # attribute access namespace, e.g. if the DictLike contains keys "summarize" or
 # "validate".
+
+
+def dictlike_field():
+    """Shorthand for :class:`pydantic.Field` with :class:`.DictLike` default factory."""
+    return Field(default_factory=DictLike)
 
 
 def summarize_dictlike(dl, maxwidth=72):
