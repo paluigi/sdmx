@@ -48,7 +48,14 @@ from typing import (
 )
 from warnings import warn
 
-from sdmx.util import BaseModel, DictLike, compare, validate_dictlike, validator
+from sdmx.util import (
+    BaseModel,
+    DictLike,
+    compare,
+    dictlike_field,
+    validate_dictlike,
+    validator,
+)
 
 log = logging.getLogger(__name__)
 
@@ -1437,7 +1444,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     measures: MeasureDescriptor = MeasureDescriptor()
     #: Mapping from  :attr:`.GroupDimensionDescriptor.id` to
     #: :class:`.GroupDimensionDescriptor`.
-    group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
+    group_dimensions: DictLike[str, GroupDimensionDescriptor] = dictlike_field()
 
     # Convenience methods
     def iter_keys(
@@ -2014,7 +2021,7 @@ class Observation(BaseModel):
     """
 
     #:
-    attached_attribute: DictLike[str, AttributeValue] = DictLike()
+    attached_attribute: DictLike[str, AttributeValue] = dictlike_field()
     #:
     series_key: Optional[SeriesKey] = None
     #: Key for dimension(s) varying at the observation level.
@@ -2082,7 +2089,7 @@ class DataSet(AnnotableArtefact):
     #:
     action: Optional[ActionType] = None
     #:
-    attrib: DictLike[str, AttributeValue] = DictLike()
+    attrib: DictLike[str, AttributeValue] = dictlike_field()
     #:
     valid_from: Optional[str] = None
     #:
@@ -2093,10 +2100,10 @@ class DataSet(AnnotableArtefact):
 
     #: Map of series key → list of observations.
     #: :mod:`sdmx` extension not in the IM.
-    series: DictLike[SeriesKey, List[Observation]] = DictLike()
+    series: DictLike[SeriesKey, List[Observation]] = dictlike_field()
     #: Map of group key → list of observations.
     #: :mod:`sdmx` extension not in the IM.
-    group: DictLike[GroupKey, List[Observation]] = DictLike()
+    group: DictLike[GroupKey, List[Observation]] = dictlike_field()
 
     def _add_group_refs(self, target):
         """Associate *target* with groups in this dataset.
