@@ -20,6 +20,7 @@ from sdmx.util import (
     direct_fields,
     get_args,
     summarize_dictlike,
+    validate_dictlike,
 )
 
 log = logging.getLogger(__name__)
@@ -156,6 +157,7 @@ class ErrorMessage(Message):
     pass
 
 
+@validate_dictlike
 class StructureMessage(Message):
     #: Collection of :class:`.Categorisation`.
     categorisation: DictLike[str, model.Categorisation] = DictLike()
