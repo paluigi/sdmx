@@ -1179,11 +1179,39 @@ class CubeRegion(BaseModel):
     #:
     member: Dict[Dimension, MemberSelection] = {}
 
-    def __contains__(self, key):
-        for ms in self.member.values():
-            if key[ms.values_for.id] not in ms:
-                return not self.included
-        return self.included
+    def __contains__(self, other: Union["Key", "KeyValue"]) -> bool:
+        """Membership test.
+
+        `other` may be either:
+
+        - :class:`.Key` —all its :class:`.KeyValue` are checked.
+        - :class:`.KeyValue` —only the one :class:`.Dimension` for which `other` is a
+          value is checked
+
+        Returns
+        -------
+        bool
+            :obj:`True` if:
+
+            - :attr:`.included` *and* `other` is in the CubeRegion;
+            - if :attr:`.included` is :obj:`False` *and* `other` is outside the
+              CubeRegion; or
+            - the `other` is KeyValue referencing a Dimension that is not included in
+              :attr:`.member`.
+        """
+        if isinstance(other, Key):
+            result = all(other[ms.values_for.id] in ms for ms in self.member.values())
+        elif other.value_for is None:
+            result = False  # No Dimension reference to use
+        else:
+            try:
+                # Check whether the KeyValue is in the indicated dimension
+                result = other.value in self.member[other.value_for]
+            except KeyError:
+                return True  # this CubeRegion doesn't have a MemberSelection
+
+        # Return the correct sense
+        return result is self.included
 
     def to_query_string(self, structure):
         all_values = []
