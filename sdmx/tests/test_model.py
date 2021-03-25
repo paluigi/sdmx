@@ -192,7 +192,7 @@ def test_dimensiondescriptor():
 
     # Key in reverse order
     key2 = Key(baz=3, bar=2, foo=1)
-    assert list(key1.values.keys()) == list(reversed(key2.values.keys()))
+    assert list(key1.values.keys()) == list(reversed(list(key2.values.keys())))
     key3 = dd.order_key(key2)
     assert list(key1.values.keys()) == list(key3.values.keys())
 
