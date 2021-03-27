@@ -138,7 +138,7 @@ def test_read_url():
     )
 
 
-@pytest.mark.skip(reason="Temporarily offline on 2021-03-23")
+# @pytest.mark.skip(reason="Temporarily offline on 2021-03-23")
 @pytest.mark.network
 def test_request_preview_data():
     ECB = sdmx.Client("ECB")

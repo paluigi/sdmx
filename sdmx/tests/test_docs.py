@@ -179,7 +179,7 @@ def test_doc_usage_structure():
     assert_pd_equal(cl.head(), expected)
 
 
-@pytest.mark.skip(reason="Temporarily offline on 2021-03-23")
+# @pytest.mark.skip(reason="Temporarily offline on 2021-03-23")
 @pytest.mark.network
 def test_doc_usage_data():
     """Code examples in usage.rst."""
