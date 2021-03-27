@@ -1074,7 +1074,7 @@ class ComponentValue(BaseModel):
     #:
     value_for: Component
     #:
-    value: str
+    value: Any
 
 
 class DataKey(BaseModel):
