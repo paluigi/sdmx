@@ -1112,10 +1112,10 @@ class Constraint(MaintainableArtefact):
         validate_assignment = False
 
     def __contains__(self, value):
-        if self.data_content_keys:
-            return value in self.data_content_keys
-        else:
+        if self.data_content_keys is None:
             raise NotImplementedError("Constraint does not contain a DataKeySet")
+
+        return value in self.data_content_keys
 
 
 class SelectionValue(BaseModel):

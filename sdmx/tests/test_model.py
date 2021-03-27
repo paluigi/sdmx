@@ -70,10 +70,30 @@ class TestConstraint:
         c = model.Constraint(
             role=model.ConstraintRole(role=ConstraintRoleType["allowable"])
         )
+        d = model.Dimension(id="FOO")
+        kv = model.KeyValue(value_for=d, id="FOO", value=1)
+        key = model.Key([kv])
+
         with pytest.raises(
             NotImplementedError, match="Constraint does not contain a DataKeySet"
         ):
-            Key(foo=1) in c
+            key in c
+
+        # Add an empty DKS
+        c.data_content_keys = model.DataKeySet(included=True)
+
+        # Empty DKS does not contain `key`
+        assert (key in c) is False
+
+        # Add a matching DataKey to the DKS
+        c.data_content_keys.keys.append(
+            model.DataKey(
+                included=True, key_value={d: model.ComponentValue(value_for=d, value=1)}
+            )
+        )
+
+        # __contains__() returns True
+        assert (key in c) is True
 
 
 def test_contentconstraint():
