@@ -96,6 +96,24 @@ class TestConstraint:
         assert (key in c) is True
 
 
+class TestCubeRegion:
+    def test_contains(self):
+        cr = model.CubeRegion()
+        d = model.Dimension(id="FOO")
+        cr.member[d] = model.MemberSelection(
+            values_for=d, values=[model.MemberValue(value="1")]
+        )
+
+        # KeyValue, but no value_for to associate with a particular Dimension
+        kv = model.KeyValue(id="FOO", value="1")
+        # __contains__() returns False
+        assert (kv in cr) is False
+
+        # Containment works with value_for
+        kv.value_for = d
+        assert (kv in cr) is True
+
+
 def test_contentconstraint():
     crole = ConstraintRole(role=ConstraintRoleType["allowable"])
     cr = ContentConstraint(role=crole)
