@@ -1748,7 +1748,9 @@ class KeyValue(BaseModel):
 
     def __eq__(self, other):
         """Compare the value to a Python built-in type, e.g. str."""
-        if isinstance(other, (KeyValue, MemberValue)):
+        if isinstance(other, (KeyValue, ComponentValue)):
+            return (self.value == other.value) and (self.value_for is other.value_for)
+        elif isinstance(other, MemberValue):
             return self.value == other.value
         else:
             return self.value == other
