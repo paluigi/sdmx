@@ -1958,7 +1958,15 @@ class Key(BaseModel):
 
     def __eq__(self, other):
         if hasattr(other, "values"):
-            return all([a == b for a, b in zip(self.values, other.values)])
+            # Key
+            return all(
+                [a == b for a, b in zip(self.values.values(), other.values.values())]
+            )
+        elif hasattr(other, "key_value"):
+            # DataKey
+            return all(
+                [a == b for a, b in zip(self.values.values(), other.key_value.values())]
+            )
         elif isinstance(other, str) and len(self.values) == 1:
             return self.values[0] == other
         else:
