@@ -1270,7 +1270,15 @@ class ContentConstraint(Constraint):
         obj: Union["DataStructureDefinition", "DataflowDefinition"],
         dims: List[str] = [],
     ) -> Generator["Key", None, None]:
-        """Iterate over keys."""
+        """Iterate over keys.
+
+        A warning is logged if `obj` is not already explicitly associated to this
+        ContentConstraint, i.e. present in :attr:`.content`.
+
+        See also
+        --------
+        .DataStructureDefinition.iter_keys
+        """
         if obj not in self.content:
             log.warning(f"{repr(obj)} is not in {repr(self)}.content")
 
@@ -1460,9 +1468,9 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         constraint : Constraint, optional
             If given, only yield Keys that are within the constraint.
         dims : list of str, optional
-            If given, only iterate over allowable values for the given dimensions.
-            Other dimensions have only a single value like "(DIM_ID)", where DIM_ID is
-            the if of the dimension.
+            If given, only iterate over allowable values for the Dimensions with these
+            IDs. Other dimensions have only a single value like "(DIM_ID)", where
+            DIM_ID is the ID of the dimension.
         """
         # NB for performance, the implementation tries to use iterators and avoid
         #    constructing full-length tuples/lists at any point
@@ -1715,6 +1723,12 @@ class DataflowDefinition(StructureUsage, ConstrainableArtefact):
     def iter_keys(
         self, constraint: Constraint = None, dims: List[str] = []
     ) -> Generator["Key", None, None]:
+        """Iterate over keys.
+
+        See also
+        --------
+        .DataStructureDefinition.iter_keys
+        """
         yield from self.structure.iter_keys(constraint=constraint, dims=dims)
 
 

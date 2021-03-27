@@ -12,6 +12,13 @@ Next release
 ============
 
 - :class:`.IdentifiableArtefact` can be :func:`.sorted` (:pull:`71`).
+- Add :meth:`.DataStructureDefinition.iter_keys` to iterate over valid keys, optionally with a :class:`.Constraint` (:pull:`72`)
+
+  - Also add :meth:`.ContentConstraint.iter_keys`, :meth:`.DataflowDefinition.iter_keys`.
+  - Implement or improve :meth:`.Constraint.__contains__`, :meth:`.CubeRegion.__contains__`, :meth:`.ContentConstraint.__contains__`, :meth:`.KeyValue.__eq__`, and :meth:`.Key.__eq__`.
+
+- Speed up creation of :class:`.Key` objects by improving :mod:`pydantic` usage, updating :meth:`.Key.__init__`, and adding :meth:`.Key._fast`.
+- Simplify :func:`.validate_dictlike`; add :func:`.dictlike_field`, and simplify :mod:`pydantic` validation of :class:`.DictLike` objects, keys, and values.
 
 v2.3.0 (2021-03-10)
 ===================
