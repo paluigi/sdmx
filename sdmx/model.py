@@ -1096,6 +1096,9 @@ class DataKeySet(BaseModel):
         """:func:`len` of the DataKeySet = :func:`len` of its :attr:`keys`."""
         return len(self.keys)
 
+    def __contains__(self, item):
+        return any(item == dk for dk in self.keys)
+
 
 class Constraint(MaintainableArtefact):
     #: :class:`.DataKeySet` included in the Constraint.
