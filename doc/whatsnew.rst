@@ -108,50 +108,52 @@ All changes
   - :mod:`sdmx.reader.sdmxml` is renamed :mod:`sdmx.reader.xml`, to conform with :mod:`sdmx.format.xml` and :mod:`sdmx.writer.xml`.
   - :mod:`sdmx.reader.sdmxjson` is renamed :mod:`sdmx.reader.json`.
 
+v1.7 and earlier
+================
 
 v1.7.0 (2021-01-26)
-===================
+-------------------
 
 New features
-------------
+~~~~~~~~~~~~
 
 - Add :ref:`The Pacific Community's Pacific Data Hub <SPC>` as a data source (:pull:`30`).
 - Add classes to :mod:`sdmx.model`: :class:`.TimeRangeValue`, :class:`.Period`, :class:`RangePeriod`, and parse ``<com:TimeRange>`` and related tags in SDMX-ML (:pull:`30`).
 
 Bug fixes
----------
+~~~~~~~~~
 
 - Output SDMX-ML header elements in order expected by standard XSD (:issue:`42`, :pull:`43`).
 - Respect `override` argument to :func:`.add_source` (:pull:`41`).
 
 v1.6.0 (2020-12-16)
-===================
+-------------------
 
 New features
-------------
+~~~~~~~~~~~~
 
 - Support Python 3.9 (using pydantic ≥ 1.7) (:pull:`37`).
 - Add :ref:`National Bank of Belgium <NBB>` as a data source (:pull:`32`).
 - Add :ref:`Statistics Lithuania <LSD>` as a data source (:pull:`33`).
 
 Bug fixes
----------
+~~~~~~~~~
 
 - Data set-level attributes were not collected by :class:`.sdmxml.Reader` (:issue:`29`, :pull:`33`).
 - Respect `HTTP[S]_PROXY` environment variables (:issue:`26`, :pull:`27`).
 
 v1.5.0 (2020-11-12)
-===================
+-------------------
 
 - Add a :doc:`brief tutorial <howto/create>` on creating SDMX-ML messages from pure Python objects (:issue:`23`, :pull:`24`).
 - Add :ref:`Statistics Estonia <STAT_EE>` as a data source (:pull:`25`).
 - Supply provider=“ALL” to :ref:`INSEE <INSEE>` structure queries by default (:issue:`21`, :pull:`22`)
 
 v1.4.0 (2020-08-17)
-===================
+-------------------
 
 New features
-------------
+~~~~~~~~~~~~
 
 - Add :ref:`UNICEF <UNICEF>` service to supported sources (:pull:`15`).
 - Enhance :func:`.to_xml` to handle :class:`DataMessages <.DataMessage>` (:pull:`13`).
@@ -163,32 +165,30 @@ New features
 - Add ``compare()`` methods to :class:`.DataMessage`, :class:`.DataSet`, and related classes  (:pull:`13`).
 
 Bug fixes
----------
+~~~~~~~~~
 
 - Fix parsing of :class:`.MeasureDimension` returned by :ref:`SGR <SGR>` for data structure queries (:pull:`14`).
 
 v1.3.0 (2020-08-02)
-===================
+-------------------
 
 - Adjust imports for compatibility with pandas 1.1.0 (:pull:`10`).
 - Add :ref:`World Bank World Development Indicators (WDI) <WB_WDI>` service to supported sources (:pull:`10`).
 
-
 v1.2.0 (2020-06-04)
-===================
+-------------------
 
 New features
-------------
+~~~~~~~~~~~~
 
 - Methods like :meth:`.IdentifiableArtefact.compare` are added for recursive comparison of :mod:`.model` objects (:pull:`6`).
 - :func:`.to_xml` covers a larger subset of SDMX-ML, including almost all contents of a :class:`.StructureMessage` (:pull:`6`).
 
-
 v1.1.0 (2020-05-18)
-===================
+-------------------
 
 Data model changes
-------------------
+~~~~~~~~~~~~~~~~~~
 
 …to bring :mod:`sdmx` into closer alignment with the standard Information Model (:pull:`4`):
 
@@ -205,7 +205,7 @@ Data model changes
 - String representations are simplified but contain more information.
 
 New features
-------------
+~~~~~~~~~~~~
 
 - :attr:`.Item.hierarchical_id` and :meth:`.ItemScheme.get_hierarchical` create and search on IDs like ‘A.B.C’ for Item ‘A’ with child/grandchild Items ‘B’ and ‘C’ (:pull:`4`).
 - New methods :func:`.parent_class`, :func:`.get_reader_for_path`, :func:`.detect_content_reader`, and :func:`.reader.register` (:pull:`4`).
@@ -214,13 +214,13 @@ New features
 - Add :func:`.to_xml` to generate SDMX-ML for a subset of the IM (:pull:`3`).
 
 Test suite
-----------
+~~~~~~~~~~
 
 - :pull:`2`: Add tests of data queries for source(s): OECD
 
 
 v1.0.0 (2020-05-01)
-===================
+-------------------
 
 - Project forked and renamed to :mod:`sdmx` (module) / ``sdmx1`` (on PyPI, due to an older, unmaintained package with the same name).
 - :mod:`sdmx.model` is reimplemented.
@@ -247,16 +247,17 @@ v1.0.0 (2020-05-01)
 .. _pytest-remotedata: https://github.com/astropy/pytest-remotedata
 
 Breaking changes
-----------------
+~~~~~~~~~~~~~~~~
+
 - Python 3.6 and earlier (including Python 2) are not supported.
 
 Migrating
----------
+~~~~~~~~~
+
 - ``Writer.write(…, reverse_obs=True)``: use the standard pandas indexing approach to reverse a pd.Series: ``s.iloc[::-1]``
 - odo support is no longer built-in; however, users can still register a SDMX resource with odo.
   See the :ref:`HOWTO <howto-convert>`.
 - :func:`.write_dataset`: the `parse_time` and `fromfreq` arguments are replaced by `datetime`; see the method documentation and the :ref:`walkthrough section <datetime>` for examples.
-
 
 pandaSDMX (versions 0.9 and earlier)
 ====================================
@@ -268,7 +269,7 @@ This version is the last tested on Python 2.x.
 Future versions will be tested on Python 3.5+ only
 
 New features
-::::::::::::
+~~~~~~~~~~~~
 
 * four new data providers INEGI (Mexico), Norges Bank (Norway), International Labour Organization (ILO) and Italian statistics office (ISTAT)
 * model: make Ref instances callable for resolving them, i.e. getting the referenced object by making a remote request if needed
@@ -340,14 +341,14 @@ v0.6 (2017-01-07)
 This release contains some important stability improvements.
 
 Bug fixes
-:::::::::
+~~~~~~~~~
 
 * JSON data from OECD is now properly downloaded
 * The data writer tries to gleen a frequency value for a time series from its attributes.
   This is helpful when exporting data sets, e.g., from INSEE (`Issue 41 <https://github.com/dr-leo/pandaSDMX/issues/41>`_).
 
 Known issues
-::::::::::::
+~~~~~~~~~~~~
 
 A data set which lacks a FREQ dimension or attribute can be exported as pandas DataFrame only when `parse_time=False?`, i.e. no DateTime index is generated.
 The resulting DataFrame has a string index.
@@ -357,7 +358,7 @@ v0.5 (2016-10-30)
 -----------------
 
 New features
-::::::::::::
+~~~~~~~~~~~~
 
 * new reader module for SDMX JSON data messages
 * add OECD as data provider (data messages only)
@@ -365,25 +366,23 @@ New features
   This greatly simplifies category usage.
   Besides, categories with the same ID while belonging to multiple category schemes are no longer conflated.
 
-
 API changes
-:::::::::::
+~~~~~~~~~~~
 
 * Request constructor: make agency ID case-insensitive
 * As :class:`Category` is now an iterator over categorised objects, :class:`Categorisations` is no longer considered part of the public API.
 
 Bug fixes
-:::::::::
+~~~~~~~~~
 
 * sdmxml reader: fix AttributeError in write_source method, thanks to Topas
 * correctly distinguish between categories with same ID while belonging to different category schemes
-
 
 v0.4 (2016-04-11)
 -----------------
 
 New features
-::::::::::::
+~~~~~~~~~~~~
 
 * add new provider INSEE, the French statistics office (thanks to Stéphan Rault)
 * register '.sdmx' files with `Odo <odo.readthedocs.io/>`_ if available
@@ -392,7 +391,7 @@ New features
   Desired attributes can be specified and are represented by columns.
 
 API changes
-:::::::::::
+~~~~~~~~~~~
 
 * :class:`pandasdmx.api.Request` constructor accepts a ``log_level`` keyword argument which can be set to a log-level for the pandasdmx logger and its children (currently only pandasdmx.api)
 * :class:`pandasdmx.api.Request` now has a ``timeout`` property to set the timeout for http requests
@@ -413,7 +412,7 @@ API changes
 * :class:`pandasdmx.model.Representation` for DSD attributes and dimensions now supports text not just codelists.
 
 Other changes and enhancements
-::::::::::::::::::::::::::::::
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * documentation has been overhauled.
   Code examples are now much simpler thanks to the new structure2pd writer
