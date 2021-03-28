@@ -54,6 +54,11 @@ class TestDictLike:
         assert 1 <= len(Foo.__fields__["items"].post_validators)
         assert "_validate_whole" == Foo.__fields__["items"].post_validators[0].func_name
 
+        # ValidationError
+        f = Foo()
+        with pytest.raises(pydantic.ValidationError, match="not a valid dict"):
+            f.items = {"bar", "baz"}
+
     def test_validation(self, Foo):
         f = Foo()
         assert type(f.items) is DictLike

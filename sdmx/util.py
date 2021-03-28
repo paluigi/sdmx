@@ -134,20 +134,14 @@ class DictLike(dict, typing.MutableMapping[KT, VT]):
     @classmethod
     def _validate_whole(cls, v, field: pydantic.fields.ModelField):
         """Validate `v` as an entire DictLike object."""
-        if isinstance(v, cls):
-            # Store a reference to the field for _validate_entry()
-            v.__field = field
-            return v
+        # Convert anything that can be converted to a dict(). pydantic internals catch
+        # most other invalid types, e.g. set(); no need to handle them here.
+        result = cls(v)
 
-        try:
-            # Convert anything that can be converted to a dict()
-            result = cls(v)
-        except (TypeError, ValueError):
-            # Something else; failed
-            raise TypeError(type(v))
-        finally:
-            result.__field = field
-            return result
+        # Reference to the pydantic.field.ModelField for the entries
+        result.__field = field
+
+        return result
 
     def _validate_entry(self, key, value):
         """Validate one `key`/`value` pair."""
