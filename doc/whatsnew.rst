@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.4.0 (2021-03-28)
+===================
 
 - :class:`.IdentifiableArtefact` can be :func:`.sorted` (:pull:`71`).
 - Add :meth:`.DataStructureDefinition.iter_keys` to iterate over valid keys, optionally with a :class:`.Constraint` (:pull:`72`)
