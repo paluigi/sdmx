@@ -39,8 +39,13 @@ Top-level methods and classes
 
 .. automodule:: sdmx.model
    :members:
+   :exclude-members: KeyValue
    :undoc-members:
    :show-inheritance:
+
+   .. autoclass:: KeyValue
+      :members:
+      :special-members: __eq__
 
 ``reader``: Parsers for SDMX file formats
 -----------------------------------------

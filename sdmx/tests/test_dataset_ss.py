@@ -82,32 +82,34 @@ class TestSeriesDataSet(StructuredMessageTest):
 
     def test_obs(self, msg):
         data = msg.data[0]
-        assert len(data.obs) == 12
+        assert 12 == len(data.obs)
+
         series_list = list(data.series)
-        assert len(series_list) == 4
+        assert 4 == len(series_list)
+
         s3 = series_list[3]
         assert isinstance(s3, model.SeriesKey)
 
         # Time series data set → five dimensions are at the SeriesKey level
-        assert len(s3) == 5
-        assert s3.CURRENCY == "USD"
+        assert 5 == len(s3)
+        assert "USD" == s3.CURRENCY
 
         # 5 of 7 attributes are at the Observation level
-        assert len(s3.attrib) == 5
-        assert s3.attrib.DECIMALS == "4"
+        assert 5 == len(s3.attrib)
+        assert "4" == s3.attrib.DECIMALS
 
         obs_list = data.series[s3]
-        assert len(obs_list) == 3
-        o0 = obs_list[2]
+        assert 3 == len(obs_list)
+        o2 = obs_list[2]
 
         # One remaining dimension is at the Observation Level
-        assert len(o0.dimension) == 1
-        assert o0.dim == Key(TIME_PERIOD="2010-08")
-        assert o0.value == "1.3898"
+        assert 1 == len(o2.dimension)
+        assert Key(TIME_PERIOD="2010-10") == o2.dim
+        assert "1.3898" == o2.value
 
         # Two remaining attributes are at the Observation level
-        assert len(o0.attached_attribute)
-        assert o0.attrib.OBS_STATUS == "A"
+        assert 2 == len(o2.attached_attribute)
+        assert "A" == o2.attrib.OBS_STATUS
 
     def test_pandas(self, msg):
         data = msg.data[0]
@@ -159,29 +161,29 @@ class TestSeriesDataSet2(StructuredMessageTest):
         data = msg.data[0]
 
         # Expected number of observations and series
-        assert len(data.obs) == 12
-        assert len(data.series) == 4
+        assert 12 == len(data.obs)
+        assert 4 == len(data.series)
 
         # SeriesKey is accessible by index using DictLike
         s3 = list(data.series.keys())[3]
         assert isinstance(s3, model.SeriesKey)
 
         # SeriesKey has expected number of dimensions and values
-        assert len(s3) == 5
-        assert s3.CURRENCY == "USD"
+        assert 5 == len(s3)
+        assert "USD" == s3.CURRENCY
 
         # SeriesKey has expected number of attributes and values
-        assert len(s3.attrib) == 5
-        assert s3.attrib.DECIMALS == "4"
+        assert 5 == len(s3.attrib)
+        assert "4" == s3.attrib.DECIMALS
 
         # Series observations can be accessed
         obs_list = data.series[s3]
-        assert len(obs_list) == 3
-        o0 = obs_list[2]
-        assert len(o0.dimension) == 1
-        assert o0.dim == Key(TIME_PERIOD="2010-08")
-        assert o0.value == "1.3898"
-        assert o0.attrib.OBS_STATUS == "A"
+        assert 3 == len(obs_list)
+        o2 = obs_list[2]
+        assert 1 == len(o2.dimension)
+        assert Key(TIME_PERIOD="2010-10") == o2.dim
+        assert "1.3898" == o2.value
+        assert "A" == o2.attrib.OBS_STATUS
 
     def test_dataframe(self, msg):
         data = msg.data[0]

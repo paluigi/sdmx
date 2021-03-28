@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 import sdmx
 from sdmx import model
 from sdmx.testing import MessageTest
@@ -83,11 +81,10 @@ class TestECB_EXR1(MessageTest):
         assert msg.structure["ECB_EXR1"].uri == expected
 
 
-@pytest.mark.xfail(reason="Constrained codes not implemented")
 def test_exr_constraints(specimen):
     with specimen("1/structure-full.xml") as f:
-        m = sdmx.read_sdmx(f)
-    ECB_EXR1 = m.structure["ECB_EXR1"]
+        msg = sdmx.read_sdmx(f)
+    ECB_EXR1 = msg.structure["ECB_EXR1"]
 
     # Test DimensionDescriptor
     dd = ECB_EXR1.dimensions
@@ -107,10 +104,14 @@ def test_exr_constraints(specimen):
     assert ad[-1].id == "UNIT_MULT"
     assert "5" in ad.get("UNIT_MULT")
 
-    assert len(m._constrained_codes), 14
+    cc = msg.constraint["EXR_CONSTRAINTS"]
 
-    # TODO uncomment these lines once implemented
-    #
+    # Expected number of constrained keys
+    keys = list(cc.iter_keys(ECB_EXR1))
+    assert 5 * 58 * 59 * 12 * 6 * 1 == len(keys)
+
+    # TODO update the following for a complete implementation
+
     # assert "W" not in m._constrained_codes.FREQ
     #
     # key = {"FREQ": ["W"]}

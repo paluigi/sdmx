@@ -18,35 +18,42 @@ def test_compare(cls):
     assert A.compare(B) is True
 
 
-def test_add_contains_get():
-    dsd = model.DataStructureDefinition(id="foo")
+class TestStructureMessage:
+    def test_add_contains_get(self):
+        dsd = model.DataStructureDefinition(id="foo")
+        msg = message.StructureMessage()
 
-    msg = message.StructureMessage()
+        # add() stores the object
+        msg.add(dsd)
+        assert 1 == len(msg.structure)
 
-    # add() stores the object
-    msg.add(dsd)
+        # __contains__() works
+        assert dsd in msg
 
-    assert 1 == len(msg.structure)
+        # get() retrieves the object
+        assert dsd is msg.get("foo")
 
-    # __contains__() works
-    assert dsd in msg
+        # add() with an object not collected in a StructureMessage raises TypeError
+        item = model.Item(id="bar")
+        with pytest.raises(TypeError):
+            msg.add(item)
 
-    # get() retrieves the object
-    assert dsd is msg.get("foo")
+        # __contains__() also raises TypeError
+        with pytest.raises(TypeError):
+            item in msg
 
-    # add() with an object not collected in a StructureMessage raises TypeError
-    item = model.Item(id="bar")
-    with pytest.raises(TypeError):
-        msg.add(item)
+        # get() with two objects of the same ID raises ValueError
+        msg.add(model.DataflowDefinition(id="foo"))
+        with pytest.raises(ValueError):
+            msg.get("foo")
 
-    # __contains__() also raises TypeError
-    with pytest.raises(TypeError):
-        item in msg
+    def test_dictlike_attribute_access(self):
+        dsd = model.DataStructureDefinition(id="foo")
+        msg = message.StructureMessage()
+        msg.add(dsd)
 
-    # get() with two objects of the same ID raises ValueError
-    msg.add(model.DataflowDefinition(id="foo"))
-    with pytest.raises(ValueError):
-        msg.get("foo")
+        # Attribute access works when added to the default, empty DictLike
+        assert msg.structure.foo is dsd
 
 
 EXPECTED = [

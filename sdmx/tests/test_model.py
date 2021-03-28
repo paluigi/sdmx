@@ -65,6 +65,55 @@ class TestAnnotableArtefact:
         assert 0 == len(aa.annotations)
 
 
+class TestConstraint:
+    def test_contains(self):
+        c = model.Constraint(
+            role=model.ConstraintRole(role=ConstraintRoleType["allowable"])
+        )
+        d = model.Dimension(id="FOO")
+        kv = model.KeyValue(value_for=d, id="FOO", value=1)
+        key = model.Key([kv])
+
+        with pytest.raises(
+            NotImplementedError, match="Constraint does not contain a DataKeySet"
+        ):
+            key in c
+
+        # Add an empty DKS
+        c.data_content_keys = model.DataKeySet(included=True)
+
+        # Empty DKS does not contain `key`
+        assert (key in c) is False
+
+        # Add a matching DataKey to the DKS
+        c.data_content_keys.keys.append(
+            model.DataKey(
+                included=True, key_value={d: model.ComponentValue(value_for=d, value=1)}
+            )
+        )
+
+        # __contains__() returns True
+        assert (key in c) is True
+
+
+class TestCubeRegion:
+    def test_contains(self):
+        cr = model.CubeRegion()
+        d = model.Dimension(id="FOO")
+        cr.member[d] = model.MemberSelection(
+            values_for=d, values=[model.MemberValue(value="1")]
+        )
+
+        # KeyValue, but no value_for to associate with a particular Dimension
+        kv = model.KeyValue(id="FOO", value="1")
+        # __contains__() returns False
+        assert (kv in cr) is False
+
+        # Containment works with value_for
+        kv.value_for = d
+        assert (kv in cr) is True
+
+
 def test_contentconstraint():
     crole = ConstraintRole(role=ConstraintRoleType["allowable"])
     cr = ContentConstraint(role=crole)
@@ -79,38 +128,94 @@ def test_dataset():
     DataSet(action=ActionType["information"])
 
 
-def test_datastructuredefinition():
-    dsd = DataStructureDefinition()
+class TestDataStructureDefinition:
+    def test_general(self):
+        dsd = DataStructureDefinition()
 
-    # Convenience methods
-    da = dsd.attributes.getdefault(id="foo")
-    assert isinstance(da, DataAttribute)
+        # Convenience methods
+        da = dsd.attributes.getdefault(id="foo")
+        assert isinstance(da, DataAttribute)
 
-    d = dsd.dimensions.getdefault(id="baz", order=-1)
-    assert isinstance(d, Dimension)
+        d = dsd.dimensions.getdefault(id="baz", order=-1)
+        assert isinstance(d, Dimension)
 
-    # make_key(GroupKey, ..., extend=True, group_id=None)
-    gk = dsd.make_key(GroupKey, dict(foo=1, bar=2), extend=True, group_id=None)
+        # make_key(GroupKey, ..., extend=True, group_id=None)
+        gk = dsd.make_key(GroupKey, dict(foo=1, bar=2), extend=True, group_id=None)
 
-    # … does not create a GroupDimensionDescriptor (anonymous group)
-    assert gk.described_by is None
-    assert len(dsd.group_dimensions) == 0
+        # … does not create a GroupDimensionDescriptor (anonymous group)
+        assert gk.described_by is None
+        assert len(dsd.group_dimensions) == 0
 
-    # But does create the 'bar' dimension
-    assert "bar" in dsd.dimensions
+        # But does create the 'bar' dimension
+        assert "bar" in dsd.dimensions
 
-    # make_key(..., group_id=...) creates a GroupDimensionDescriptor
-    gk = dsd.make_key(GroupKey, dict(foo=1, baz2=4), extend=True, group_id="g1")
-    assert gk.described_by is dsd.group_dimensions["g1"]
-    assert len(dsd.group_dimensions) == 1
+        # make_key(..., group_id=...) creates a GroupDimensionDescriptor
+        gk = dsd.make_key(GroupKey, dict(foo=1, baz2=4), extend=True, group_id="g1")
+        assert gk.described_by is dsd.group_dimensions["g1"]
+        assert len(dsd.group_dimensions) == 1
 
-    # …also creates the "baz2" dimension and adds it to the GDD
-    assert dsd.dimensions.get("baz2") is dsd.group_dimensions["g1"].get("baz2")
+        # …also creates the "baz2" dimension and adds it to the GDD
+        assert dsd.dimensions.get("baz2") is dsd.group_dimensions["g1"].get("baz2")
 
-    # from_keys()
-    key1 = Key(foo=1, bar=2, baz=3)
-    key2 = Key(foo=4, bar=5, baz=6)
-    DataStructureDefinition.from_keys([key1, key2])
+        # from_keys()
+        key1 = Key(foo=1, bar=2, baz=3)
+        key2 = Key(foo=4, bar=5, baz=6)
+        DataStructureDefinition.from_keys([key1, key2])
+
+    def test_iter_keys(self, caplog):
+        dsd = DataStructureDefinition.from_keys(
+            [Key(foo=1, bar=2, baz=3), Key(foo=4, bar=5, baz=6)]
+        )
+
+        keys0 = list(dsd.iter_keys())
+        assert all(isinstance(k, model.Key) for k in keys0)
+        assert 2 ** 3 == len(keys0)
+
+        # Iterate over only some dimensions
+        keys1 = list(dsd.iter_keys(dims=["foo"]))
+        assert 2 == len(keys1)
+        assert "<Key: foo=1, bar=(bar), baz=(baz)>" == repr(keys1[0])
+
+        # Create a ContentConstraint (containing a single CubeRegion(included=True))
+        cc0 = dsd.make_constraint(dict(foo="1", bar="2+5", baz="3+6"))
+
+        # Resulting Keys have only "1" for the "foo" dimension
+        keys2 = list(dsd.iter_keys(constraint=cc0))
+        assert 1 * 2 ** 2 == len(keys2)
+
+        # Use make_constraint() to create & modify a different CubeRegion
+        cc1 = dsd.make_constraint(dict(baz="6"))
+        cr = cc1.data_content_region[0]
+        # Exclude this region
+        cr.included = False
+
+        # Add to `cc0` so that there are two CubeRegions
+        cc0.data_content_region.append(cr)
+
+        # Resulting keys have only "1" for the "foo" dimension, and not "6" for the
+        # "baz" dimension
+        keys3 = list(dsd.iter_keys(constraint=cc0))
+        assert 1 * 2 * 1 == len(keys3)
+
+        # Call ContentConstraint.iter_keys()
+
+        # Message is logged
+        assert 1 * 2 * 1 == len(list(cc0.iter_keys(dsd)))
+        assert (
+            "<DataStructureDefinition (missing id)> is not in "
+            "<ContentConstraint (missing id)>.content" in caplog.messages
+        )
+        caplog.clear()
+
+        # Add the DSD to the content referenced by the ContentConstraint
+        cc0.content.add(dsd)
+        assert 1 * 2 * 1 == len(list(cc0.iter_keys(dsd)))
+        assert 0 == len(caplog.messages)
+
+        # Call DataflowDefinition.iter_keys()
+        dfd = DataflowDefinition(structure=dsd)
+        keys4 = list(dfd.iter_keys(constraint=cc0))
+        assert 1 * 2 * 1 == len(keys4)
 
 
 def test_dimension():
@@ -125,7 +230,7 @@ def test_dimensiondescriptor():
 
     # Key in reverse order
     key2 = Key(baz=3, bar=2, foo=1)
-    assert list(key1.values.keys()) == list(reversed(key2.values.keys()))
+    assert list(key1.values.keys()) == list(reversed(list(key2.values.keys())))
     key3 = dd.order_key(key2)
     assert list(key1.values.keys()) == list(key3.values.keys())
 
@@ -382,58 +487,73 @@ def test_itemscheme_compare(caplog):
     ]
 
 
-def test_key():
-    # Construct with a dict
-    k1 = Key({"foo": 1, "bar": 2})
+class TestKey:
+    @pytest.fixture
+    def k1(self):
+        # Construct with a dict
+        yield Key({"foo": 1, "bar": 2})
 
-    # Construct with kwargs
-    k2 = Key(foo=1, bar=2)
+    @pytest.fixture
+    def k2(self):
+        # Construct with kwargs
+        yield Key(foo=1, bar=2)
 
-    # Results are __eq__ each other
-    assert k1 == k2
+    def test_init(self):
+        # Construct with a dict and kwargs is an error
+        with raises(ValueError):
+            Key({"foo": 1}, bar=2)
 
-    # Doing both is an error
-    with raises(ValueError):
-        Key({"foo": 1}, bar=2)
+        # Construct with a DimensionDescriptor
+        d = model.Dimension(id="FOO")
+        dd = model.DimensionDescriptor(components=[d])
 
-    # __len__
-    assert len(k1) == 2
+        k = Key(FOO=1, described_by=dd)
 
-    # __contains__: symmetrical if keys are identical
-    assert k1 in k2
-    assert k2 in k1
-    assert Key(foo=1) in k1
-    assert k1 not in Key(foo=1)
+        # KeyValue is associated with Dimension
+        assert k["FOO"].value_for is d
 
-    # Set and get using item convenience
-    k1["baz"] = 3  # bare value is converted to a KeyValue
-    assert k1["foo"] == 1
+    def test_general(self, k1, k2):
+        # Results are __eq__ each other
+        assert k1 == k2
 
-    # __str__
-    assert str(k1) == "(foo=1, bar=2, baz=3)"
+        # __len__
+        assert len(k1) == 2
 
-    # copying: returns a new object equal to the old one
-    k2 = k1.copy()
-    assert id(k1) != id(k2) and k1 == k2
-    # copy with changes
-    k2 = Key(foo=1, bar=2).copy(baz=3)
-    assert id(k1) != id(k2) and k1 == k2
+        # __contains__: symmetrical if keys are identical
+        assert k1 in k2
+        assert k2 in k1
+        assert Key(foo=1) in k1
+        assert k1 not in Key(foo=1)
 
-    # __add__: Key with something else
-    with raises(NotImplementedError):
-        k1 + 4
-    # Two Keys
-    k2 = Key(foo=1) + Key(bar=2)
-    assert k2 == k1
+        # Set and get using item convenience
+        k1["baz"] = 3  # bare value is converted to a KeyValue
+        assert k1["foo"] == 1
 
-    # __radd__: adding a Key to None produces a Key
-    assert None + k1 == k1
-    # anything else is an error
-    with raises(NotImplementedError):
-        4 + k1
+        # __str__
+        assert str(k1) == "(foo=1, bar=2, baz=3)"
 
-    # get_values(): preserve ordering
-    assert k1.get_values() == (1, 2, 3)
+        # copying: returns a new object equal to the old one
+        k2 = k1.copy()
+        assert id(k1) != id(k2) and k1 == k2
+        # copy with changes
+        k2 = Key(foo=1, bar=2).copy(baz=3)
+        assert id(k1) != id(k2) and k1 == k2
+
+        # __add__: Key with something else
+        with raises(NotImplementedError):
+            k1 + 4
+        # Two Keys
+        k2 = Key(foo=1) + Key(bar=2)
+        assert k2 == k1
+
+        # __radd__: adding a Key to None produces a Key
+        assert None + k1 == k1
+        # anything else is an error
+        with raises(NotImplementedError):
+            4 + k1
+
+        # get_values(): preserve ordering
+        assert k1.get_values() == (1, 2, 3)
 
 
 def test_observation():

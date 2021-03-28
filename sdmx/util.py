@@ -1,18 +1,29 @@
 import logging
 import typing
-from collections import OrderedDict
 from enum import Enum
 from functools import lru_cache
 from typing import Any, Mapping, Tuple, TypeVar, Union
 
 import pydantic
-from pydantic import DictError, Extra, ValidationError, validator  # noqa: F401
+from pydantic import Field, ValidationError, validator
 from pydantic.class_validators import make_generic_validator
+from pydantic.typing import get_origin  # type: ignore [attr-defined]
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 
 log = logging.getLogger(__name__)
+
+__all__ = [
+    "BaseModel",
+    "DictLike",
+    "Resource",
+    "compare",
+    "dictlike_field",
+    "summarize_dictlike",
+    "validate_dictlike",
+    "validator",
+]
 
 
 class Resource(str, Enum):
@@ -77,53 +88,76 @@ class BaseModel(pydantic.BaseModel):
         validate_assignment = True
 
 
-class DictLike(OrderedDict, typing.MutableMapping[KT, VT]):
+class DictLike(dict, typing.MutableMapping[KT, VT]):
     """Container with features of a dict & list, plus attribute access."""
 
+    __slots__ = ("__dict__", "__field")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Ensures attribute access to dict items
+        self.__dict__ = self
+
+        # Reference to the pydantic.field.ModelField for the entries
+        self.__field = None
+
     def __getitem__(self, key: Union[KT, int]) -> VT:
+        """:meth:`dict.__getitem__` with integer access."""
         try:
             return super().__getitem__(key)
         except KeyError:
             if isinstance(key, int):
+                # int() index access
                 return list(self.values())[key]
-            elif isinstance(key, str) and key.startswith("__"):
-                raise AttributeError
             else:
                 raise
 
     def __setitem__(self, key: KT, value: VT) -> None:
-        key = self._apply_validators("key", key)
-        value = self._apply_validators("value", value)
-        super().__setitem__(key, value)
+        """:meth:`dict.__setitem` with validation."""
+        super().__setitem__(*self._validate_entry(key, value))
 
-    # Access items as attributes
-    def __getattr__(self, name) -> VT:
-        try:
-            return self.__getitem__(name)
-        except KeyError as e:
-            raise AttributeError(*e.args) from None
+    def __copy__(self):
+        # Construct explicitly to avoid returning the parent class, dict()
+        return DictLike(**self)
 
-    def validate(cls, value, field):
-        if not isinstance(value, (dict, DictLike)):
-            raise ValueError(value)
+    def copy(self):
+        """Return a copy of the DictLike."""
+        return self.__copy__()
 
-        result = DictLike()
-        result.__fields = {"key": field.key_field, "value": field}
-        result.update(value)
+    # pydantic compat
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls._validate_whole
+
+    @classmethod
+    def _validate_whole(cls, v, field: pydantic.fields.ModelField):
+        """Validate `v` as an entire DictLike object."""
+        # Convert anything that can be converted to a dict(). pydantic internals catch
+        # most other invalid types, e.g. set(); no need to handle them here.
+        result = cls(v)
+
+        # Reference to the pydantic.field.ModelField for the entries
+        result.__field = field
+
         return result
 
-    def _apply_validators(self, which, value):
+    def _validate_entry(self, key, value):
+        """Validate one `key`/`value` pair."""
         try:
-            field = self.__fields[which]
+            # Use pydantic's validation machinery
+            v, error = self.__field._validate_mapping_like(
+                ((key, value),), values={}, loc=(), cls=None
+            )
         except AttributeError:
-            return value
-        result, error = field._apply_validators(
-            value, validators=field.validators, values={}, loc=(), cls=None
-        )
-        if error:
-            raise ValidationError([error], self.__class__)
+            # .__field is not populated
+            return key, value
         else:
-            return result
+            if error:
+                raise ValidationError([error], self.__class__)
+            else:
+                return v.popitem()
 
     def compare(self, other, strict=True):
         """Return :obj:`True` if `self` is the same as `other`.
@@ -147,6 +181,18 @@ class DictLike(OrderedDict, typing.MutableMapping[KT, VT]):
         return True
 
 
+# Utility methods for DictLike
+#
+# These are defined in separate functions to avoid collisions with keys and the
+# attribute access namespace, e.g. if the DictLike contains keys "summarize" or
+# "validate".
+
+
+def dictlike_field():
+    """Shorthand for :class:`pydantic.Field` with :class:`.DictLike` default factory."""
+    return Field(default_factory=DictLike)
+
+
 def summarize_dictlike(dl, maxwidth=72):
     """Return a string summary of the DictLike contents."""
     value_cls = dl[0].__class__.__name__
@@ -161,14 +207,25 @@ def summarize_dictlike(dl, maxwidth=72):
     return result
 
 
-def validate_dictlike(*fields):
-    def decorator(cls):
-        v = make_generic_validator(DictLike.validate)
-        for field in fields:
-            cls.__fields__[field].post_validators = [v]
-        return cls
+def validate_dictlike(cls):
+    """Adjust `cls` so that its DictLike members are validated.
 
-    return decorator
+    This is necessary because DictLike is a subclass of :class:`dict`, and so
+    :mod:`pydantic` fails to call :meth:`~DictLike.__get_validators__` and register
+    those on BaseModels which include DictLike members.
+    """
+    # Iterate over annotated members of `cls`; only those which are DictLike
+    for name, anno in filter(
+        lambda item: get_origin(item[1]) is DictLike, cls.__annotations__.items()
+    ):
+        # Add the validator(s)
+        field = cls.__fields__[name]
+        field.post_validators = field.post_validators or []
+        field.post_validators.extend(
+            make_generic_validator(v) for v in DictLike.__get_validators__()
+        )
+
+    return cls
 
 
 def compare(attr, a, b, strict: bool) -> bool:

@@ -28,23 +28,34 @@ from copy import copy
 from datetime import date, datetime, timedelta
 from enum import Enum
 from inspect import isclass
-from operator import attrgetter
+from itertools import product
+from operator import attrgetter, itemgetter
 from typing import (
     Any,
     Dict,
+    Generator,
     Generic,
     Iterable,
     List,
     Mapping,
     Optional,
+    Sequence,
     Set,
+    Tuple,
     Type,
     TypeVar,
     Union,
 )
 from warnings import warn
 
-from sdmx.util import BaseModel, DictLike, compare, validate_dictlike, validator
+from sdmx.util import (
+    BaseModel,
+    DictLike,
+    compare,
+    dictlike_field,
+    validate_dictlike,
+    validator,
+)
 
 log = logging.getLogger(__name__)
 
@@ -1063,7 +1074,7 @@ class ComponentValue(BaseModel):
     #:
     value_for: Component
     #:
-    value: str
+    value: Any
 
 
 class DataKey(BaseModel):
@@ -1085,6 +1096,9 @@ class DataKeySet(BaseModel):
         """:func:`len` of the DataKeySet = :func:`len` of its :attr:`keys`."""
         return len(self.keys)
 
+    def __contains__(self, item):
+        return any(item == dk for dk in self.keys)
+
 
 class Constraint(MaintainableArtefact):
     #: :class:`.DataKeySet` included in the Constraint.
@@ -1096,6 +1110,12 @@ class Constraint(MaintainableArtefact):
     # NB this is required to prevent “unhashable type: 'dict'” in pydantic
     class Config:
         validate_assignment = False
+
+    def __contains__(self, value):
+        if self.data_content_keys is None:
+            raise NotImplementedError("Constraint does not contain a DataKeySet")
+
+        return value in self.data_content_keys
 
 
 class SelectionValue(BaseModel):
@@ -1112,10 +1132,7 @@ class MemberValue(SelectionValue):
         return hash(self.value)
 
     def __eq__(self, other):
-        if isinstance(other, KeyValue):
-            return self.value == other.value
-        else:
-            return self.value == other
+        return self.value == (other.value if isinstance(other, KeyValue) else other)
 
 
 class TimeRangeValue(SelectionValue):
@@ -1174,11 +1191,39 @@ class CubeRegion(BaseModel):
     #:
     member: Dict[Dimension, MemberSelection] = {}
 
-    def __contains__(self, key):
-        for ms in self.member.values():
-            if key[ms.values_for.id] not in ms:
-                return False
-        return True
+    def __contains__(self, other: Union["Key", "KeyValue"]) -> bool:
+        """Membership test.
+
+        `other` may be either:
+
+        - :class:`.Key` —all its :class:`.KeyValue` are checked.
+        - :class:`.KeyValue` —only the one :class:`.Dimension` for which `other` is a
+          value is checked
+
+        Returns
+        -------
+        bool
+            :obj:`True` if:
+
+            - :attr:`.included` *and* `other` is in the CubeRegion;
+            - if :attr:`.included` is :obj:`False` *and* `other` is outside the
+              CubeRegion; or
+            - the `other` is KeyValue referencing a Dimension that is not included in
+              :attr:`.member`.
+        """
+        if isinstance(other, Key):
+            result = all(other[ms.values_for.id] in ms for ms in self.member.values())
+        elif other.value_for is None:
+            result = False  # No Dimension reference to use
+        else:
+            try:
+                # Check whether the KeyValue is in the indicated dimension
+                result = other.value in self.member[other.value_for]
+            except KeyError:
+                return True  # this CubeRegion doesn't have a MemberSelection
+
+        # Return the correct sense
+        return result is self.included
 
     def to_query_string(self, structure):
         all_values = []
@@ -1204,7 +1249,7 @@ class ContentConstraint(Constraint):
 
     def __contains__(self, value):
         if self.data_content_region:
-            return any(value in cr for cr in self.data_content_region)
+            return all(value in cr for cr in self.data_content_region)
         else:
             raise NotImplementedError(
                 "ContentConstraint does not contain a CubeRegion."
@@ -1219,6 +1264,25 @@ class ContentConstraint(Constraint):
             return self.data_content_region[0].to_query_string(structure)
         except IndexError:
             raise RuntimeError("ContentConstraint does not contain a CubeRegion.")
+
+    def iter_keys(
+        self,
+        obj: Union["DataStructureDefinition", "DataflowDefinition"],
+        dims: List[str] = [],
+    ) -> Generator["Key", None, None]:
+        """Iterate over keys.
+
+        A warning is logged if `obj` is not already explicitly associated to this
+        ContentConstraint, i.e. present in :attr:`.content`.
+
+        See also
+        --------
+        .DataStructureDefinition.iter_keys
+        """
+        if obj not in self.content:
+            log.warning(f"{repr(obj)} is not in {repr(self)}.content")
+
+        yield from obj.iter_keys(constraint=self, dims=dims)
 
 
 class TimeDimension(DimensionComponent):
@@ -1367,7 +1431,17 @@ DimensionRelationship.update_forward_refs()
 GroupRelationship.update_forward_refs()
 
 
-@validate_dictlike("group_dimensions")
+class _NullConstraintClass:
+    """Constraint that allows anything."""
+
+    def __contains__(self, value):
+        return True
+
+
+_NullConstraint = _NullConstraintClass()
+
+
+@validate_dictlike
 class DataStructureDefinition(Structure, ConstrainableArtefact):
     """SDMX-IM DataStructureDefinition (‘DSD’)."""
 
@@ -1381,9 +1455,75 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
     measures: MeasureDescriptor = MeasureDescriptor()
     #: Mapping from  :attr:`.GroupDimensionDescriptor.id` to
     #: :class:`.GroupDimensionDescriptor`.
-    group_dimensions: DictLike[str, GroupDimensionDescriptor] = DictLike()
+    group_dimensions: DictLike[str, GroupDimensionDescriptor] = dictlike_field()
 
     # Convenience methods
+    def iter_keys(
+        self, constraint: Constraint = None, dims: List[str] = []
+    ) -> Generator["Key", None, None]:
+        """Iterate over keys.
+
+        Parameters
+        ----------
+        constraint : Constraint, optional
+            If given, only yield Keys that are within the constraint.
+        dims : list of str, optional
+            If given, only iterate over allowable values for the Dimensions with these
+            IDs. Other dimensions have only a single value like "(DIM_ID)", where
+            DIM_ID is the ID of the dimension.
+        """
+        # NB for performance, the implementation tries to use iterators and avoid
+        #    constructing full-length tuples/lists at any point
+
+        _constraint = constraint or _NullConstraint
+        dims = dims or [dim.id for dim in self.dimensions.components]
+
+        # Utility to return an immutable function that produces KeyValues. The
+        # arguments are frozen so these can be set using loop variables and stored in a
+        # map() object that isn't modified on future loops
+        def make_factory(id=None, value_for=None):
+            return lambda value: KeyValue.construct(
+                id=id, value=value, value_for=value_for
+            )
+
+        # List of iterables of (dim.id, KeyValues) along each dimension
+        all_kvs: List[Iterable[Tuple[str, KeyValue]]] = []
+
+        # Iterate over dimensions
+        for dim in self.dimensions.components:
+            if (
+                dim.id not in dims
+                or dim.local_representation is None
+                or dim.local_representation.enumerated is None
+            ):
+                # `dim` is not enumerated by an ItemScheme, or not included in the
+                # `dims` argument and not to be iterated over. Create a placeholder.
+                all_kvs.append(
+                    [(dim.id, KeyValue(id=dim.id, value=f"({dim.id})", value_for=dim))]
+                )
+            else:
+                # Create a KeyValue for each Item in the ItemScheme; filter through any
+                # constraint.
+                all_kvs.append(
+                    map(
+                        lambda kv: (kv.id, kv),
+                        filter(
+                            _constraint.__contains__,
+                            map(
+                                make_factory(id=dim.id, value_for=dim),
+                                dim.local_representation.enumerated,
+                            ),
+                        ),
+                    )
+                )
+
+        # Create Key objects from Cartesian product of KeyValues along each dimension
+        # NB this does not work with DataKeySet
+        # TODO improve to work with DataKeySet
+        yield from filter(
+            _NullConstraint.__contains__, map(Key._fast, product(*all_kvs))
+        )
+
     def make_constraint(self, key):
         """Return a constraint for `key`.
 
@@ -1580,6 +1720,17 @@ class DataflowDefinition(StructureUsage, ConstrainableArtefact):
     #:
     structure: DataStructureDefinition = DataStructureDefinition()
 
+    def iter_keys(
+        self, constraint: Constraint = None, dims: List[str] = []
+    ) -> Generator["Key", None, None]:
+        """Iterate over keys.
+
+        See also
+        --------
+        .DataStructureDefinition.iter_keys
+        """
+        yield from self.structure.iter_keys(constraint=constraint, dims=dims)
+
 
 # §5.4: Data Set
 
@@ -1607,11 +1758,19 @@ class KeyValue(BaseModel):
 
     def __init__(self, *args, **kwargs):
         args, kwargs = value_for_dsd_ref("dimension", args, kwargs)
-        super(KeyValue, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __eq__(self, other):
-        """Compare the value to a Python built-in type, e.g. str."""
-        if isinstance(other, (KeyValue, MemberValue)):
+        """Compare the value to a simple Python built-in type or other key-like.
+
+        `other` may be :class:`.KeyValue` or :class:`.ComponentValue`; if so, and both
+        `self` and `other` have :attr:`.value_for`, these must refer to the same object.
+        """
+        if isinstance(other, (KeyValue, ComponentValue)):
+            return (self.value == other.value) and (
+                self.value_for in (None, other.value_for) or other.value_for is None
+            )
+        elif isinstance(other, MemberValue):
             return self.value == other.value
         else:
             return self.value == other
@@ -1675,7 +1834,7 @@ class AttributeValue(BaseModel):
         )
 
 
-@validate_dictlike("attrib", "values")
+@validate_dictlike
 class Key(BaseModel):
     """SDMX Key class.
 
@@ -1706,19 +1865,21 @@ class Key(BaseModel):
     """
 
     #:
-    attrib: DictLike[str, AttributeValue] = DictLike()
+    attrib: DictLike[str, AttributeValue]
     #:
-    described_by: Optional[DimensionDescriptor] = None
+    described_by: Optional[DimensionDescriptor]
     #: Individual KeyValues that describe the key.
-    values: DictLike[str, KeyValue] = DictLike()
+    values: DictLike[str, KeyValue]
 
-    def __init__(self, arg: Mapping = None, **kwargs):
+    def __init__(self, arg: Union[Mapping, Sequence[KeyValue]] = None, **kwargs):
         # DimensionDescriptor
         dd = kwargs.pop("described_by", None)
 
-        super().__init__(described_by=dd)
+        super().__init__(
+            attrib=kwargs.pop("attrib", DictLike()), described_by=dd, values=DictLike()
+        )
 
-        if arg:
+        if arg and isinstance(arg, Mapping):
             if len(kwargs):
                 raise ValueError(
                     "Key() accepts either a single argument, or keyword arguments; not "
@@ -1726,24 +1887,33 @@ class Key(BaseModel):
                 )
             kwargs.update(arg)
 
-        # Convert keyword arguments to KeyValue
-        values = []
-        for order, (id, value) in enumerate(kwargs.items()):
-            args = dict(id=id, value=value)
-            try:
-                args["value_for"] = dd.get(id)
-            except AttributeError:
-                # No DimensionDescriptor
-                pass
-            else:
-                # Use the existing Dimension's order attribute
-                order = args["value_for"].order
+        if isinstance(arg, Sequence):
+            # Sequence of already-prepared KeyValues; assume already sorted
+            kvs: Iterable[Tuple] = map(lambda kv: (kv.id, kv), arg)
+        else:
+            # Convert bare keyword arguments to KeyValue
+            kvs = []
+            for order, (id, value) in enumerate(kwargs.items()):
+                args = dict(id=id, value=value)
+                if dd:
+                    # Reference the Dimension
+                    args["value_for"] = dd.get(id)
+                    # Use the existing Dimension's order attribute
+                    order = args["value_for"].order
 
-            # Store a KeyValue, to be sorted later
-            values.append((order, KeyValue(**args)))
+                # Store a KeyValue, to be sorted later
+                kvs.append((order, (id, KeyValue(**args))))
 
-        # Sort the values according to *order*
-        self.values.update({kv.id: kv for _, kv in sorted(values)})
+            # Sort the values according to *order*, then unwrap
+            kvs = map(itemgetter(1), sorted(kvs))
+
+        for id, kv in kvs:
+            self.values[id] = kv
+
+    @classmethod
+    def _fast(cls, kvs):
+        """Use :meth:`pydantic.BaseModel.construct` for faster construction."""
+        return cls.construct(values=DictLike(kvs))
 
     def __len__(self):
         """The length of the Key is the number of KeyValues it contains."""
@@ -1808,7 +1978,15 @@ class Key(BaseModel):
 
     def __eq__(self, other):
         if hasattr(other, "values"):
-            return all([a == b for a, b in zip(self.values, other.values)])
+            # Key
+            return all(
+                [a == b for a, b in zip(self.values.values(), other.values.values())]
+            )
+        elif hasattr(other, "key_value"):
+            # DataKey
+            return all(
+                [a == b for a, b in zip(self.values.values(), other.key_value.values())]
+            )
         elif isinstance(other, str) and len(self.values) == 1:
             return self.values[0] == other
         else:
@@ -1867,7 +2045,7 @@ class SeriesKey(Key):
         return view
 
 
-@validate_dictlike("attached_attribute")
+@validate_dictlike
 class Observation(BaseModel):
     """SDMX-IM Observation.
 
@@ -1876,7 +2054,7 @@ class Observation(BaseModel):
     """
 
     #:
-    attached_attribute: DictLike[str, AttributeValue] = DictLike()
+    attached_attribute: DictLike[str, AttributeValue] = dictlike_field()
     #:
     series_key: Optional[SeriesKey] = None
     #: Key for dimension(s) varying at the observation level.
@@ -1938,13 +2116,13 @@ class Observation(BaseModel):
         )
 
 
-@validate_dictlike("attrib")
+@validate_dictlike
 class DataSet(AnnotableArtefact):
     # SDMX-IM features
     #:
     action: Optional[ActionType] = None
     #:
-    attrib: DictLike[str, AttributeValue] = DictLike()
+    attrib: DictLike[str, AttributeValue] = dictlike_field()
     #:
     valid_from: Optional[str] = None
     #:
@@ -1955,10 +2133,10 @@ class DataSet(AnnotableArtefact):
 
     #: Map of series key → list of observations.
     #: :mod:`sdmx` extension not in the IM.
-    series: DictLike[SeriesKey, List[Observation]] = DictLike()
+    series: DictLike[SeriesKey, List[Observation]] = dictlike_field()
     #: Map of group key → list of observations.
     #: :mod:`sdmx` extension not in the IM.
-    group: DictLike[GroupKey, List[Observation]] = DictLike()
+    group: DictLike[GroupKey, List[Observation]] = dictlike_field()
 
     def _add_group_refs(self, target):
         """Associate *target* with groups in this dataset.

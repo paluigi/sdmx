@@ -17,9 +17,11 @@ from sdmx.util import (
     BaseModel,
     DictLike,
     compare,
+    dictlike_field,
     direct_fields,
     get_args,
     summarize_dictlike,
+    validate_dictlike,
 )
 
 log = logging.getLogger(__name__)
@@ -156,25 +158,26 @@ class ErrorMessage(Message):
     pass
 
 
+@validate_dictlike
 class StructureMessage(Message):
     #: Collection of :class:`.Categorisation`.
-    categorisation: DictLike[str, model.Categorisation] = DictLike()
+    categorisation: DictLike[str, model.Categorisation] = dictlike_field()
     #: Collection of :class:`.CategoryScheme`.
-    category_scheme: DictLike[str, model.CategoryScheme] = DictLike()
+    category_scheme: DictLike[str, model.CategoryScheme] = dictlike_field()
     #: Collection of :class:`.Codelist`.
-    codelist: DictLike[str, model.Codelist] = DictLike()
+    codelist: DictLike[str, model.Codelist] = dictlike_field()
     #: Collection of :class:`.ConceptScheme`.
-    concept_scheme: DictLike[str, model.ConceptScheme] = DictLike()
+    concept_scheme: DictLike[str, model.ConceptScheme] = dictlike_field()
     #: Collection of :class:`.ContentConstraint`.
-    constraint: DictLike[str, model.ContentConstraint] = DictLike()
+    constraint: DictLike[str, model.ContentConstraint] = dictlike_field()
     #: Collection of :class:`.DataflowDefinition`.
-    dataflow: DictLike[str, model.DataflowDefinition] = DictLike()
+    dataflow: DictLike[str, model.DataflowDefinition] = dictlike_field()
     #: Collection of :class:`.DataStructureDefinition`.
-    structure: DictLike[str, model.DataStructureDefinition] = DictLike()
+    structure: DictLike[str, model.DataStructureDefinition] = dictlike_field()
     #: Collection of :class:`.AgencyScheme`.
-    organisation_scheme: DictLike[str, model.AgencyScheme] = DictLike()
+    organisation_scheme: DictLike[str, model.AgencyScheme] = dictlike_field()
     #: Collection of :class:`.ProvisionAgreement`.
-    provisionagreement: DictLike[str, model.ProvisionAgreement] = DictLike()
+    provisionagreement: DictLike[str, model.ProvisionAgreement] = dictlike_field()
 
     def compare(self, other, strict=True):
         """Return :obj:`True` if `self` is the same as `other`.
