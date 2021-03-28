@@ -1761,9 +1761,15 @@ class KeyValue(BaseModel):
         super().__init__(*args, **kwargs)
 
     def __eq__(self, other):
-        """Compare the value to a Python built-in type, e.g. str."""
+        """Compare the value to a simple Python built-in type or other key-like.
+
+        `other` may be :class:`.KeyValue` or :class:`.ComponentValue`; if so, and both
+        `self` and `other` have :attr:`.value_for`, these must refer to the same object.
+        """
         if isinstance(other, (KeyValue, ComponentValue)):
-            return (self.value == other.value) and (self.value_for is other.value_for)
+            return (self.value == other.value) and (
+                self.value_for in (None, other.value_for) or other.value_for is None
+            )
         elif isinstance(other, MemberValue):
             return self.value == other.value
         else:
