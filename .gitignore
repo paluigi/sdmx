@@ -13,7 +13,7 @@ __pycache__
 build
 coverage.xml
 dist
-doc/cache.sqlite
+doc/*cache.sqlite
 doc/_build
 doc/*.xml
 prof/
