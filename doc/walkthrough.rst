@@ -38,7 +38,7 @@ First, we instantiate a :class:`.sdmx.Client` object, using the string ID of a :
 .. ipython:: python
 
     import sdmx
-    ecb = sdmx.Client('ECB')
+    ecb = sdmx.Client("ECB")
 
 The object ``ecb`` is now ready to make multiple data and metadata queries to the European Central Bank's web service.
 To send requests to multiple web services, we could instantiate multiple :class:`Clients <.Client>`.
@@ -53,8 +53,8 @@ For example, a proxy server can be specified:
 .. ipython:: python
 
     ecb_via_proxy = sdmx.Client(
-        'ECB',
-        proxies={'http': 'http://1.2.3.4:5678'}
+        "ECB",
+        proxies={"http": "http://1.2.3.4:5678"}
     )
 
 The :attr:`~.Client.session` attribute is a :class:`.Session` object that can be used to inspect and modify configuration between queries:
@@ -77,8 +77,8 @@ For example, to force :mod:`requests_cache <requests_cache.core>` to use SQLite 
 .. ipython:: python
 
     ecb_with_cache = sdmx.Client(
-        'ECB',
-        backend='sqlite',
+        "ECB",
+        backend="sqlite",
         fast_save=True,
         expire_after=600,
     )
@@ -109,7 +109,7 @@ Get information about the source's data flows
 ---------------------------------------------
 
 We use :mod:`sdmx` to download the definitions for all data flows available from our chosen source.
-We could call :meth:`.Client.get` with ``[resource_type=]'dataflow'`` as the first argument, but can also use a shorter alias:
+We could call :meth:`.Client.get` with ``[resource_type=]"dataflow"`` as the first argument, but can also use a shorter alias:
 
 .. ipython:: python
 
@@ -161,7 +161,7 @@ As we are interested in exchange rate data, let's use built-in Pandas methods to
 
 .. ipython:: python
 
-   dataflows[dataflows.str.contains('exchange', case=False)]
+   dataflows[dataflows.str.contains("exchange", case=False)]
 
 We decide to look at 'EXR'.
 
@@ -180,7 +180,7 @@ The ECB SDMX service responds by returning all metadata related to the dataflow:
 
     # Here we could also use the object we have in hand:
     #        exr_msg = ecb.dataflow(resource=flow_msg.dataflow.EXR)
-    exr_msg = ecb.dataflow('EXR')
+    exr_msg = ecb.dataflow("EXR")
     exr_msg.response.url
 
     # The response includes several classes of SDMX objects
@@ -219,7 +219,7 @@ Chosing just the ``FREQ`` dimension, we can explore the :class:`.Codelist` that 
 
     # Show a codelist referenced by a dimension, containing a superset
     # of existing values
-    cl = dsd.dimensions.get('FREQ').local_representation.enumerated
+    cl = dsd.dimensions.get("FREQ").local_representation.enumerated
     cl
 
     # Again, the same object can be accessed directly
@@ -253,12 +253,12 @@ Let's return to explore the :class:`.ContentConstraint` that came with our metad
     cr = exr_msg.constraint.EXR_CONSTRAINTS.data_content_region[0]
 
     # Get the valid members for two dimensions
-    c1 = sdmx.to_pandas(cr.member['CURRENCY'].values)
+    c1 = sdmx.to_pandas(cr.member["CURRENCY"].values)
     # Convert list() to set()
     c1 = set(c1)
     len(c1)
 
-    c2 = sdmx.to_pandas(cr.member['CURRENCY_DENOM'].values)
+    c2 = sdmx.to_pandas(cr.member["CURRENCY_DENOM"].values)
     c2 = set(c2)
     len(c2)
 
@@ -269,8 +269,8 @@ Let's return to explore the :class:`.ContentConstraint` that came with our metad
     c1 - c2
 
     # Check certain contents
-    {'CDF', 'PEN'} < c1 | c2
-    {'USD', 'JPY'} < c1 & c2
+    {"CDF", "PEN"} < c1 | c2
+    {"USD", "JPY"} < c1 & c2
 
 We also see that 'USD' and 'JPY' are valid values along both dimensions.
 
@@ -281,7 +281,7 @@ Select and query data from a dataflow
 =====================================
 
 Next, we will query for some data.
-The step is simple: call :meth:`.Client.get` with `resource_type='data'` as the first argument, or the alias :meth:`.Client.data`.
+The step is simple: call :meth:`.Client.get` with `resource_type="data"` as the first argument, or the alias :meth:`.Client.data`.
 
 First, however, we describe some of the many options offered by SDMX and :mod:`pandSDMX` for data queries.
 
@@ -352,14 +352,14 @@ The following are all equivalent:
 
 .. ipython:: python
 
-    key = dict(CURRENCY=['USD', 'JPY'])
-    key = '.USD+JPY...'
+    key = dict(CURRENCY=["USD", "JPY"])
+    key = ".USD+JPY..."
 
 We also set a start period to exclude older data:
 
 .. ipython:: python
 
-    params = dict(startPeriod='2016')
+    params = dict(startPeriod="2016")
 
 Another way to validate a key against valid codes are series-key-only datasets, i.e. a dataset with all possible series keys where no series contains any observation.
 :mod:`sdmx` supports this validation method as well.
@@ -375,28 +375,28 @@ Finally, we request the data in generic format:
 
     import sys
 
-    ecb = sdmx.Client('ECB', backend='memory')
-    data_msg = ecb.data('EXR', key=key, params=params)
+    ecb = sdmx.Client("ECB", backend="memory")
+    data_msg = ecb.data("EXR", key=key, params=params)
 
     # Generic data was returned
-    data_msg.response.headers['content-type']
+    data_msg.response.headers["content-type"]
 
     # Number of bytes in the cached response
-    bytes1 = sys.getsizeof(ecb.session.cache.responses.popitem()[1][0]._content)
+    bytes1 = sys.getsizeof(ecb.session.cache.responses.popitem()[1]._content)
     bytes1
 
 To demonstrate a query for a structure-specific data set, we pass the DSD obtained in the previous section:
 
 .. ipython:: python
 
-    ss_msg = ecb.data('EXR', key=key, params=params, dsd=dsd)
+    ss_msg = ecb.data("EXR", key=key, params=params, dsd=dsd)
 
     # Structure-specific data was requested and returned
-    ss_msg.response.request.headers['accept']
-    ss_msg.response.headers['content-type']
+    ss_msg.response.request.headers["accept"]
+    ss_msg.response.headers["content-type"]
 
     # Number of bytes in the cached response
-    bytes2 = sys.getsizeof(ecb.session.cache.responses.popitem()[1][0]._content)
+    bytes2 = sys.getsizeof(ecb.session.cache.responses.popitem()[1]._content)
     bytes2 / bytes1
 
 The structure-specific message is a fraction of the size of the generic message.
@@ -427,7 +427,7 @@ Thus we can now generate our pandas DataFrame from daily exchange rate data only
 .. ipython:: python
 
     import pandas as pd
-    daily = [s for sk, s in data.series.items() if sk.FREQ == 'D']
+    daily = [s for sk, s in data.series.items() if sk.FREQ == "D"]
     cur_df = pd.concat(sdmx.to_pandas(daily))
     cur_df.shape
     cur_df.tail()
@@ -450,9 +450,9 @@ An example, using the same data flow as above:
 
 .. ipython:: python
 
-   key = dict(CURRENCY_DENOM='EUR', FREQ='M', EXR_SUFFIX='A')
-   params = dict(startPeriod='2019-01', endPeriod='2019-06')
-   data = ecb.data('EXR', key=key, params=params).data[0]
+   key = dict(CURRENCY_DENOM="EUR", FREQ="M", EXR_SUFFIX="A")
+   params = dict(startPeriod="2019-01", endPeriod="2019-06")
+   data = ecb.data("EXR", key=key, params=params).data[0]
 
 Without date-time conversion, :meth:`~.to_pandas` produces a MultiIndex:
 
@@ -464,7 +464,7 @@ With date-time conversion, it produces a DatetimeIndex:
 
 .. ipython:: python
 
-   df1 = sdmx.to_pandas(data, datetime='TIME_PERIOD')
+   df1 = sdmx.to_pandas(data, datetime="TIME_PERIOD")
    df1.index
    df1
 
@@ -474,7 +474,7 @@ Use the advanced functionality to specify a dimension for the frequency of a Per
 
    df2 = sdmx.to_pandas(
      data,
-     datetime=dict(dim='TIME_PERIOD', freq='FREQ', axis=1))
+     datetime=dict(dim="TIME_PERIOD", freq="FREQ", axis=1))
    df2.columns
    df2
 

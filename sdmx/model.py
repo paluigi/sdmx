@@ -1134,6 +1134,9 @@ class MemberValue(SelectionValue):
     def __eq__(self, other):
         return self.value == (other.value if isinstance(other, KeyValue) else other)
 
+    def __repr__(self):
+        return f"{repr(self.value)}" + (" + children" if self.cascade_values else "")
+
 
 class TimeRangeValue(SelectionValue):
     """SDMX-IM TimeRangeValue."""
@@ -1160,7 +1163,14 @@ class MemberSelection(BaseModel):
 
     def __contains__(self, value):
         """Compare KeyValue to MemberValue."""
-        return any(mv == value for mv in self.values)
+        return any(mv == value for mv in self.values) is self.included
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} {self.values_for.id} "
+            f"{'not ' if not self.included else ''}in {{"
+            f"{', '.join(map(repr, self.values))}}}>"
+        )
 
 
 # NB CubeRegion and ContentConstraint are moved below, after Dimension, since CubeRegion
@@ -1214,13 +1224,16 @@ class CubeRegion(BaseModel):
         if isinstance(other, Key):
             result = all(other[ms.values_for.id] in ms for ms in self.member.values())
         elif other.value_for is None:
-            result = False  # No Dimension reference to use
+            # No Dimension reference to use
+            result = False
+        elif other.value_for not in self.member or len(self.member) > 1:
+            # This CubeRegion doesn't have a MemberSelection for the KeyValue's
+            # Component; or it concerns additional Components, so inclusion can't be
+            # determined
+            return True
         else:
-            try:
-                # Check whether the KeyValue is in the indicated dimension
-                result = other.value in self.member[other.value_for]
-            except KeyError:
-                return True  # this CubeRegion doesn't have a MemberSelection
+            # Check whether the KeyValue is in the indicated dimension
+            result = other.value in self.member[other.value_for]
 
         # Return the correct sense
         return result is self.included
@@ -1237,6 +1250,12 @@ class CubeRegion(BaseModel):
             all_values.append("+".join(values))
 
         return ".".join(all_values)
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} {'in' if self.included else 'ex'}clude "
+            f"{' '.join(map(repr, self.member.values()))}>"
+        )
 
 
 # (continued from §10.3)
@@ -1520,9 +1539,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         # Create Key objects from Cartesian product of KeyValues along each dimension
         # NB this does not work with DataKeySet
         # TODO improve to work with DataKeySet
-        yield from filter(
-            _NullConstraint.__contains__, map(Key._fast, product(*all_kvs))
-        )
+        yield from filter(_constraint.__contains__, map(Key._fast, product(*all_kvs)))
 
     def make_constraint(self, key):
         """Return a constraint for `key`.
@@ -2137,6 +2154,9 @@ class DataSet(AnnotableArtefact):
     #: Map of group key → list of observations.
     #: :mod:`sdmx` extension not in the IM.
     group: DictLike[GroupKey, List[Observation]] = dictlike_field()
+
+    def __len__(self):
+        return len(self.obs)
 
     def _add_group_refs(self, target):
         """Associate *target* with groups in this dataset.
