@@ -1160,7 +1160,7 @@ class MemberSelection(BaseModel):
 
     def __contains__(self, value):
         """Compare KeyValue to MemberValue."""
-        return any(mv == value for mv in self.values)
+        return any(mv == value for mv in self.values) is self.included
 
 
 # NB CubeRegion and ContentConstraint are moved below, after Dimension, since CubeRegion
