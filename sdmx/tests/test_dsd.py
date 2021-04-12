@@ -106,9 +106,12 @@ def test_exr_constraints(specimen):
 
     cc = msg.constraint["EXR_CONSTRAINTS"]
 
-    # Expected number of constrained keys
-    keys = list(cc.iter_keys(ECB_EXR1))
-    assert 5 * 58 * 59 * 12 * 6 * 1 == len(keys)
+    # Commented: very slow
+    # # Expected number of constrained keys
+    # keys = list(cc.iter_keys(ECB_EXR1))
+    # assert 5 * 58 * 59 * 12 * 6 * 1 == len(keys)
+
+    del cc
 
     # TODO update the following for a complete implementation
 
