@@ -2139,6 +2139,9 @@ class DataSet(AnnotableArtefact):
     #: :mod:`sdmx` extension not in the IM.
     group: DictLike[GroupKey, List[Observation]] = dictlike_field()
 
+    def __len__(self):
+        return len(self.obs)
+
     def _add_group_refs(self, target):
         """Associate *target* with groups in this dataset.
 
