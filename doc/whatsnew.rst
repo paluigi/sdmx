@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.4.1 (2021-04-12)
+===================
 
 - Fix small bugs in :meth:`.DataStructureDefinition.iter_keys` and related behaviour (:pull:`74`):
   - :meth:`.CubeRegion.__contains__` cannot definitively exclude  :class:`.KeyValue` when the cube region specifies ≥2 dimensions.
