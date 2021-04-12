@@ -98,10 +98,11 @@ class TestConstraint:
 
 class TestCubeRegion:
     def test_contains(self):
+        FOO = model.Dimension(id="FOO")
+
         cr = model.CubeRegion()
-        d = model.Dimension(id="FOO")
-        cr.member[d] = model.MemberSelection(
-            values_for=d, values=[model.MemberValue(value="1")]
+        cr.member[FOO] = model.MemberSelection(
+            values_for=FOO, values=[model.MemberValue(value="1")]
         )
 
         # KeyValue, but no value_for to associate with a particular Dimension
@@ -110,8 +111,56 @@ class TestCubeRegion:
         assert (kv in cr) is False
 
         # Containment works with value_for
-        kv.value_for = d
+        kv.value_for = FOO
         assert (kv in cr) is True
+
+    def test_contains_excluded(self):
+        # Two dimensions
+        FOO = model.Dimension(id="FOO")
+        BAR = model.Dimension(id="BAR")
+
+        # A CubeRegion that *excludes* only FOO=1, BAR=A
+        cr = model.CubeRegion(included=False)
+        cr.member[FOO] = model.MemberSelection(
+            values_for=FOO, values=[model.MemberValue(value="1")]
+        )
+        cr.member[BAR] = model.MemberSelection(
+            values_for=BAR, values=[model.MemberValue(value="A")]
+        )
+
+        # Targeted key(s) are excluded
+        assert (model.Key(FOO="1", BAR="A") in cr) is False
+
+        # Key with more dimensions but fully within this reason
+        assert (model.Key(FOO="1", BAR="A", BAZ=3) in cr) is False
+
+        # Other key(s) that intersect only partly with the region are not excluded
+        assert (model.Key(FOO="1", BAR="B") in cr) is True
+        assert (model.Key(FOO="2", BAR="A", BAZ=3) in cr) is True
+
+        # KeyValues for a subset of the dimensions cannot be excluded, because it
+        # cannot be determined if they are fully within the region
+        assert (model.KeyValue(value_for=FOO, id="FOO", value="1") in cr) is True
+
+        # KeyValues not associated with a dimension cannot be excluded
+        assert (model.KeyValue(value_for=None, id="BAR", value="A") in cr) is True
+
+        # New MemberSelections with included=False. This is a CubeRegion that excludes
+        # all values where FOO is other than "1" *and* BAR is other than "A".
+        cr.member[FOO] = model.MemberSelection(
+            included=False, values_for=FOO, values=[model.MemberValue(value="1")]
+        )
+        cr.member[BAR] = model.MemberSelection(
+            included=False, values_for=BAR, values=[model.MemberValue(value="A")]
+        )
+
+        # FOO is other than 1, BAR is other than A → excluded
+        assert (model.Key(FOO="2", BAR="B") in cr) is False
+
+        # Other combinations → not excluded
+        assert (model.Key(FOO="1", BAR="A") in cr) is True
+        assert (model.Key(FOO="1", BAR="B") in cr) is True
+        assert (model.Key(FOO="2", BAR="A") in cr) is True
 
 
 def test_contentconstraint():
