@@ -8,8 +8,12 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Fix small bugs in :meth:`.DataStructureDefinition.iter_keys` and related behaviour (:pull:`74`):
+  - :meth:`.CubeRegion.__contains__` cannot definitively exclude  :class:`.KeyValue` when the cube region specifies ≥2 dimensions.
+  - :meth:`.MemberSelection.__contains__` is consistent with the sense of :attr:`~.MemberSelection.included`.
 
 v2.4.0 (2021-03-28)
 ===================
