@@ -1135,7 +1135,7 @@ class MemberValue(SelectionValue):
         return self.value == (other.value if isinstance(other, KeyValue) else other)
 
     def __repr__(self):
-        return f"{repr(self.value)}" + ("+ children" if self.cascade_values else "")
+        return f"{repr(self.value)}" + (" + children" if self.cascade_values else "")
 
 
 class TimeRangeValue(SelectionValue):
@@ -1168,8 +1168,8 @@ class MemberSelection(BaseModel):
     def __repr__(self):
         return (
             f"<{self.__class__.__name__} {self.values_for.id} "
-            f"{'not ' if not self.included else ''}in ["
-            f"{', '.join(map(repr, self.values))}]>"
+            f"{'not ' if not self.included else ''}in {{"
+            f"{', '.join(map(repr, self.values))}}}>"
         )
 
 

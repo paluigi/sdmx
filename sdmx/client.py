@@ -199,9 +199,8 @@ class Client:
         force = kwargs.pop("force", False)
         if not (force or self.source.supports[resource_type]):
             raise NotImplementedError(
-                f"{self.source.id} does not support the"
-                f"{resource_type!r} API endpoint; "
-                "override using force=True"
+                f"{self.source.id} does not support the {repr(resource_type)} API "
+                "endpoint. Use force=True to override"
             )
 
         url_parts.append(resource_type.name)

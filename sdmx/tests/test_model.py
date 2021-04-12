@@ -96,6 +96,29 @@ class TestConstraint:
         assert (key in c) is True
 
 
+class TestMemberValue:
+    def test_repr(self):
+        mv = model.MemberValue(value="foo")
+        assert "'foo'" == repr(mv)
+        mv.cascade_values = True
+        assert "'foo' + children" == repr(mv)
+
+
+class TestMemberSelection:
+    def test_repr(self):
+        ms = model.MemberSelection(
+            values_for=model.Component(id="FOO"),
+            values=[
+                model.MemberValue(value="foo0", cascade_values=True),
+                model.MemberValue(value="foo1"),
+            ],
+        )
+        assert "<MemberSelection FOO in {'foo0' + children, 'foo1'}>" == repr(ms)
+        ms.included = False
+        ms.values.pop(0)
+        assert "<MemberSelection FOO not in {'foo1'}>" == repr(ms)
+
+
 class TestCubeRegion:
     def test_contains(self):
         FOO = model.Dimension(id="FOO")
@@ -161,6 +184,18 @@ class TestCubeRegion:
         assert (model.Key(FOO="1", BAR="A") in cr) is True
         assert (model.Key(FOO="1", BAR="B") in cr) is True
         assert (model.Key(FOO="2", BAR="A") in cr) is True
+
+    def test_repr(self):
+        FOO = model.Dimension(id="FOO")
+
+        cr = model.CubeRegion()
+        cr.member[FOO] = model.MemberSelection(
+            values_for=FOO, values=[model.MemberValue(value="1")]
+        )
+
+        assert "<CubeRegion include <MemberSelection FOO in {'1'}>>" == repr(cr)
+        cr.included = False
+        assert "<CubeRegion exclude <MemberSelection FOO in {'1'}>>" == repr(cr)
 
 
 def test_contentconstraint():
