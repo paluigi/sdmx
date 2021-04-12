@@ -1214,13 +1214,16 @@ class CubeRegion(BaseModel):
         if isinstance(other, Key):
             result = all(other[ms.values_for.id] in ms for ms in self.member.values())
         elif other.value_for is None:
-            result = False  # No Dimension reference to use
+            # No Dimension reference to use
+            result = False
+        elif other.value_for not in self.member or len(self.member) > 1:
+            # This CubeRegion doesn't have a MemberSelection for the KeyValue's
+            # Component; or it concerns additional Components, so inclusion can't be
+            # determined
+            return True
         else:
-            try:
-                # Check whether the KeyValue is in the indicated dimension
-                result = other.value in self.member[other.value_for]
-            except KeyError:
-                return True  # this CubeRegion doesn't have a MemberSelection
+            # Check whether the KeyValue is in the indicated dimension
+            result = other.value in self.member[other.value_for]
 
         # Return the correct sense
         return result is self.included
