@@ -1134,6 +1134,9 @@ class MemberValue(SelectionValue):
     def __eq__(self, other):
         return self.value == (other.value if isinstance(other, KeyValue) else other)
 
+    def __repr__(self):
+        return f"{repr(self.value)}" + ("+ children" if self.cascade_values else "")
+
 
 class TimeRangeValue(SelectionValue):
     """SDMX-IM TimeRangeValue."""
@@ -1161,6 +1164,13 @@ class MemberSelection(BaseModel):
     def __contains__(self, value):
         """Compare KeyValue to MemberValue."""
         return any(mv == value for mv in self.values) is self.included
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} {self.values_for.id} "
+            f"{'not ' if not self.included else ''}in ["
+            f"{', '.join(map(repr, self.values))}]>"
+        )
 
 
 # NB CubeRegion and ContentConstraint are moved below, after Dimension, since CubeRegion
@@ -1240,6 +1250,12 @@ class CubeRegion(BaseModel):
             all_values.append("+".join(values))
 
         return ".".join(all_values)
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} {'in' if self.included else 'ex'}clude "
+            f"{' '.join(map(repr, self.member.values()))}>"
+        )
 
 
 # (continued from §10.3)
