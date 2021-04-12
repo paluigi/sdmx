@@ -1523,9 +1523,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
         # Create Key objects from Cartesian product of KeyValues along each dimension
         # NB this does not work with DataKeySet
         # TODO improve to work with DataKeySet
-        yield from filter(
-            _NullConstraint.__contains__, map(Key._fast, product(*all_kvs))
-        )
+        yield from filter(_constraint.__contains__, map(Key._fast, product(*all_kvs)))
 
     def make_constraint(self, key):
         """Return a constraint for `key`.
