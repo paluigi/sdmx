@@ -8,8 +8,10 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Handle ``<mes:Department>`` and ``<mes:Role>>`` in SDMX-ML headers (:issue:`78`, :pull:`79`).
 
 v2.4.1 (2021-04-12)
 ===================
