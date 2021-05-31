@@ -748,8 +748,8 @@ def _datetime(reader, elem):
 
 
 @end(
-    "com:AnnotationText com:Name com:Description com:Text mes:Source str:Department "
-    "str:Role"
+    "com:AnnotationText com:Name com:Description com:Text mes:Source mes:Department "
+    "mes:Role str:Department str:Role"
 )
 def _localization(reader, elem):
     reader.push(

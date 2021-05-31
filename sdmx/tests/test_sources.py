@@ -202,7 +202,7 @@ class TestISTAT(DataSourceTest):
     source_id = "ISTAT"
 
     @pytest.mark.network
-    def test_gh_75(self, specimen, client):
+    def test_gh_75(self, client):
         """Test of https://github.com/dr-leo/pandaSDMX/pull/75.
 
         As of the original report on 2019-06-02, the 4th dimension was ``TIPO_DATO``,
@@ -356,6 +356,15 @@ class TestUNSD(DataSourceTest):
 
 class TestWB(DataSourceTest):
     source_id = "WB"
+
+    @pytest.mark.network
+    def test_gh_78(self, client):
+        """Test of https://github.com/khaeru/sdmx/78.
+
+        This response required adding support for ``<mes:Department>`` and
+        ``<mes:Role>`` to :mod:`.reader.xml`.
+        """
+        client.data("DF_WITS_Tariff_TRAINS", key=".840.000.020110.reported")
 
 
 class TestWB_WDI(DataSourceTest):
