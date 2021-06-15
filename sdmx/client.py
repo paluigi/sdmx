@@ -430,8 +430,8 @@ class Client:
         req = self.session.prepare_request(req)
 
         # Now get the SDMX message via HTTP
-        log.info("Requesting resource from %s", req.url)
-        log.info("with headers %s" % req.headers)
+        log.info(f"Request {req.url}")
+        log.info(f"with headers {req.headers}")
 
         # Try to get resource from memory cache if specified
         if use_cache:
