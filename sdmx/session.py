@@ -1,17 +1,11 @@
 from io import BufferedIOBase, BytesIO
 from operator import itemgetter
-from warnings import warn
 
 import requests
 
 try:
     from requests_cache import CachedSession as MaybeCachedSession
 except ImportError:  # pragma: no cover
-    warn(
-        "optional dependency requests_cache is not installed; cache options "
-        "to Session() have no effect",
-        RuntimeWarning,
-    )
     from requests import Session as MaybeCachedSession
 
 
@@ -46,6 +40,12 @@ class Session(MaybeCachedSession):
         :attr:`~requests.Session.proxies`,
         :attr:`~requests.Session.stream`, or
         :attr:`~requests.Session.verify`.
+
+    Raises
+    ------
+    TypeError
+        if :mod:`requests_cache` is *not* installed and any parameters are passed.
+
     """
 
     def __init__(self, timeout=30.1, **kwargs):
@@ -69,8 +69,9 @@ class Session(MaybeCachedSession):
             # Overwrite value from requests_cache.CachedSession.__init__()
             self._is_cache_disabled = disabled
         elif len(cache_kwargs):  # pragma: no cover
-            raise ValueError(
-                f"Arguments have no effect without requests_session: {cache_kwargs}"
+            raise TypeError(
+                "Arguments not supported without requests_session installed: "
+                + repr(cache_kwargs)
             )
         else:  # pragma: no cover
             # Plain requests.Session: no arguments
