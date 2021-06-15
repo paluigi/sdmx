@@ -57,6 +57,9 @@ class Client:
     #: :class:`.Session` for queries sent from the instance.
     session = None
 
+    # Stored keyword arguments "allow_redirects" and "timeout" for pre-requests.
+    _send_kwargs = {}
+
     def __init__(self, source=None, log_level=None, **session_opts):
         try:
             self.source = sources[source.upper()] if source else NoSource
@@ -227,12 +230,14 @@ class Client:
         if len(kwargs):
             raise ValueError(f"unrecognized arguments: {kwargs!r}")
 
-        if validate:
+        if isinstance(key, dict):
             # Make the key, and retain the DSD (if any) for use in parsing
             key, dsd = self._make_key(resource_type, resource_id, key, dsd)
             kwargs["dsd"] = dsd
-
-        url_parts.append(key)
+        elif isinstance(key, str):
+            url_parts.append(key)
+        elif key is None and resource_type is Resource.data:
+            raise TypeError(f"key must be str or dict; got {type(key)}")
 
         # Assemble final URL
         url = "/".join(filter(None, url_parts))
@@ -264,6 +269,36 @@ class Client:
             raise ValueError(f"{repr(extra_args)} supplied with get(url=...)")
 
         return requests.Request("get", url, params=parameters, headers=headers)
+
+    def _handle_get_kwargs(self, kwargs):
+        # Allow sources to modify request args
+        # TODO this should occur after most processing, defaults, checking etc.
+        #      are performed, so that core code does most of the work.
+        if self.source:
+            self.source.modify_request_args(kwargs)
+
+        def _collect(*keywords):
+            return {kw: kwargs.pop(kw) for kw in keywords if kw in kwargs}
+
+        # Update session attributes. These changes persist.
+        for name, value in _collect("cert", "proxies", "stream", "verify").items():
+            # Log if the new value is different from the old
+            old_value = getattr(self.session, name)
+            if value != old_value:
+                log.debug(f"Session.{name}={value} replaces {old_value}")
+
+            # Store
+            setattr(self.session, name, value)
+
+        # Separate kwargs for requests.Session.send()
+        send_kwargs = _collect("allow_redirects", "timeout")
+        if len(send_kwargs) and send_kwargs != self._send_kwargs:
+            log.debug(f"Client.get() args {send_kwargs} replace {self._send_kwargs}")
+
+        self._send_kwargs.update(send_kwargs)
+
+        # Return remaining kwargs
+        return kwargs
 
     def get(
         self,
@@ -381,16 +416,7 @@ class Client:
         # Insert resource_type and resource_id into kwargs
         kwargs.update(dict(resource_type=resource_type, resource_id=resource_id))
 
-        # Allow sources to modify request args
-        # TODO this should occur after most processing, defaults, checking etc.
-        #      are performed, so that core code does most of the work.
-        if self.source:
-            self.source.modify_request_args(kwargs)
-
-        # Separate kwargs for requests.Session.send()
-        # This echoes the behaviour of requests.Session.Client()
-        send_kw = ("allow_redirects", "cert", "proxies", "stream", "timeout", "verify")
-        send_kwargs = {k: kwargs.pop(k) for k in send_kw if k in kwargs}
+        kwargs = self._handle_get_kwargs(kwargs)
 
         # Handle arguments
         if "url" in kwargs:
@@ -415,20 +441,9 @@ class Client:
         if dry_run:
             return req
 
-        # Update the keyword arguments to send()
-        send_kwargs.update(
-            self.session.merge_environment_settings(
-                req.url,
-                send_kwargs.get("proxies", {}),
-                send_kwargs.get("stream"),
-                send_kwargs.get("verify"),
-                send_kwargs.get("cert"),
-            )
-        )
-
         try:
             # Send the request
-            response = self.session.send(req, **send_kwargs)
+            response = self.session.send(req, **self._send_kwargs)
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             raise e from None
