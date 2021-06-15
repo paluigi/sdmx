@@ -11,6 +11,9 @@ What's new?
 Next release
 ============
 
+- Reduce noise when :mod:`requests_cache` is not installed (:issue:`75`, :pull:`80`).
+  An exception is still raised if (a) the package is not installed and (b) cache-related arguments are passed to :class:`Client`.
+- Bugfix: `verify` = :obj:`False` was not passed to the preliminary request used to validate a :class:`dict` key for a data request (:issue:`77`, :pull:`80`).
 - Handle ``<mes:Department>`` and ``<mes:Role>>`` in SDMX-ML headers (:issue:`78`, :pull:`79`).
 
 v2.4.1 (2021-04-12)
