@@ -44,36 +44,85 @@ def test_read_sdmx(tmp_path, specimen):
         sdmx.read_sdmx(bad_file, format="JSON")
 
 
-def test_Client():
-    # Constructor
-    with pytest.warns(
-        DeprecationWarning, match=re.escape("Client(…, log_level=…) parameter")
-    ):
-        r = sdmx.Client(log_level=logging.ERROR)
+class TestClient:
+    @pytest.fixture
+    def client(self, testsource):
+        """A :class:`Client` connected to a non-existent test source."""
+        return sdmx.Client(testsource)
 
-    # Invalid source name raise an exception
-    with pytest.raises(ValueError):
-        sdmx.Client("noagency")
+    def test_init(self):
+        with pytest.warns(
+            DeprecationWarning, match=re.escape("Client(…, log_level=…) parameter")
+        ):
+            sdmx.Client(log_level=logging.ERROR)
+
+        # Invalid source name raise an exception
+        with pytest.raises(ValueError):
+            sdmx.Client("noagency")
 
     # Regular methods
-    r.clear_cache()
+    def test_clear_cache(self, client):
+        client.clear_cache()
 
-    r.timeout = 300
-    assert r.timeout == 300
+    def test_session_attrs(self, caplog, client):
+        # Deprecated attributes
+        with pytest.warns(DeprecationWarning, match="Setting Client.timeout"):
+            client.timeout = 300
 
-    # dir() includes convenience methods for resource endpoints
-    expected = {
-        "cache",
-        "clear_cache",
-        "get",
-        "preview_data",
-        "series_keys",
-        "session",
-        "source",
-        "timeout",
-    }
-    expected |= set(ep.name for ep in sdmx.Resource)
-    assert set(filter(lambda s: not s.startswith("_"), dir(r))) == expected
+        with pytest.warns(DeprecationWarning, match="Getting Client.timeout"):
+            assert client.timeout == 300
+
+        client.get(
+            "datastructure",
+            dry_run=True,
+            verify=True,  # Session attribute
+            allow_redirects=False,  # Argument to Session.send()
+        )
+
+        assert not any("replaces" in m for m in caplog.messages)
+        caplog.clear()
+
+        # Same, with different values
+        client.get(
+            "datastructure",
+            dry_run=True,
+            verify=False,
+            allow_redirects=True,
+            timeout=123,
+        )
+
+        # Messages are logged
+        assert "Client.session.verify=False replaces True" in caplog.messages
+        assert (
+            "Client.get() args {'allow_redirects': True, 'timeout': 123} replace "
+            "{'allow_redirects': False}" in caplog.messages
+        )
+
+    def test_dir(self, client):
+        """dir() includes convenience methods for resource endpoints."""
+        expected = {
+            "cache",
+            "clear_cache",
+            "get",
+            "preview_data",
+            "series_keys",
+            "session",
+            "source",
+            "timeout",
+        }
+        expected |= set(ep.name for ep in sdmx.Resource)
+        assert set(filter(lambda s: not s.startswith("_"), dir(client))) == expected
+
+    def test_getattr(self, client):
+        with pytest.raises(AttributeError):
+            client.notanendpoint()
+
+    def test_request_from_args(self, caplog, client):
+        # Warns for deprecated argument
+        with pytest.warns(
+            DeprecationWarning, match="validate= keyword argument to Client.get"
+        ):
+            client.get("datastructure", validate=False, dry_run=True)
 
 
 def test_request_get_exceptions():
