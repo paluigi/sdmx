@@ -296,14 +296,18 @@ class Client:
             # Log if the new value is different from the old
             old_value = getattr(self.session, name)
             if value != old_value:
-                log.debug(f"Session.{name}={value} replaces {old_value}")
+                log.debug(f"Client.session.{name}={value} replaces {old_value}")
 
             # Store
             setattr(self.session, name, value)
 
         # Separate kwargs for requests.Session.send()
         send_kwargs = _collect("allow_redirects", "timeout")
-        if len(send_kwargs) and send_kwargs != self._send_kwargs:
+        if (
+            len(send_kwargs)
+            and len(self._send_kwargs)
+            and send_kwargs != self._send_kwargs
+        ):
             log.debug(f"Client.get() args {send_kwargs} replace {self._send_kwargs}")
 
         self._send_kwargs.update(send_kwargs)
