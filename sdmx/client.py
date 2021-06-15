@@ -237,10 +237,10 @@ class Client:
             # Make the key, and retain the DSD (if any) for use in parsing
             key, dsd = self._make_key(resource_type, resource_id, key, dsd)
             kwargs["dsd"] = dsd
-        elif isinstance(key, str):
-            url_parts.append(key)
-        elif key is None and resource_type is Resource.data:
+        elif not (key is None or isinstance(key, str)):
             raise TypeError(f"key must be str or dict; got {type(key)}")
+
+        url_parts.append(key)
 
         # Assemble final URL
         url = "/".join(filter(None, url_parts))
