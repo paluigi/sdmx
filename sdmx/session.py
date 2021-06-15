@@ -11,15 +11,15 @@ except ImportError:  # pragma: no cover
 
 # Known keyword arguments for requests_cache.CachedSession
 CACHE_KW = [
-    "cache_name",
-    "backend",
-    "expire_after",
     "allowable_codes",
     "allowable_methods",
-    "old_data_on_error",
-    "location",
-    "fast_save",
+    "backend",
+    "cache_name",
+    "expire_after",
     "extension",
+    "fast_save",
+    "location",
+    "old_data_on_error",
 ]
 
 
