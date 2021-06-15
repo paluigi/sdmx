@@ -1,6 +1,6 @@
 import logging
 from functools import partial
-from typing import Dict
+from typing import Any, Dict
 from warnings import warn
 
 import requests
@@ -58,7 +58,7 @@ class Client:
     session = None
 
     # Stored keyword arguments "allow_redirects" and "timeout" for pre-requests.
-    _send_kwargs = {}
+    _send_kwargs: Dict[str, Any] = {}
 
     def __init__(self, source=None, log_level=None, **session_opts):
         try:
