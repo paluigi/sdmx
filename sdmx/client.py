@@ -225,7 +225,10 @@ class Client:
 
         key = kwargs.pop("key", None)
         dsd = kwargs.pop("dsd", None)
-        validate = kwargs.pop("validate", True)
+
+        if "validate" in kwargs:
+            warn("validate= keyword argument to Client.get()", DeprecationWarning)
+            kwargs.pop("validate")
 
         if len(kwargs):
             raise ValueError(f"unrecognized arguments: {kwargs!r}")
