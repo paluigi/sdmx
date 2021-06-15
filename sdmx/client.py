@@ -103,10 +103,18 @@ class Client:
 
     @property
     def timeout(self):
+        warn(
+            "Getting Client.timeout directly; use Client.session.timeout",
+            DeprecationWarning,
+        )
         return self.session.timeout
 
     @timeout.setter
     def timeout(self, value):
+        warn(
+            f"Setting Client.timeout directly; use Client.session.timeout={value}",
+            DeprecationWarning,
+        )
         self.session.timeout = value
 
     def series_keys(self, flow_id, use_cache=True):
