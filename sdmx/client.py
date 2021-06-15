@@ -36,8 +36,8 @@ class Client:
     Parameters
     ----------
     source : str or source.Source
-        Identifier of a data source. If a string, must be one of the known
-        sources in :meth:`list_sources`.
+        Identifier of a data source. If a string, must be one of the known sources in
+        :meth:`list_sources`.
     log_level : int
         Override the package-wide logger with one of the
         :ref:`standard logging levels <py:levels>`.
@@ -45,8 +45,7 @@ class Client:
         .. deprecated:: 2.0
            Will be removed in :mod:`sdmx` version 3.0.
     **session_opts
-        Additional keyword arguments are passed to
-        :class:`.Session`.
+        Additional keyword arguments are passed to :class:`.Session`.
 
     """
 
@@ -122,11 +121,11 @@ class Client:
         )
 
     def _make_key(self, resource_type, resource_id, key, dsd):
-        """Validate *key* if possible.
+        """Validate `key` if possible.
 
-        If key is a dict, validate items against the DSD and construct the key
-        string which becomes part of the URL. Otherwise, do nothing as key must
-        be a str confirming to the REST API spec.
+        If key is :class:`dict`, validate items against `dsd` and construct a query
+        string which becomes part of the URL. Otherwise, do nothing, as `key` must be a
+        :class:`str` confirming to the REST API spec.
         """
         if not (resource_type == Resource.data and isinstance(key, dict)):
             return key, dsd
@@ -277,46 +276,41 @@ class Client:
     ):
         """Retrieve SDMX data or metadata.
 
-        (Meta)data is retrieved from the :attr:`source` of the current Client.
-        The item(s) to retrieve can be specified in one of two ways:
+        (Meta)data is retrieved from the :attr:`source` of the current Client. The
+        item(s) to retrieve can be specified in one of two ways:
 
-        1. `resource_type`, `resource_id`: These give the type (see
-           :class:`Resource`) and, optionally, ID of the item(s). If the
-           `resource_id` is not given, all items of the given type are
-           retrieved.
-        2. a `resource` object, i.e. a :class:`.MaintainableArtefact`:
-           `resource_type` and `resource_id` are determined by the object's
-           class and :attr:`id <.IdentifiableArtefact.id>` attribute,
-           respectively.
+        1. `resource_type`, `resource_id`: These give the type (see :class:`Resource`)
+           and, optionally, ID of the item(s). If the `resource_id` is not given, all
+           items of the given type are retrieved.
+        2. a `resource` object, i.e. a :class:`.MaintainableArtefact`: `resource_type`
+           and `resource_id` are determined by the object's class and
+           :attr:`id <.IdentifiableArtefact.id>` attribute, respectively.
 
-        Data is retrieved with `resource_type='data'`. In this case, the
-        optional keyword argument `key` can be used to constrain the data that
-        is retrieved. Examples of the formats for `key`:
+        Data is retrieved with `resource_type='data'`. In this case, the optional
+        keyword argument `key` can be used to constrain the data that is retrieved.
+        Examples of the formats for `key`:
 
-        1. ``{'GEO': ['EL', 'ES', 'IE']}``: :class:`dict` with dimension
-           name(s) mapped to an iterable of allowable values.
-        2. ``{'GEO': 'EL+ES+IE'}``: :class:`dict` with dimension name(s)
-           mapped to strings joining allowable values with `'+'`, the logical
-           'or' operator for SDMX web services.
-        3. ``'....EL+ES+IE'``: :class:`str` in which ordered dimension values
-           (some empty, ``''``) are joined with ``'.'``. Using this form
-           requires knowledge of the dimension order in the target data
-           `resource_id`; in the example, dimension 'GEO' is the fifth of five
-           dimensions: ``'.'.join(['', '', '', '', 'EL+ES+IE'])``.
-           :meth:`.CubeRegion.to_query_string` can also be used to create
-           properly formatted strings.
+        1. ``{'GEO': ['EL', 'ES', 'IE']}``: :class:`dict` with dimension name(s) mapped
+           to an iterable of allowable values.
+        2. ``{'GEO': 'EL+ES+IE'}``: :class:`dict` with dimension name(s) mapped to
+           strings joining allowable values with `'+'`, the logical 'or' operator for
+           SDMX web services.
+        3. ``'....EL+ES+IE'``: :class:`str` in which ordered dimension values (some
+           empty, ``''``) are joined with ``'.'``. Using this form requires knowledge
+           of the dimension order in the target data `resource_id`; in the example,
+           dimension 'GEO' is the fifth of five dimensions: ``'.'.join(['', '', '', '',
+           'EL+ES+IE'])``. :meth:`.CubeRegion.to_query_string` can also be used to
+           create properly formatted strings.
 
-        For formats 1 and 2, but not 3, the `key` argument is validated against
-        the relevant :class:`.DataStructureDefinition`, either given with the
-        `dsd` keyword argument, or retrieved from the web service before the
-        main query.
+        For formats 1 and 2, but not 3, the `key` argument is validated against the
+        relevant :class:`.DataStructureDefinition`, either given with the `dsd` keyword
+        argument, or retrieved from the web service before the main query.
 
         For the optional `param` keyword argument, some useful parameters are:
 
-        - 'startperiod', 'endperiod': restrict the time range of data to
-          retrieve.
-        - 'references': control which item(s) related to a metadata resource
-          are retrieved, e.g. `references='parentsandsiblings'`.
+        - 'startperiod', 'endperiod': restrict the time range of data to retrieve.
+        - 'references': control which item(s) related to a metadata resource are
+          retrieved, e.g. `references='parentsandsiblings'`.
 
         Parameters
         ----------
@@ -327,68 +321,62 @@ class Client:
         tofile : str or :class:`~os.PathLike` or `file-like object`, optional
             File path or file-like to write SDMX data as it is recieved.
         use_cache : bool, optional
-            If :obj:`True`, return a previously retrieved :class:`~.Message`
-            from :attr:`cache`, or update the cache with a newly-retrieved
-            Message.
+            If :obj:`True`, return a previously retrieved :class:`~.Message` from
+            :attr:`cache`, or update the cache with a newly-retrieved Message.
         dry_run : bool, optional
-            If :obj:`True`, prepare and return a :class:`requests.Request`
-            object, but do not execute the query. The prepared URL and headers
-            can be examined by inspecting the returned object.
+            If :obj:`True`, prepare and return a :class:`requests.Request` object, but
+            do not execute the query. The prepared URL and headers can be examined by
+            inspecting the returned object.
         **kwargs
             Other, optional parameters (below).
 
         Other Parameters
         ----------------
         dsd : :class:`~.DataStructureDefinition`
-            Existing object used to validate the `key` argument. If not
-            provided, an additional query executed to retrieve a DSD in order
-            to validate the `key`.
+            Existing object used to validate the `key` argument. If not provided, an
+            additional query executed to retrieve a DSD in order to validate the `key`.
         force : bool
-            If :obj:`True`, execute the query even if the :attr:`source` does
-            not support queries for the given `resource_type`. Default:
-            :obj:`False`.
+            If :obj:`True`, execute the query even if the :attr:`source` does not
+            support queries for the given `resource_type`. Default: :obj:`False`.
         headers : dict
-            HTTP headers. Given headers will overwrite instance-wide headers
-            passed to the constructor. Default: :obj:`None` to use the default
-            headers of the :attr:`source`.
+            HTTP headers. Given headers will overwrite instance-wide headers passed to
+            the constructor. Default: :obj:`None` to use the default headers of the
+            :attr:`source`.
         key : str or dict
-            For queries with `resource_type='data'`. :class:`str` values are
-            not validated; :class:`dict` values are validated using
+            For queries with `resource_type='data'`. :class:`str` values are not
+            validated; :class:`dict` values are validated using
             :meth:`~.DataStructureDefinition.make_constraint`.
         params : dict
             Query parameters. The `SDMX REST web service guidelines <https://\
             github.com/sdmx-twg/sdmx-rest/tree/master/v2_1/ws/rest/docs>`_
-            describe parameters and allowable values for different queries.
-            `params` is not validated before the query is executed.
+            describe parameters and allowable values for different queries. `params` is
+            not validated before the query is executed.
         provider : str
-            ID of the agency providing the data or metadata. Default:
-            ID of the :attr:`source` agency.
+            ID of the agency providing the data or metadata. Default: ID of the
+            :attr:`source` agency.
 
-            An SDMX web service is a ‘data source’ operated by a specific,
-            ‘source’ agency. A web service may host data or metadata originally
-            published by one or more ‘provider’ agencies. Many sources are also
-            providers. Other agencies—e.g. the SDMX Global Registry—simply
-            aggregate (meta)data from other providers, but do not providing any
-            (meta)data themselves.
+            An SDMX web service is a ‘data source’ operated by a specific, ‘source’
+            agency. A web service may host data or metadata originally published by one
+            or more ‘provider’ agencies. Many sources are also providers. Other
+            agencies—e.g. the SDMX Global Registry—simply aggregate (meta)data from
+            other providers, but do not provide any (meta)data themselves.
         resource : :class:`~.MaintainableArtefact` subclass
-            Object to retrieve. If given, `resource_type` and `resource_id` are
-            ignored.
+            Object to retrieve. If given, `resource_type` and `resource_id` are ignored.
         version : str
-            :attr:`~.VersionableArtefact.version>` of a resource to retrieve.
-            Default: the keyword 'latest'.
+            :attr:`~.VersionableArtefact.version>` of a resource to retrieve. Default:
+            the keyword 'latest'.
 
         Returns
         -------
         :class:`~.Message` or :class:`~requests.Request`
-            The requested SDMX message or, if `dry_run` is :obj:`True`, the
-            prepared request object.
+            The requested SDMX message or, if `dry_run` is :obj:`True`, the prepared
+            request object.
 
         Raises
         ------
         NotImplementedError
-            If the :attr:`source` does not support the given `resource_type`
-            and `force` is not :obj:`True`.
-
+            If the :attr:`source` does not support the given `resource_type` and `force`
+            is not :obj:`True`.
         """
         # Insert resource_type and resource_id into kwargs
         kwargs.update(dict(resource_type=resource_type, resource_id=resource_id))
@@ -492,10 +480,9 @@ class Client:
     def preview_data(self, flow_id, key={}):
         """Return a preview of data.
 
-        For the Dataflow *flow_id*, return all series keys matching *key*.
-        preview_data() uses a feature supported by some data providers that
-        returns :class:`SeriesKeys <.SeriesKey>` without the corresponding
-        :class:`Observations <.Observation>`.
+        For the Dataflow `flow_id`, return all series keys matching `key`. Uses a
+        feature supported by some data providers that returns :class:`SeriesKeys
+        <.SeriesKey>` without the corresponding :class:`Observations <.Observation>`.
 
         To count the number of series::
 
@@ -511,9 +498,9 @@ class Client:
         flow_id : str
             Dataflow to preview.
         key : dict, optional
-            Mapping of *dimension* to *values*, where *values* may be a
-            '+'-delimited list of values. If given, only SeriesKeys that match
-            *key* are returned. If not given, preview_data is equivalent to
+            Mapping of `dimension` to `values`, where `values` may be a '+'-delimited
+            list of values. If given, only SeriesKeys that match `key` are returned. If
+            not given, preview_data is equivalent to
             ``list(client.series_keys(flow_id))``.
 
         Returns
