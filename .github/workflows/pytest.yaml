@@ -77,7 +77,7 @@ jobs:
 
     - name: Check typing with mypy
       run: |
-        pip install mypy
+        pip install mypy types-pkg_resources types-python-dateutil types-requests
         mypy --show-error-codes .
 
     - name: Test documentation build using Sphinx

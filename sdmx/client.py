@@ -1,6 +1,6 @@
 import logging
 from functools import partial
-from typing import Dict
+from typing import Any, Dict
 from warnings import warn
 
 import requests
@@ -36,8 +36,8 @@ class Client:
     Parameters
     ----------
     source : str or source.Source
-        Identifier of a data source. If a string, must be one of the known
-        sources in :meth:`list_sources`.
+        Identifier of a data source. If a string, must be one of the known sources in
+        :meth:`list_sources`.
     log_level : int
         Override the package-wide logger with one of the
         :ref:`standard logging levels <py:levels>`.
@@ -45,8 +45,7 @@ class Client:
         .. deprecated:: 2.0
            Will be removed in :mod:`sdmx` version 3.0.
     **session_opts
-        Additional keyword arguments are passed to
-        :class:`.Session`.
+        Additional keyword arguments are passed to :class:`.Session`.
 
     """
 
@@ -57,6 +56,9 @@ class Client:
 
     #: :class:`.Session` for queries sent from the instance.
     session = None
+
+    # Stored keyword arguments "allow_redirects" and "timeout" for pre-requests.
+    _send_kwargs: Dict[str, Any] = {}
 
     def __init__(self, source=None, log_level=None, **session_opts):
         try:
@@ -101,10 +103,18 @@ class Client:
 
     @property
     def timeout(self):
+        warn(
+            "Getting Client.timeout directly; use Client.session.timeout",
+            DeprecationWarning,
+        )
         return self.session.timeout
 
     @timeout.setter
     def timeout(self, value):
+        warn(
+            f"Setting Client.timeout directly; use Client.session.timeout={value}",
+            DeprecationWarning,
+        )
         self.session.timeout = value
 
     def series_keys(self, flow_id, use_cache=True):
@@ -122,11 +132,11 @@ class Client:
         )
 
     def _make_key(self, resource_type, resource_id, key, dsd):
-        """Validate *key* if possible.
+        """Validate `key` if possible.
 
-        If key is a dict, validate items against the DSD and construct the key
-        string which becomes part of the URL. Otherwise, do nothing as key must
-        be a str confirming to the REST API spec.
+        If key is :class:`dict`, validate items against `dsd` and construct a query
+        string which becomes part of the URL. Otherwise, do nothing, as `key` must be a
+        :class:`str` confirming to the REST API spec.
         """
         if not (resource_type == Resource.data and isinstance(key, dict)):
             return key, dsd
@@ -223,15 +233,20 @@ class Client:
 
         key = kwargs.pop("key", None)
         dsd = kwargs.pop("dsd", None)
-        validate = kwargs.pop("validate", True)
+
+        if "validate" in kwargs:
+            warn("validate= keyword argument to Client.get()", DeprecationWarning)
+            kwargs.pop("validate")
 
         if len(kwargs):
             raise ValueError(f"unrecognized arguments: {kwargs!r}")
 
-        if validate:
+        if isinstance(key, dict):
             # Make the key, and retain the DSD (if any) for use in parsing
             key, dsd = self._make_key(resource_type, resource_id, key, dsd)
             kwargs["dsd"] = dsd
+        elif not (key is None or isinstance(key, str)):
+            raise TypeError(f"key must be str or dict; got {type(key)}")
 
         url_parts.append(key)
 
@@ -266,6 +281,40 @@ class Client:
 
         return requests.Request("get", url, params=parameters, headers=headers)
 
+    def _handle_get_kwargs(self, kwargs):
+        # Allow sources to modify request args
+        # TODO this should occur after most processing, defaults, checking etc.
+        #      are performed, so that core code does most of the work.
+        if self.source:
+            self.source.modify_request_args(kwargs)
+
+        def _collect(*keywords):
+            return {kw: kwargs.pop(kw) for kw in keywords if kw in kwargs}
+
+        # Update session attributes. These changes persist.
+        for name, value in _collect("cert", "proxies", "stream", "verify").items():
+            # Log if the new value is different from the old
+            old_value = getattr(self.session, name)
+            if value != old_value:
+                log.debug(f"Client.session.{name}={value} replaces {old_value}")
+
+            # Store
+            setattr(self.session, name, value)
+
+        # Separate kwargs for requests.Session.send()
+        send_kwargs = _collect("allow_redirects", "timeout")
+        if (
+            len(send_kwargs)
+            and len(self._send_kwargs)
+            and send_kwargs != self._send_kwargs
+        ):
+            log.debug(f"Client.get() args {send_kwargs} replace {self._send_kwargs}")
+
+        self._send_kwargs.update(send_kwargs)
+
+        # Return remaining kwargs
+        return kwargs
+
     def get(
         self,
         resource_type=None,
@@ -277,46 +326,41 @@ class Client:
     ):
         """Retrieve SDMX data or metadata.
 
-        (Meta)data is retrieved from the :attr:`source` of the current Client.
-        The item(s) to retrieve can be specified in one of two ways:
+        (Meta)data is retrieved from the :attr:`source` of the current Client. The
+        item(s) to retrieve can be specified in one of two ways:
 
-        1. `resource_type`, `resource_id`: These give the type (see
-           :class:`Resource`) and, optionally, ID of the item(s). If the
-           `resource_id` is not given, all items of the given type are
-           retrieved.
-        2. a `resource` object, i.e. a :class:`.MaintainableArtefact`:
-           `resource_type` and `resource_id` are determined by the object's
-           class and :attr:`id <.IdentifiableArtefact.id>` attribute,
-           respectively.
+        1. `resource_type`, `resource_id`: These give the type (see :class:`Resource`)
+           and, optionally, ID of the item(s). If the `resource_id` is not given, all
+           items of the given type are retrieved.
+        2. a `resource` object, i.e. a :class:`.MaintainableArtefact`: `resource_type`
+           and `resource_id` are determined by the object's class and
+           :attr:`id <.IdentifiableArtefact.id>` attribute, respectively.
 
-        Data is retrieved with `resource_type='data'`. In this case, the
-        optional keyword argument `key` can be used to constrain the data that
-        is retrieved. Examples of the formats for `key`:
+        Data is retrieved with `resource_type='data'`. In this case, the optional
+        keyword argument `key` can be used to constrain the data that is retrieved.
+        Examples of the formats for `key`:
 
-        1. ``{'GEO': ['EL', 'ES', 'IE']}``: :class:`dict` with dimension
-           name(s) mapped to an iterable of allowable values.
-        2. ``{'GEO': 'EL+ES+IE'}``: :class:`dict` with dimension name(s)
-           mapped to strings joining allowable values with `'+'`, the logical
-           'or' operator for SDMX web services.
-        3. ``'....EL+ES+IE'``: :class:`str` in which ordered dimension values
-           (some empty, ``''``) are joined with ``'.'``. Using this form
-           requires knowledge of the dimension order in the target data
-           `resource_id`; in the example, dimension 'GEO' is the fifth of five
-           dimensions: ``'.'.join(['', '', '', '', 'EL+ES+IE'])``.
-           :meth:`.CubeRegion.to_query_string` can also be used to create
-           properly formatted strings.
+        1. ``{'GEO': ['EL', 'ES', 'IE']}``: :class:`dict` with dimension name(s) mapped
+           to an iterable of allowable values.
+        2. ``{'GEO': 'EL+ES+IE'}``: :class:`dict` with dimension name(s) mapped to
+           strings joining allowable values with `'+'`, the logical 'or' operator for
+           SDMX web services.
+        3. ``'....EL+ES+IE'``: :class:`str` in which ordered dimension values (some
+           empty, ``''``) are joined with ``'.'``. Using this form requires knowledge
+           of the dimension order in the target data `resource_id`; in the example,
+           dimension 'GEO' is the fifth of five dimensions: ``'.'.join(['', '', '', '',
+           'EL+ES+IE'])``. :meth:`.CubeRegion.to_query_string` can also be used to
+           create properly formatted strings.
 
-        For formats 1 and 2, but not 3, the `key` argument is validated against
-        the relevant :class:`.DataStructureDefinition`, either given with the
-        `dsd` keyword argument, or retrieved from the web service before the
-        main query.
+        For formats 1 and 2, but not 3, the `key` argument is validated against the
+        relevant :class:`.DataStructureDefinition`, either given with the `dsd` keyword
+        argument, or retrieved from the web service before the main query.
 
         For the optional `param` keyword argument, some useful parameters are:
 
-        - 'startperiod', 'endperiod': restrict the time range of data to
-          retrieve.
-        - 'references': control which item(s) related to a metadata resource
-          are retrieved, e.g. `references='parentsandsiblings'`.
+        - 'startperiod', 'endperiod': restrict the time range of data to retrieve.
+        - 'references': control which item(s) related to a metadata resource are
+          retrieved, e.g. `references='parentsandsiblings'`.
 
         Parameters
         ----------
@@ -327,82 +371,67 @@ class Client:
         tofile : str or :class:`~os.PathLike` or `file-like object`, optional
             File path or file-like to write SDMX data as it is recieved.
         use_cache : bool, optional
-            If :obj:`True`, return a previously retrieved :class:`~.Message`
-            from :attr:`cache`, or update the cache with a newly-retrieved
-            Message.
+            If :obj:`True`, return a previously retrieved :class:`~.Message` from
+            :attr:`cache`, or update the cache with a newly-retrieved Message.
         dry_run : bool, optional
-            If :obj:`True`, prepare and return a :class:`requests.Request`
-            object, but do not execute the query. The prepared URL and headers
-            can be examined by inspecting the returned object.
+            If :obj:`True`, prepare and return a :class:`requests.Request` object, but
+            do not execute the query. The prepared URL and headers can be examined by
+            inspecting the returned object.
         **kwargs
             Other, optional parameters (below).
 
         Other Parameters
         ----------------
         dsd : :class:`~.DataStructureDefinition`
-            Existing object used to validate the `key` argument. If not
-            provided, an additional query executed to retrieve a DSD in order
-            to validate the `key`.
+            Existing object used to validate the `key` argument. If not provided, an
+            additional query executed to retrieve a DSD in order to validate the `key`.
         force : bool
-            If :obj:`True`, execute the query even if the :attr:`source` does
-            not support queries for the given `resource_type`. Default:
-            :obj:`False`.
+            If :obj:`True`, execute the query even if the :attr:`source` does not
+            support queries for the given `resource_type`. Default: :obj:`False`.
         headers : dict
-            HTTP headers. Given headers will overwrite instance-wide headers
-            passed to the constructor. Default: :obj:`None` to use the default
-            headers of the :attr:`source`.
+            HTTP headers. Given headers will overwrite instance-wide headers passed to
+            the constructor. Default: :obj:`None` to use the default headers of the
+            :attr:`source`.
         key : str or dict
-            For queries with `resource_type='data'`. :class:`str` values are
-            not validated; :class:`dict` values are validated using
+            For queries with `resource_type='data'`. :class:`str` values are not
+            validated; :class:`dict` values are validated using
             :meth:`~.DataStructureDefinition.make_constraint`.
         params : dict
             Query parameters. The `SDMX REST web service guidelines <https://\
             github.com/sdmx-twg/sdmx-rest/tree/master/v2_1/ws/rest/docs>`_
-            describe parameters and allowable values for different queries.
-            `params` is not validated before the query is executed.
+            describe parameters and allowable values for different queries. `params` is
+            not validated before the query is executed.
         provider : str
-            ID of the agency providing the data or metadata. Default:
-            ID of the :attr:`source` agency.
+            ID of the agency providing the data or metadata. Default: ID of the
+            :attr:`source` agency.
 
-            An SDMX web service is a ‘data source’ operated by a specific,
-            ‘source’ agency. A web service may host data or metadata originally
-            published by one or more ‘provider’ agencies. Many sources are also
-            providers. Other agencies—e.g. the SDMX Global Registry—simply
-            aggregate (meta)data from other providers, but do not providing any
-            (meta)data themselves.
+            An SDMX web service is a ‘data source’ operated by a specific, ‘source’
+            agency. A web service may host data or metadata originally published by one
+            or more ‘provider’ agencies. Many sources are also providers. Other
+            agencies—e.g. the SDMX Global Registry—simply aggregate (meta)data from
+            other providers, but do not provide any (meta)data themselves.
         resource : :class:`~.MaintainableArtefact` subclass
-            Object to retrieve. If given, `resource_type` and `resource_id` are
-            ignored.
+            Object to retrieve. If given, `resource_type` and `resource_id` are ignored.
         version : str
-            :attr:`~.VersionableArtefact.version>` of a resource to retrieve.
-            Default: the keyword 'latest'.
+            :attr:`~.VersionableArtefact.version>` of a resource to retrieve. Default:
+            the keyword 'latest'.
 
         Returns
         -------
         :class:`~.Message` or :class:`~requests.Request`
-            The requested SDMX message or, if `dry_run` is :obj:`True`, the
-            prepared request object.
+            The requested SDMX message or, if `dry_run` is :obj:`True`, the prepared
+            request object.
 
         Raises
         ------
         NotImplementedError
-            If the :attr:`source` does not support the given `resource_type`
-            and `force` is not :obj:`True`.
-
+            If the :attr:`source` does not support the given `resource_type` and `force`
+            is not :obj:`True`.
         """
         # Insert resource_type and resource_id into kwargs
         kwargs.update(dict(resource_type=resource_type, resource_id=resource_id))
 
-        # Allow sources to modify request args
-        # TODO this should occur after most processing, defaults, checking etc.
-        #      are performed, so that core code does most of the work.
-        if self.source:
-            self.source.modify_request_args(kwargs)
-
-        # Separate kwargs for requests.Session.send()
-        # This echoes the behaviour of requests.Session.Client()
-        send_kw = ("allow_redirects", "cert", "proxies", "stream", "timeout", "verify")
-        send_kwargs = {k: kwargs.pop(k) for k in send_kw if k in kwargs}
+        kwargs = self._handle_get_kwargs(kwargs)
 
         # Handle arguments
         if "url" in kwargs:
@@ -413,8 +442,8 @@ class Client:
         req = self.session.prepare_request(req)
 
         # Now get the SDMX message via HTTP
-        log.info("Requesting resource from %s", req.url)
-        log.info("with headers %s" % req.headers)
+        log.info(f"Request {req.url}")
+        log.info(f"with headers {req.headers}")
 
         # Try to get resource from memory cache if specified
         if use_cache:
@@ -427,20 +456,9 @@ class Client:
         if dry_run:
             return req
 
-        # Update the keyword arguments to send()
-        send_kwargs.update(
-            self.session.merge_environment_settings(
-                req.url,
-                send_kwargs.get("proxies", {}),
-                send_kwargs.get("stream"),
-                send_kwargs.get("verify"),
-                send_kwargs.get("cert"),
-            )
-        )
-
         try:
             # Send the request
-            response = self.session.send(req, **send_kwargs)
+            response = self.session.send(req, **self._send_kwargs)
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             raise e from None
@@ -492,10 +510,9 @@ class Client:
     def preview_data(self, flow_id, key={}):
         """Return a preview of data.
 
-        For the Dataflow *flow_id*, return all series keys matching *key*.
-        preview_data() uses a feature supported by some data providers that
-        returns :class:`SeriesKeys <.SeriesKey>` without the corresponding
-        :class:`Observations <.Observation>`.
+        For the Dataflow `flow_id`, return all series keys matching `key`. Uses a
+        feature supported by some data providers that returns :class:`SeriesKeys
+        <.SeriesKey>` without the corresponding :class:`Observations <.Observation>`.
 
         To count the number of series::
 
@@ -511,9 +528,9 @@ class Client:
         flow_id : str
             Dataflow to preview.
         key : dict, optional
-            Mapping of *dimension* to *values*, where *values* may be a
-            '+'-delimited list of values. If given, only SeriesKeys that match
-            *key* are returned. If not given, preview_data is equivalent to
+            Mapping of `dimension` to `values`, where `values` may be a '+'-delimited
+            list of values. If given, only SeriesKeys that match `key` are returned. If
+            not given, preview_data is equivalent to
             ``list(client.series_keys(flow_id))``.
 
         Returns

@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from sdmx.exceptions import HTTPError
-from sdmx.source import DataContentType, sources
+from sdmx.source import DataContentType, add_source, sources
 from sdmx.util import Resource
 
 log = logging.getLogger(__name__)
@@ -290,3 +290,15 @@ def test_data_path(pytestconfig):
 def specimen(pytestconfig):
     """Fixture: the :class:`SpecimenCollection`."""
     yield pytestconfig.sdmx_specimens
+
+
+@pytest.fixture(scope="class")
+def testsource():
+    """Fixture: the :attr:`.Source.id` of a non-existent data source."""
+    id = "TEST"
+    add_source(dict(id=id, name="Test source", url="https://example.com/sdmx-rest"))
+
+    try:
+        yield id
+    finally:
+        sources.pop(id)
