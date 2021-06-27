@@ -2153,6 +2153,8 @@ class DataSet(AnnotableArtefact):
     #:
     valid_from: Optional[str] = None
     #:
+    described_by: Optional[DataflowDefinition] = None
+    #:
     structured_by: Optional[DataStructureDefinition] = None
 
     #: All observations in the DataSet.
