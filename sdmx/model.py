@@ -1830,7 +1830,8 @@ class AttributeValue(BaseModel):
         return self.value == other
 
     def __str__(self):
-        return self.value
+        # self.value directly for UncodedAttributeValue
+        return self.value if isinstance(self.value, str) else self.value.id
 
     def __repr__(self):
         return "<{}: {}={}>".format(self.__class__.__name__, self.value_for, self.value)
