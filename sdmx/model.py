@@ -1174,6 +1174,9 @@ class MemberSelection(BaseModel):
         """Compare KeyValue to MemberValue."""
         return any(mv == value for mv in self.values) is self.included
 
+    def __len__(self):
+        return len(self.values)
+
     def __repr__(self):
         return (
             f"<{self.__class__.__name__} {self.values_for.id} "
