@@ -69,8 +69,8 @@ class Source(BaseModel):
     def handle_response(self, response, content):
         """Handle response content of unknown type.
 
-        This hook is called by :meth:`.Client.get` *only* when
-        the `content` cannot be parsed as XML or JSON.
+        This hook is called by :meth:`.Client.get` *only* when the `content` cannot be
+        parsed as XML or JSON.
 
         See :meth:`.estat.Source.handle_response` and
         :meth:`.sgr.Source.handle_response` for example implementations.
@@ -80,8 +80,8 @@ class Source(BaseModel):
     def finish_message(self, message, request, **kwargs):
         """Postprocess retrieved message.
 
-        This hook is called by :meth:`.Client.get` after a :class:`.Message`
-        object has been successfully parsed from the query response.
+        This hook is called by :meth:`.Client.get` after a :class:`.Message` object has
+        been successfully parsed from the query response.
 
         See :meth:`.estat.Source.finish_message` for an example implementation.
         """
@@ -90,12 +90,12 @@ class Source(BaseModel):
     def modify_request_args(self, kwargs):
         """Modify arguments used to build query URL.
 
-        This hook is called by :meth:`.Client.get` to modify the keyword
-        arguments before the query URL is built.
+        This hook is called by :meth:`.Client.get` to modify the keyword arguments
+        before the query URL is built.
 
-        The default implementation handles requests for 'structure-specific
-        data' by adding an HTTP 'Accepts:' header when a 'dsd' is supplied as
-        one of the `kwargs`.
+        The default implementation handles requests for 'structure-specific data' by
+        adding an HTTP 'Accepts:' header when a 'dsd' is supplied as one of the
+        `kwargs`.
 
         See :meth:`.sgr.Source.modify_request_args` for an example override.
 
