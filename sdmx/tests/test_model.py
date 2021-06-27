@@ -571,6 +571,14 @@ def test_itemscheme_compare(caplog):
     ]
 
 
+class TestAttributeValue:
+    def test_str(self):
+        assert "FOO" == str(model.AttributeValue(value="FOO"))
+        assert "FOO" == str(
+            model.AttributeValue(value=model.Code(id="FOO", name="Foo"))
+        )
+
+
 class TestKey:
     @pytest.fixture
     def k1(self):
