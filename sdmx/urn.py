@@ -1,4 +1,5 @@
 import re
+from typing import Dict
 
 from sdmx.model import PACKAGE, MaintainableArtefact
 
@@ -42,5 +43,11 @@ def make(obj, maintainable_parent=None):
     )
 
 
-def match(string):
-    return URN.match(string).groupdict()
+def match(value: str) -> Dict[str, str]:
+    try:
+        match = URN.match(value)
+        assert match is not None
+    except AssertionError:
+        raise ValueError(f"not a valid SDMX URN: {repr(value)}")
+    else:
+        return match.groupdict()
