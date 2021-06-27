@@ -76,7 +76,10 @@ SDMX-JSON —
 ``BBK``: German Federal Bank
 ----------------------------
 
-SDMX-ML — Website `(en) <https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900>`__, `(de) <https://www.bundesbank.de/de/statistiken/zeitreihen-datenbanken/hilfe-zu-sdmx-webservice>`_.
+SDMX-ML —
+Website `(en) <https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900>`__, `(de) <https://www.bundesbank.de/de/statistiken/zeitreihen-datenbanken/hilfe-zu-sdmx-webservice>`__
+
+.. versionadded:: 2.5.0
 
 - German name: Deutsche Bundesbank
 - The web service has some non-standard behaviour; see :issue:`82`.
@@ -84,6 +87,8 @@ SDMX-ML — Website `(en) <https://www.bundesbank.de/en/statistics/time-series-d
   :mod:`sdmx` discards other values with a warning.
 - Some endpoints, including :data:`.codelist`, return malformed URNs and cannot be handled with :mod:`sdmx`.
 
+.. autoclass:: sdmx.source.bbk.Source
+   :members:
 
 .. _ESTAT:
 
