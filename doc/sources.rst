@@ -343,7 +343,7 @@ SDMX-ML or SDMX-JSON —
        </com:StructureUsage>
      </mes:Structure>
 
-  The corresponding DSD actually has the ID ``DSD_AGGREGATE``, which is not obvious from the message.
+  Contrary to this, the corresponding DSD actually has the ID ``DSD_AGGREGATE``, not ``GLOBAL_DATAFLOW``.
   To retrieve the DSD—which is necessary to parse a data message—first query this data *flow* by ID, and select the DSD from the returned message:
 
   .. ipython:: python
