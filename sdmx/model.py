@@ -1055,8 +1055,16 @@ class ConstrainableArtefact(BaseModel):
     """SDMX-IM ConstrainableArtefact."""
 
 
+class DataConsumer(Organisation, ConstrainableArtefact):
+    """SDMX-IM DataConsumer."""
+
+
 class DataProvider(Organisation, ConstrainableArtefact):
     """SDMX-IM DataProvider."""
+
+
+class DataConsumerScheme(ItemScheme[DataConsumer], OrganisationScheme):
+    _Item = DataConsumer
 
 
 class DataProviderScheme(ItemScheme[DataProvider], OrganisationScheme):
