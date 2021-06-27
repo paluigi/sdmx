@@ -48,6 +48,6 @@ def match(value: str) -> Dict[str, str]:
         match = URN.match(value)
         assert match is not None
     except AssertionError:
-        raise ValueError(f"not a valid SDMX URN: {repr(value)}")
+        raise ValueError(f"not a valid SDMX URN: {value}")
     else:
         return match.groupdict()
