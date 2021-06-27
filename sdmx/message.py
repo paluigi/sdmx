@@ -252,6 +252,17 @@ class StructureMessage(Message):
 
         return candidates[0] if len(candidates) == 1 else None
 
+    def objects(self, cls):
+        """Get a reference to the attribute for objects of type `cls`.
+
+        For example, if `cls` is the class :class:`DataStructureDefinition` (not an
+        instance), return a reference to :attr:`structure`.
+        """
+        for name, info in direct_fields(self.__class__).items():
+            if issubclass(cls, info.sub_fields[0].type_):
+                return getattr(self, name)
+        raise TypeError(cls)
+
     def __contains__(self, item):
         """Return :obj:`True` if `item` is in the StructureMessage."""
         for field, field_info in direct_fields(self.__class__).items():
