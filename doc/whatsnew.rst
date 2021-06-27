@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.5.0 (2021-06-27)
+===================
 
 - Add :ref:`BBK` and :ref:`BIS` services to supported sources (:pull:`83`).
 
