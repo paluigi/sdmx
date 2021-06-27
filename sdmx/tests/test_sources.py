@@ -108,6 +108,10 @@ class TestBBK(DataSourceTest):
     }
 
 
+class TestBIS(DataSourceTest):
+    source_id = "BIS"
+
+
 class TestECB(DataSourceTest):
     source_id = "ECB"
     xfail = {

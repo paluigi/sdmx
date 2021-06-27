@@ -90,6 +90,19 @@ Website `(en) <https://www.bundesbank.de/en/statistics/time-series-databases/-/h
 .. autoclass:: sdmx.source.bbk.Source
    :members:
 
+
+.. _BIS:
+
+``BIS``: Bank for International Settlements
+-------------------------------------------
+
+SDMX-ML —
+`Website <https://www.bis.org/statistics/sdmx_techspec.htm>`__ —
+`API reference <https://stats.bis.org/api-doc/v1/>`__
+
+.. versionadded:: 2.5.0
+
+
 .. _ESTAT:
 
 ``ESTAT``: Eurostat

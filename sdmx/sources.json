@@ -17,6 +17,15 @@
     }
   },
   {
+    "id": "BIS",
+    "name": "Bank for International Settlements",
+    "url": "https://stats.bis.org/api/v1",
+    "documentation": "https://www.bis.org/statistics/sdmx_techspec.htm",
+    "supports": {
+      "preview": true
+    }
+  },
+  {
     "id": "ECB",
     "resources": {
         "data": {
