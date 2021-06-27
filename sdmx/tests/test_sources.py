@@ -384,6 +384,14 @@ class TestUNICEF(DataSourceTest):
         dsd = client.dataflow("GLOBAL_DATAFLOW").structure[0]
         client.data("GLOBAL_DATAFLOW", key="ALB+DZA.MNCH_INSTDEL.", dsd=dsd)
 
+    @pytest.mark.network
+    def test_cd2030(self, client):
+        """Test that :ref:`Countdown to 2030 <CD2030>` data can be queried."""
+        dsd = client.dataflow("CONSOLIDATED", provider="CD2030").structure[0]
+
+        # D5: Births
+        client.data("CONSOLIDATED", key=dict(INDICATOR="D5"), dsd=dsd)
+
 
 class TestUNSD(DataSourceTest):
     source_id = "UNSD"
