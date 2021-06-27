@@ -228,7 +228,7 @@ class Client:
         url_parts.extend([provider_id, resource_id])
 
         version = kwargs.pop("version", None)
-        if not version and resource_type != Resource.data:
+        if version is None and resource_type != Resource.data:
             url_parts.append("latest")
 
         key = kwargs.pop("key", None)
