@@ -205,6 +205,8 @@ class SpecimenCollection:
         # JSON data files for the ECB exchange rate data flow
         for fp in (base_path / "ECB_EXR").rglob("*.json"):
             specimens.append((fp, "json", "data"))
+        for fp in (base_path / "OECD").rglob("*.json"):
+            specimens.append((fp, "json", "data"))
 
         # Miscellaneous XML data files
         specimens.append((base_path / "ESTAT" / "footer.xml", "xml", "data"))

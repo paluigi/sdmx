@@ -203,6 +203,9 @@ API documentation `(en) <https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_sta
 - The web service returns a custom HTML error page rather than an SDMX error message for certain queries or an internal error.
   This appears as: ``ValueError: can't determine a SDMX reader for response content type 'text/html; charset=utf-8'``
 
+
+.. _OECD:
+
 ``OECD``: Organisation for Economic Cooperation and Development
 ---------------------------------------------------------------
 
