@@ -6,6 +6,17 @@
     "name": "Australian Bureau of Statistics"
   },
   {
+    "id": "BBK",
+    "url": "https://api.statistiken.bundesbank.de/rest",
+    "documentation": "https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900",
+    "name": "German Federal Bank",
+    "supports": {
+      "categoryscheme": false,
+      "provisionagreement": false,
+      "preview": true
+    }
+  },
+  {
     "id": "ECB",
     "resources": {
         "data": {
