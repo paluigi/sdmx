@@ -11,6 +11,7 @@ What's new?
 Next release
 ============
 
+- Tolerate malformed SDMX-JSON from :ref:`OECD` (:issue:`64`, :pull:`81`).
 - Reduce noise when :mod:`requests_cache` is not installed (:issue:`75`, :pull:`80`).
   An exception is still raised if (a) the package is not installed and (b) cache-related arguments are passed to :class:`Client`.
 - Bugfix: `verify` = :obj:`False` was not passed to the preliminary request used to validate a :class:`dict` key for a data request (:issue:`77`, :pull:`80`).
