@@ -48,6 +48,7 @@ from typing import (
 )
 from warnings import warn
 
+from sdmx.rest import Resource
 from sdmx.util import (
     BaseModel,
     DictLike,

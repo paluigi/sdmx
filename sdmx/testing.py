@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 
 from sdmx.exceptions import HTTPError
+from sdmx.rest import Resource
 from sdmx.source import DataContentType, add_source, sources
-from sdmx.util import Resource
 
 log = logging.getLogger(__name__)
 

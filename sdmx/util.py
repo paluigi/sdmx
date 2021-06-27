@@ -1,6 +1,5 @@
 import logging
 import typing
-from enum import Enum
 from functools import lru_cache
 from typing import Any, Mapping, Tuple, TypeVar, Union
 
@@ -24,60 +23,6 @@ __all__ = [
     "validate_dictlike",
     "validator",
 ]
-
-
-class Resource(str, Enum):
-    """Enumeration of SDMX REST API endpoints.
-
-    ====================== ================================================
-    :class:`Enum` member   :mod:`sdmx.model` class
-    ====================== ================================================
-    ``categoryscheme``     :class:`.CategoryScheme`
-    ``codelist``           :class:`.Codelist`
-    ``conceptscheme``      :class:`.ConceptScheme`
-    ``data``               :class:`.DataSet`
-    ``dataflow``           :class:`.DataflowDefinition`
-    ``datastructure``      :class:`.DataStructureDefinition`
-    ``provisionagreement`` :class:`.ProvisionAgreement`
-    ====================== ================================================
-    """
-
-    # agencyscheme = 'agencyscheme'
-    # attachementconstraint = 'attachementconstraint'
-    # categorisation = 'categorisation'
-    categoryscheme = "categoryscheme"
-    codelist = "codelist"
-    conceptscheme = "conceptscheme"
-    # contentconstraint = 'contentconstraint'
-    data = "data"
-    # dataconsumerscheme = 'dataconsumerscheme'
-    dataflow = "dataflow"
-    # dataproviderscheme = 'dataproviderscheme'
-    datastructure = "datastructure"
-    # hierarchicalcodelist = 'hierarchicalcodelist'
-    # metadata = 'metadata'
-    # metadataflow = 'metadataflow'
-    # metadatastructure = 'metadatastructure'
-    # organisationscheme = 'organisationscheme'
-    # organisationunitscheme = 'organisationunitscheme'
-    # process = 'process'
-    provisionagreement = "provisionagreement"
-    # reportingtaxonomy = 'reportingtaxonomy'
-    # schema = 'schema'
-    # structure = 'structure'
-    # structureset = 'structureset'
-
-    @classmethod
-    def from_obj(cls, obj):
-        """Return an enumeration value based on the class of *obj*."""
-        clsname = {"DataStructureDefinition": "datastructure"}.get(
-            obj.__class__.__name__, obj.__class__.__name__
-        )
-        return cls[clsname.lower()]
-
-    @classmethod
-    def describe(cls):
-        return "{" + " ".join(v.name for v in cls._member_map_.values()) + "}"
 
 
 class BaseModel(pydantic.BaseModel):
