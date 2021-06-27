@@ -289,7 +289,11 @@ class TestOECD(DataSourceTest):
     source_id = "OECD"
     endpoint_args = {
         "data": dict(
-            resource_id="ITF_GOODS_TRANSPORT", key=".T-CONT-RL-TEU+T-CONT-RL-TON"
+            resource_id="ITF_GOODS_TRANSPORT",
+            key=".T-CONT-RL-TEU+T-CONT-RL-TON",
+            # Uncomment this to test https://github.com/khaeru/sdmx/issues/64; also
+            # covered by a specimen in sdmx-test-data
+            # resource_id="PART2",
         )
     }
 
