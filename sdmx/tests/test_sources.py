@@ -13,7 +13,7 @@ import requests_mock
 
 import sdmx
 from sdmx import Client
-from sdmx.exceptions import HTTPError
+from sdmx.exceptions import HTTPError, XMLParseError
 
 # Mark the whole file so the tests can be excluded/included
 pytestmark = pytest.mark.source
@@ -79,6 +79,37 @@ class DataSourceTest:
 
 class TestABS(DataSourceTest):
     source_id = "ABS"
+
+
+class TestBBK(DataSourceTest):
+    source_id = "BBK"
+
+    # See https://github.com/khaeru/sdmx/issues/82
+    xfail = {
+        "codelist": XMLParseError,
+        "datastructure": XMLParseError,
+    }
+
+    endpoint_args = {
+        "data": dict(
+            resource_id="BBDB2",
+            key="H.DE.Y.A.C.IFRS.B.A.K.E.E001.VGH.A",
+            params=dict(startPeriod="2017-S1", endPeriod="2019-S1"),
+        ),
+        "codelist": dict(
+            resource_id="CL_BBK_ERX_RATE_TYPE", params=dict(references="none")
+        ),
+        "conceptscheme": dict(
+            resource_id="CS_BBK_ERX",
+            params=dict(detail="allstubs", references="parentsandsiblings"),
+        ),
+        "dataflow": dict(resource_id="BBEX3", params=dict(detail="referencestubs")),
+        "datastructure": dict(resource_id="BBK_QFS"),
+    }
+
+
+class TestBIS(DataSourceTest):
+    source_id = "BIS"
 
 
 class TestECB(DataSourceTest):
@@ -352,6 +383,14 @@ class TestUNICEF(DataSourceTest):
     def test_data(self, client):
         dsd = client.dataflow("GLOBAL_DATAFLOW").structure[0]
         client.data("GLOBAL_DATAFLOW", key="ALB+DZA.MNCH_INSTDEL.", dsd=dsd)
+
+    @pytest.mark.network
+    def test_cd2030(self, client):
+        """Test that :ref:`Countdown to 2030 <CD2030>` data can be queried."""
+        dsd = client.dataflow("CONSOLIDATED", provider="CD2030").structure[0]
+
+        # D5: Births
+        client.data("CONSOLIDATED", key=dict(INDICATOR="D5"), dsd=dsd)
 
 
 class TestUNSD(DataSourceTest):

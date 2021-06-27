@@ -6,6 +6,26 @@
     "name": "Australian Bureau of Statistics"
   },
   {
+    "id": "BBK",
+    "url": "https://api.statistiken.bundesbank.de/rest",
+    "documentation": "https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900",
+    "name": "German Federal Bank",
+    "supports": {
+      "categoryscheme": false,
+      "provisionagreement": false,
+      "preview": true
+    }
+  },
+  {
+    "id": "BIS",
+    "name": "Bank for International Settlements",
+    "url": "https://stats.bis.org/api/v1",
+    "documentation": "https://www.bis.org/statistics/sdmx_techspec.htm",
+    "supports": {
+      "preview": true
+    }
+  },
+  {
     "id": "ECB",
     "resources": {
         "data": {

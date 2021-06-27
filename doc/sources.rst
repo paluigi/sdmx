@@ -71,6 +71,38 @@ SDMX-JSON —
    :members:
 
 
+.. _BBK:
+
+``BBK``: German Federal Bank
+----------------------------
+
+SDMX-ML —
+Website `(en) <https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900>`__, `(de) <https://www.bundesbank.de/de/statistiken/zeitreihen-datenbanken/hilfe-zu-sdmx-webservice>`__
+
+.. versionadded:: 2.5.0
+
+- German name: Deutsche Bundesbank
+- The web service has some non-standard behaviour; see :issue:`82`.
+- The `version` path component is not-supported for non-data endpoints.
+  :mod:`sdmx` discards other values with a warning.
+- Some endpoints, including :data:`.codelist`, return malformed URNs and cannot be handled with :mod:`sdmx`.
+
+.. autoclass:: sdmx.source.bbk.Source
+   :members:
+
+
+.. _BIS:
+
+``BIS``: Bank for International Settlements
+-------------------------------------------
+
+SDMX-ML —
+`Website <https://www.bis.org/statistics/sdmx_techspec.htm>`__ —
+`API reference <https://stats.bis.org/api-doc/v1/>`__
+
+.. versionadded:: 2.5.0
+
+
 .. _ESTAT:
 
 ``ESTAT``: Eurostat
@@ -279,9 +311,28 @@ SDMX-ML —
 
 SDMX-ML or SDMX-JSON —
 `API documentation <https://data.unicef.org/sdmx-api-documentation/>`__ —
-`Web interface <https://sdmx.data.unicef.org/>`__
+`Web interface <https://sdmx.data.unicef.org/>`__ —
+`Data browser <https://sdmx.data.unicef.org/databrowser/index.html>`__
 
 - This source always returns structure-specific messages for SDMX-ML data queries; even when the HTTP header ``Accept: application/vnd.sdmx.genericdata+xml`` is given.
+
+.. _CD2030:
+
+- UNICEF also serves data for the `Countdown to 2030 <https://www.countdown2030.org/about>`_ initiative under a data flow with the ID ``CONSOLIDATED``.
+  The structures can be obtained by giving the `provider` argument to a structure query, and then used to query the data:
+
+  .. code-block:: python
+
+     import sdmx
+
+     UNICEF = sdmx.Client("UNICEF")
+
+     # Use the dataflow ID to obtain the data structure definition
+     dsd = UNICEF.dataflow("CONSOLIDATED", provider="CD2030").structure[0]
+
+     # Use the DSD to construct a query for indicator D5 (“Births”)
+     client.data("CONSOLIDATED", key=dict(INDICATOR="D5"), dsd=dsd)
+
 - The example query from the UNICEF API documentation (also used in the :mod:`sdmx` test suite) returns XML like:
 
   .. code-block:: xml
@@ -292,7 +343,7 @@ SDMX-ML or SDMX-JSON —
        </com:StructureUsage>
      </mes:Structure>
 
-  The corresponding DSD actually has the ID ``DSD_AGGREGATE``, which is not obvious from the message.
+  Contrary to this, the corresponding DSD actually has the ID ``DSD_AGGREGATE``, not ``GLOBAL_DATAFLOW``.
   To retrieve the DSD—which is necessary to parse a data message—first query this data *flow* by ID, and select the DSD from the returned message:
 
   .. ipython:: python
