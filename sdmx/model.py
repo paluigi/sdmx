@@ -2309,8 +2309,11 @@ for package, classes in _PACKAGE_CLASS.items():
 del cls
 
 
-def get_class(name, package=None):
-    """Return a class object for string *cls* and *package* names."""
+def get_class(name: Union[str, Resource], package=None):
+    """Return a class for string `name` and `package` names."""
+    if isinstance(name, Resource):
+        name = Resource.class_name(name)
+
     name = {"Dataflow": "DataflowDefinition"}.get(name, name)
 
     try:
