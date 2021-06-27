@@ -311,7 +311,8 @@ SDMX-ML —
 
 SDMX-ML or SDMX-JSON —
 `API documentation <https://data.unicef.org/sdmx-api-documentation/>`__ —
-`Web interface <https://sdmx.data.unicef.org/>`__
+`Web interface <https://sdmx.data.unicef.org/>`__ —
+`Data browser <https://sdmx.data.unicef.org/databrowser/index.html>`__
 
 - This source always returns structure-specific messages for SDMX-ML data queries; even when the HTTP header ``Accept: application/vnd.sdmx.genericdata+xml`` is given.
 
