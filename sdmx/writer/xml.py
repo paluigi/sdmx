@@ -135,6 +135,9 @@ def _dm(obj: message.DataMessage):
         # Add data
         elem.append(writer.recurse(ds))
 
+    if obj.footer:
+        elem.append(writer.recurse(obj.footer))
+
     return elem
 
 
@@ -169,6 +172,12 @@ def _sm(obj: message.StructureMessage):
         container.extend(writer.recurse(s) for s in getattr(obj, attr).values())
         structures.append(container)
 
+    if obj.footer:
+        elem.append(writer.recurse(obj.footer))
+
+    return elem
+
+
     return elem
 
 
@@ -186,6 +195,25 @@ def _header(obj: message.Header):
         elem.append(writer.recurse(obj.receiver, _tag="mes:Receiver"))
     if obj.source:
         elem.extend(i11lstring(obj.source, "mes:Source"))
+    return elem
+
+
+@writer
+def _footer(obj: message.Footer):
+    elem = Element("footer:Footer")
+
+    attrs = dict()
+    if obj.code:
+        attrs["code"] = str(obj.code)
+    if obj.severity:
+        attrs["severity"] = str(obj.severity)
+
+    mes = Element("footer:Message", **attrs)
+    elem.append(mes)
+
+    for text in obj.text:
+        mes.extend(i11lstring(text, "com:Text"))
+
     return elem
 
 
