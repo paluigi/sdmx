@@ -178,6 +178,14 @@ def _sm(obj: message.StructureMessage):
     return elem
 
 
+@writer
+def _em(obj: message.ErrorMessage):
+    elem = Element("mes:Error")
+    elem.append(writer.recurse(obj.header))
+
+    if obj.footer:
+        elem.append(writer.recurse(obj.footer))
+
     return elem
 
 
