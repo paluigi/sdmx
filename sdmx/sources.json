@@ -11,8 +11,14 @@
     "documentation": "https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900",
     "name": "German Federal Bank",
     "supports": {
+      "agencyscheme": false,
+      "categorisation": false,
       "categoryscheme": false,
+      "contentconstraint": false,
+      "organisationscheme": false,
       "provisionagreement": false,
+      "structure": false,
+      "structureset": false,
       "preview": true
     }
   },
@@ -22,6 +28,8 @@
     "url": "https://stats.bis.org/api/v1",
     "documentation": "https://www.bis.org/statistics/sdmx_techspec.htm",
     "supports": {
+      "agencyscheme": false,
+      "structureset": false,
       "preview": true
     }
   },
@@ -34,7 +42,10 @@
     },
     "url": "https://sdw-wsrest.ecb.europa.eu/service",
     "name": "European Central Bank",
-    "supports": {"preview": true}
+    "supports": {
+      "preview": true,
+      "provisionagreement": false
+    }
   },
   {
     "id": "ESTAT",
@@ -94,7 +105,9 @@
     "name": "Instituto Nationale di Statistica (IT)",
     "url": "http://sdmx.istat.it/SDMXWS/rest",
     "supports": {
+      "agencyscheme": false,
       "provisionagreement": false,
+      "structureset": false,
       "structure-specific data": true
     }
   },
@@ -104,10 +117,16 @@
     "url": "https://osp-rs.stat.gov.lt/rest_xml",
     "name": "Statistics Lithuania",
     "supports": {
+      "agencyscheme": false,
+      "categorisation": false,
       "categoryscheme": false,
       "codelist": false,
       "conceptscheme": false,
-      "provisionagreement": false
+      "contentconstraint": false,
+      "organisationscheme": false,
+      "provisionagreement": false,
+      "structure": false,
+      "structureset": false
     }
   },
   {
@@ -127,7 +146,14 @@
     "id": "NB",
     "name": "Norges Bank (NO)",
     "url": "https://data.norges-bank.no/api",
-    "supports": {"categoryscheme": false, "structure-specific data": true},
+    "supports": {
+      "agencyscheme": false,
+      "categorisation": false,
+      "categoryscheme": false,
+      "contentconstraint": false,
+      "structureset": false,
+      "structure-specific data": true
+    },
     "headers": {
         "data": {
             "accept": "application/vnd.sdmx.genericdata+xml;version=2.1"
@@ -144,7 +170,10 @@
     "name": "Pacific Data Hub DotStat by The Pacific Community (SPC)",
     "url": "https://stats-nsi-stable.pacificdata.org/rest",
     "documentation": "https://docs.pacificdata.org/dotstat",
-    "supports": {"provisionagreement": false}
+    "supports": {
+      "provisionagreement": false,
+      "structureset": false
+    }
   },
   {
     "id": "STAT_EE",
@@ -160,19 +189,37 @@
     "headers": {
         "accept": "application/vnd.sdmx.structure+xml;version=2.1"
     },
-    "supports": {"datastructure": false}
+    "supports": {
+      "agencyscheme": false,
+      "categorisation": false,
+      "contentconstraint": false,
+      "datastructure": false,
+      "organisationscheme": false,
+      "structure": false,
+      "structureset": false
+    }
   },
   {
     "id": "UNICEF",
     "name": "UN Children's Fund",
     "url": "https://sdmx.data.unicef.org/ws/public/sdmxapi/rest",
-    "supports": {"structure-specific data": true}
+    "supports": {
+      "categorisation": false,
+      "structureset": false,
+      "structure-specific data": true
+    }
   },
   {
     "id": "UNSD",
     "name": "United Nations Statistics Division",
     "url": "http://data.un.org/WS/rest",
-    "supports": {"preview": true, "provisionagreement": false}
+    "supports": {
+      "agencyscheme": false,
+      "contentconstraint": false,
+      "provisionagreement": false,
+      "structureset": false,
+      "preview": true
+    }
   },
   {
     "id": "WB",
@@ -188,7 +235,12 @@
     "name": "World Bank World Development Indicators",
     "url": "http://api.worldbank.org/v2/sdmx/rest",
     "supports": {
+      "agencyscheme": false,
+      "categorisation": false,
+      "contentconstraint": false,
       "provisionagreement": false,
+      "structure": false,
+      "structureset": false,
       "structure-specific data": true
     }
   }
