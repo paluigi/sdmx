@@ -707,7 +707,11 @@ class TestDataKeySet:
         (dict(name=Resource.dataflow), model.DataflowDefinition),
         (dict(name=Resource.organisationscheme), model.OrganisationScheme),
         (dict(name=Resource.provisionagreement), model.ProvisionAgreement),
-        (dict(name=Resource.structure), model.DataStructureDefinition),
+        pytest.param(
+            dict(name=Resource.structure),
+            model.DataStructureDefinition,
+            marks=pytest.mark.skip(reason="Ambiguous value, not implemented"),
+        ),
     ],
 )
 def test_get_class(args, expected):
