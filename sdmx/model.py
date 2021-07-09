@@ -1897,11 +1897,11 @@ class Key(BaseModel):
     """
 
     #:
-    attrib: DictLike[str, AttributeValue]
+    attrib: DictLike[str, AttributeValue] = dictlike_field()
     #:
-    described_by: Optional[DimensionDescriptor]
+    described_by: Optional[DimensionDescriptor] = None
     #: Individual KeyValues that describe the key.
-    values: DictLike[str, KeyValue]
+    values: DictLike[str, KeyValue] = dictlike_field()
 
     def __init__(self, arg: Union[Mapping, Sequence[KeyValue]] = None, **kwargs):
         # DimensionDescriptor
