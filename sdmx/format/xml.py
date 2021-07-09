@@ -51,6 +51,7 @@ _CLS_TAG = [
     (message.DataMessage, qname("mes:StructureSpecificTimeSeriesData")),
     (message.ErrorMessage, qname("mes:Error")),
     (message.StructureMessage, qname("mes:Structure")),
+    (model.Agency, qname("str:Agency")),  # Order matters
     (model.Agency, qname("mes:Receiver")),
     (model.Agency, qname("mes:Sender")),
     (model.AttributeDescriptor, qname("str:AttributeList")),
@@ -59,6 +60,7 @@ _CLS_TAG = [
     (model.DataStructureDefinition, qname("str:DataStructure")),
     (model.DataStructureDefinition, qname("com:Structure")),
     (model.DataStructureDefinition, qname("str:Structure")),
+    (model.Dimension, qname("str:Dimension")),  # Order matters
     (model.Dimension, qname("str:DimensionReference")),
     (model.Dimension, qname("str:GroupDimension")),
     (model.DimensionDescriptor, qname("str:DimensionList")),
@@ -72,7 +74,6 @@ _CLS_TAG = [
 ] + [
     (getattr(model, name), qname("str", name))
     for name in (
-        "Agency",
         "AgencyScheme",
         "Categorisation",
         "Category",
@@ -86,7 +87,6 @@ _CLS_TAG = [
         "DataConsumerScheme",
         "DataProvider",
         "DataProviderScheme",
-        "Dimension",
         "PrimaryMeasure",
         "MeasureDimension",
         "TimeDimension",
