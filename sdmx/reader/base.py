@@ -34,7 +34,7 @@ class BaseReader(ABC):
         for ctype in map(parse_content_type, cls.content_types):
             if ctype[0] == other[0]:
                 if ctype[1] != other[1]:
-                    log.warning(
+                    log.debug(
                         f"Match {ctype[0]} with params {other[1]}; expected {ctype[1]}"
                     )
                 return True
