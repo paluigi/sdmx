@@ -1,5 +1,6 @@
 import logging
 import typing
+from collections.abc import Iterator
 from functools import lru_cache
 from typing import Any, Mapping, Tuple, TypeVar, Union
 
@@ -18,6 +19,7 @@ __all__ = [
     "DictLike",
     "compare",
     "dictlike_field",
+    "only",
     "summarize_dictlike",
     "validate_dictlike",
     "validator",
@@ -183,6 +185,18 @@ def compare(attr, a, b, strict: bool) -> bool:
     # if not result:
     #     log.info(f"Not identical: {attr}={getattr(a, attr)} / {getattr(b, attr)}")
     # return result
+
+
+def only(iterator: Iterator) -> Any:
+    """Return the only element of `iterator`, or :obj:`None`."""
+    try:
+        result = next(iterator)
+        flag = object()
+        assert flag is next(iterator, flag)
+    except (StopIteration, AssertionError):
+        return None  # 0 or ≥2 matches
+    else:
+        return result
 
 
 @lru_cache()
