@@ -8,24 +8,24 @@ class BaseWriter:
 
     - Create an instance of this class.
     - Use :meth:`register` in the same manner as Python's built-in
-      :func:`functools.singledispatch` to decorate functions that certain types
-      of :mod:`sdmx.model` or :mod:`sdmx.message` objects.
-    - Call :meth:`recurse` to kick off recursive writing of objects, including
-      from inside other functions.
+      :func:`functools.singledispatch` to decorate functions that certain types of
+      :mod:`sdmx.model` or :mod:`sdmx.message` objects.
+    - Call :meth:`recurse` to kick off recursive writing of objects, including from
+      inside other functions.
 
     Example
     -------
-    MyWriter = BaseWriter('my')
+    >>> MyWriter = BaseWriter('my')
 
-    @MyWriter.register
-    def _(obj: sdmx.model.ItemScheme):
-        ... code to write an ItemScheme ...
-        return result
+    >>> @MyWriter.register
+    >>> def _(obj: sdmx.model.ItemScheme):
+    >>>     ... code to write an ItemScheme ...
+    >>>     return result
 
-    @MyWriter.register
-    def _(obj: sdmx.model.Codelist):
-        ... code to write a Codelist ...
-        return result
+    >>> @MyWriter.register
+    >>> def _(obj: sdmx.model.Codelist):
+    >>>     ... code to write a Codelist ...
+    >>>     return result
     """
 
     def __init__(self, format_name):

@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from importlib import import_module
 from io import TextIOWrapper
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from pkg_resources import resource_stream
 
@@ -18,9 +18,9 @@ DataContentType = Enum("DataContentType", "XML JSON")
 class Source(BaseModel):
     """SDMX-IM RESTDatasource.
 
-    This class describes the location and features supported by an SDMX data
-    source. Subclasses may override the hooks in order to handle specific
-    features of different REST web services:
+    This class describes the location and features supported by an SDMX data source.
+    Subclasses may override the hooks in order to handle specific features of different
+    REST web services:
 
     .. autosummary::
        handle_response
@@ -164,7 +164,9 @@ class _NoSource(Source):
 NoSource = _NoSource()
 
 
-def add_source(info, id=None, override=False, **kwargs):
+def add_source(
+    info: Union[Dict, str], id: Optional[str] = None, override: bool = False, **kwargs
+) -> None:
     """Add a new data source.
 
     The *info* expected is in JSON format:
@@ -176,35 +178,32 @@ def add_source(info, id=None, override=False, **kwargs):
           "documentation": "http://data.un.org/Host.aspx?Content=API",
           "url": "http://ec.europa.eu/eurostat/SDMX/diss-web/rest",
           "name": "Eurostat",
-          "supported": {"codelist": false, "preview": true}
+          "supports": {"codelist": false, "preview": true}
         }
 
-    …with unspecified values using the defaults; see
-    :class:`Source`.
+    …with unspecified values using the defaults; see :class:`Source`.
 
     Parameters
     ----------
     info : dict-like
         String containing JSON information about a data source.
     id : str
-        Identifier for the new datasource. If :obj:`None` (default), then
-        `info['id']` is used.
+        Identifier for the new datasource. If :obj:`None` (default), then `info['id']`
+        is used.
     override : bool
-        If :obj:`True`, replace any existing data source with *id*.
-        Otherwise, raise :class:`ValueError`.
+        If :obj:`True`, replace any existing data source with *id*. Otherwise, raise
+        :class:`ValueError`.
     **kwargs
         Optional callbacks for *handle_response* and *finish_message* hooks.
 
     """
-    if isinstance(info, str):
-        info = json.loads(info)
+    _info = json.loads(info) if isinstance(info, str) else info
+    id = id or _info["id"]
 
-    id = info["id"] if id is None else id
-
-    info.update(kwargs)
+    _info.update(kwargs)
 
     if not override and id in sources:
-        raise ValueError("Data source '%s' already defined; use override=True", id)
+        raise ValueError(f"Data source {repr(id)} already defined; use override=True")
 
     # Maybe import a subclass that defines a hook
     SourceClass = Source
@@ -213,9 +212,9 @@ def add_source(info, id=None, override=False, **kwargs):
     except ImportError:
         pass
     else:
-        SourceClass = mod.Source
+        SourceClass = getattr(mod, "Source")
 
-    sources[id] = SourceClass.from_dict(info)
+    sources[id] = SourceClass.from_dict(_info)
 
 
 def list_sources():
@@ -227,7 +226,7 @@ def list_sources():
 
 
 def load_package_sources():
-    """Discover all sources listed in ``sources.json``."""
+    """Discover all sources listed in :file:`sources.json`."""
     with resource_stream("sdmx", "sources.json") as f:
         # TextIOWrapper is for Python 3.5 compatibility
         for info in json.load(TextIOWrapper(f)):

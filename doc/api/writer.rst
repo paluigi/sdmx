@@ -83,6 +83,7 @@ Writer API
 
 .. automodule:: sdmx.writer
    :members:
+   :exclude-members: to_pandas, to_xml
 
 .. autoclass:: sdmx.writer.base.BaseWriter
    :members:

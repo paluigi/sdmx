@@ -13,6 +13,7 @@ Some parts of the API are described on separate pages:
 - :mod:`sdmx.model`: :doc:`api/model`.
 - :mod:`sdmx.reader`: :doc:`api/reader`.
 - :mod:`sdmx.writer`: :doc:`api/writer`.
+- :mod:`sdmx.source` on the page :doc:`sources`.
 
 See also the :doc:`implementation`.
 
@@ -82,20 +83,6 @@ SDMX-ML
 ------------------------------------------
 .. autoclass:: sdmx.session.Session
 .. autoclass:: sdmx.session.ResponseIO
-
-
-``source``: Features of SDMX data sources
------------------------------------------
-
-This module defines :class:`Source <sdmx.source.Source>` and some utility functions.
-For built-in subclasses of Source used to provide :mod:`sdmx`'s built-in support
-for certain data sources, see :doc:`sources`.
-
-.. autoclass:: sdmx.source.Source
-   :members:
-
-.. automodule:: sdmx.source
-   :members: list_sources, load_package_sources
 
 
 ``util``: Utilities
