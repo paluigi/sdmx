@@ -2,7 +2,7 @@ import pydantic
 import pytest
 from pydantic import StrictStr
 
-from sdmx.util import BaseModel, DictLike, validate_dictlike
+from sdmx.util import BaseModel, DictLike, only, validate_dictlike
 
 
 class TestDictLike:
@@ -95,3 +95,15 @@ class TestDictLike:
         @validate_dictlike
         class Bar(BaseModel):
             elems: DictLike[StrictStr, float] = DictLike()
+
+    def test_compare(self, caplog):
+        dl1 = DictLike(a="foo", b="bar")
+        dl2 = DictLike(c="baz", a="foo")
+
+        assert not dl1.compare(dl2)
+        assert "Not identical: ['a', 'b'] / ['a', 'c']" in caplog.messages
+
+
+def test_only():
+    assert None is only(filter(lambda x: x == "foo", ["bar", "baz"]))
+    assert None is only(filter(lambda x: x == "foo", ["foo", "bar", "foo"]))
