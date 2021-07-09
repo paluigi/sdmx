@@ -59,6 +59,10 @@ class DictLike(dict, typing.MutableMapping[KT, VT]):
             else:
                 raise
 
+    def __getstate__(self):
+        """Exclude ``__field`` from items to be pickled."""
+        return {"__dict__": self.__dict__}
+
     def __setitem__(self, key: KT, value: VT) -> None:
         """:meth:`dict.__setitem` with validation."""
         super().__setitem__(*self._validate_entry(key, value))
