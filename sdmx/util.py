@@ -215,8 +215,7 @@ def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
 
 try:
     from typing import get_args  # type: ignore [attr-defined]
-except ImportError:
-
+except ImportError:  # pragma: no cover
+    # For Python <3.8
     def get_args(tp) -> Tuple[Any, ...]:
-        """For Python <3.8."""
         return tp.__args__
