@@ -6,7 +6,7 @@ import requests
 try:
     from requests_cache import CachedSession as MaybeCachedSession
 except ImportError:  # pragma: no cover
-    from requests import Session as MaybeCachedSession
+    from requests import Session as MaybeCachedSession  # type: ignore [misc]
 
 
 # Known keyword arguments for requests_cache.CachedSession
