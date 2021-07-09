@@ -2316,7 +2316,7 @@ for package, classes in _PACKAGE_CLASS.items():
 del cls
 
 
-@lru_cache
+@lru_cache()
 def get_class(name: Union[str, Resource], package=None) -> Optional[Type]:
     """Return a class for `name` and (optional) `package` names."""
     if isinstance(name, Resource):
