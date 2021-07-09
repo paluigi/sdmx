@@ -8,8 +8,38 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add information from the SDMX-REST standard (:pull:`84`):
+
+  - :data:`.format.FORMATS`, all media (MIME or content) types and their attributes.
+  - :class:`.Resource`, expanded and including all resource names appearing in the standard.
+  - :data:`.rest.RESPONSE_CODE`.
+
+- Information Model pieces:
+
+  - Classes :class:`.DataConsumer`, :class:`.DataProvider`.
+  - Attribute :attr:`.DataSet.described_by`, referencing a :class:`DFD <.DataflowDefinition>` in the same way :attr:`~.DataSet.structured_by` references a :class:`DSD <.DataStructureDefinition>`.
+
+- :mod:`sdmx.writer.xml`:
+
+  - Write :class:`.Footer` into messages.
+  - Do not create URNs for members of :class:`ItemSchemes <.ItemScheme>`; only write existing URNs.
+    This improves round-trip fidelity to original files.
+
+- Convenience methods and functionality:
+
+  - :meth:`.StructureMessage.objects` to access collections of structures using a class reference.
+  - :func:`len` on :class:`.MemberSelection`.
+  - :func:`.model.get_class` now works with :class:`.Resource` enumeration values as arguments.
+
+- Internal:
+
+  - New :class:`.BaseReader` methods :meth:`.supports_content_type` and :meth:`.supports_suffix`.
+  - :func:`.util.only`, :func:`.util.parse_content_type`.
+
+
 
 v2.5.0 (2021-06-27)
 ===================
