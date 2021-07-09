@@ -24,7 +24,7 @@ __all__ = [
 
 try:
     __version__ = pkg_resources.get_distribution("sdmx1").version
-except Exception:
+except Exception:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = "999"
 
