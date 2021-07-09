@@ -34,7 +34,7 @@ def test_make():
             "Cannot construct URN for <Codelist BAZ:FOO (1 items)> without version"
         ),
     ):
-        make(c)
+        make(c, strict=True)
 
     cl.version = "1.2.3"
 

@@ -18,7 +18,7 @@ _BASE = (
 )
 
 
-def make(obj, maintainable_parent=None):
+def make(obj, maintainable_parent=None, strict=False):
     """Create an SDMX URN for `obj`.
 
     If `obj` is not :class:`.MaintainableArtefact`, then `maintainable_parent`
@@ -37,7 +37,7 @@ def make(obj, maintainable_parent=None):
         )
     elif ma.maintainer is None:
         raise ValueError(f"Cannot construct URN for {repr(ma)} without maintainer")
-    elif ma.version is None:
+    elif strict and ma.version is None:
         raise ValueError(f"Cannot construct URN for {repr(ma)} without version")
 
     return _BASE.format(
