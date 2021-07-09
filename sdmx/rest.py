@@ -2,6 +2,15 @@
 
 from enum import Enum
 
+#: Mapping from Resource value to class name.
+CLASS_NAME = {
+    "dataflow": "DataflowDefinition",
+    "datastructure": "DataStructureDefinition",
+}
+
+#: Inverse of :data:`CLASS_NAME`.
+VALUE = {v: k for k, v in CLASS_NAME.items()}
+
 
 class Resource(str, Enum):
     """Enumeration of SDMX-REST API resources.
@@ -80,18 +89,13 @@ class Resource(str, Enum):
 
     @classmethod
     def from_obj(cls, obj):
-        """Return an enumeration value based on the class of *obj*."""
-        clsname = {"DataStructureDefinition": "datastructure"}.get(
-            obj.__class__.__name__, obj.__class__.__name__
-        )
-        return cls[clsname.lower()]
+        """Return an enumeration value based on the class of `obj`."""
+        value = obj.__class__.__name__
+        return cls[VALUE.get(value, value)]
 
     @classmethod
-    def class_name(cls, value, default=None):
-        return {
-            cls.agencyscheme: "AgencyScheme",
-            cls.codelist: "Codelist",
-        }.get(value, default)
+    def class_name(cls, value: "Resource", default=None) -> str:
+        return CLASS_NAME.get(value.value, value.value)
 
     @classmethod
     def describe(cls):
