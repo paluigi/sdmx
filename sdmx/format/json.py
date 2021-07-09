@@ -1,7 +1,7 @@
 """Information about the SDMX-JSON file format."""
 from sdmx.format import list_content_types
 
-#: Known media types types for SDMX-JSON.
+#: Known media types for SDMX-JSON.
 CONTENT_TYPES = [
     # Older files
     "application/vnd.sdmx.draft-sdmx-json+json",

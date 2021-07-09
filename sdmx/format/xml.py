@@ -10,7 +10,7 @@ from sdmx.format import list_content_types
 
 log = logging.getLogger(__name__)
 
-#: Known media types types for SDMX-ML.
+#: Known media types for SDMX-ML.
 CONTENT_TYPES = [
     "application/xml",
     "text/xml",

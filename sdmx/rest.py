@@ -34,7 +34,7 @@ class Resource(str, Enum):
     ``organisationscheme``        :class:`.OrganisationScheme`
     ``provisionagreement``        :class:`.ProvisionAgreement`
     ``structure``                 Mixed.
-    ============================= ======================================================
+    ----------------------------- ------------------------------------------------------
     ``customtypescheme``          Not implemented.
     ``hierarchicalcodelist``      Not implemented.
     ``metadata``                  Not implemented.
@@ -51,6 +51,7 @@ class Resource(str, Enum):
     ``userdefinedoperatorscheme`` Not implemented.
     ``vtlmappingscheme``          Not implemented.
     ============================= ======================================================
+
     """
 
     actualconstraint = "actualconstraint"

@@ -25,8 +25,33 @@ Top-level methods and classes
       to_pandas
       to_xml
 
+``format``: SDMX file formats
+-----------------------------
+
+.. automodule:: sdmx.format
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   This information is used across other modules including :mod:`sdmx.reader`,
+   :mod:`sdmx.client`, and :mod:`sdmx.writer`.
+
+SDMX-JSON
+:::::::::
+
+.. automodule:: sdmx.format.json
+   :members:
+
+SDMX-ML
+:::::::
+
+.. automodule:: sdmx.format.xml
+   :members:
+
+
 ``message``: SDMX messages
 --------------------------
+
 .. automodule:: sdmx.message
    :members:
    :undoc-members:
