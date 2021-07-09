@@ -1,13 +1,13 @@
 """Information related to the SDMX-REST web service standard."""
 from enum import Enum
 
-#: Mapping from Resource value to class name.
+# Mapping from Resource value to class name.
 CLASS_NAME = {
     "dataflow": "DataflowDefinition",
     "datastructure": "DataStructureDefinition",
 }
 
-#: Inverse of :data:`CLASS_NAME`.
+# Inverse of :data:`CLASS_NAME`.
 VALUE = {v: k for k, v in CLASS_NAME.items()}
 
 
@@ -95,6 +95,10 @@ class Resource(str, Enum):
 
     @classmethod
     def class_name(cls, value: "Resource", default=None) -> str:
+        """Return the name of a :mod:`sdmx.model` class from an enum value.
+
+        Values are returned in lower case.
+        """
         return CLASS_NAME.get(value.value, value.value)
 
     @classmethod
