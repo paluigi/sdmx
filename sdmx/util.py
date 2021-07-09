@@ -16,7 +16,6 @@ log = logging.getLogger(__name__)
 __all__ = [
     "BaseModel",
     "DictLike",
-    "Resource",
     "compare",
     "dictlike_field",
     "summarize_dictlike",
