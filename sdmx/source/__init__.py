@@ -40,25 +40,54 @@ class Source(BaseModel):
 
     headers: Dict[str, Any] = {}
 
-    #: :class:`.DataContentType` indicating the type of data returned by the
-    #: source.
+    #: :class:`.DataContentType` indicating the type of data returned by the source.
     data_content_type: DataContentType = DataContentType.XML
 
-    #: Mapping from :class:`~sdmx.Resource` to :class:`bool` indicating support
-    #: for SDMX REST API features. Two additional keys are valid:
+    #: Mapping from :class:`.Resource` values to :class:`bool` indicating support for
+    #: SDMX-REST endpoints and features. Most of these values indicate endpoints that
+    #: are described in the standards but are not implemented by any source currently in
+    #: :file:`sources.json`; these all return 404.
+    #:
+    #: Two additional keys are valid:
     #:
     #: - ``'preview'=True`` if the source supports ``?detail=serieskeysonly``.
     #:   See :meth:`.preview_data`.
     #: - ``'structure-specific data'=True`` if the source can return structure-
     #:   specific data messages.
-    supports: Dict[Union[str, Resource], bool] = {Resource.data: True}
+    supports: Dict[Union[str, Resource], bool] = {
+        Resource.data: True,
+        Resource.actualconstraint: False,
+        Resource.allowedconstraint: False,
+        Resource.attachementconstraint: False,
+        Resource.customtypescheme: False,
+        Resource.dataconsumerscheme: False,
+        Resource.dataproviderscheme: False,
+        Resource.hierarchicalcodelist: False,
+        Resource.metadata: False,
+        Resource.metadataflow: False,
+        Resource.metadatastructure: False,
+        Resource.namepersonalisationscheme: False,
+        Resource.organisationunitscheme: False,
+        Resource.process: False,
+        Resource.reportingtaxonomy: False,
+        Resource.rulesetscheme: False,
+        Resource.schema: False,
+        Resource.transformationscheme: False,
+        Resource.userdefinedoperatorscheme: False,
+        Resource.vtlmappingscheme: False,
+    }
 
     @classmethod
     def from_dict(cls, info):
         return cls(**info)
 
     def __init__(self, **kwargs):
+        # Merge supports values with defaults
+        supports = kwargs.pop("supports", dict())
+
         super().__init__(**kwargs)
+
+        self.supports.update(supports)
 
         # Set default supported features
         for feature in list(Resource) + ["preview", "structure-specific data"]:
