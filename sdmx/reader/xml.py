@@ -38,7 +38,7 @@ SKIP = (
     "str:Categorisations str:CategorySchemes str:Codelists str:Concepts "
     "str:ConstraintAttachment str:Constraints str:Dataflows "
     "str:DataStructureComponents str:DataStructures str:None str:OrganisationSchemes "
-    "str:ProvisionAgreements "
+    "str:ProvisionAgreements str:StructureSets "
     # Contents of references
     ":Ref :URN"
 )
@@ -785,7 +785,10 @@ def _a(reader, elem):
 # §3.5: Item Scheme
 
 
-@start("str:Agency str:Code str:Category str:Concept str:DataProvider", only=False)
+@start(
+    "str:Agency str:Code str:Category str:Concept str:DataConsumer str:DataProvider",
+    only=False,
+)
 def _item_start(reader, elem):
     # Avoid stealing the name & description of the parent ItemScheme from the stack
     # TODO check this works for annotations
@@ -801,7 +804,7 @@ def _item_start(reader, elem):
     reader.stash("Name", "Description")
 
 
-@end("str:Agency str:Code str:Category str:DataProvider", only=False)
+@end("str:Agency str:Code str:Category str:DataConsumer str:DataProvider", only=False)
 def _item(reader, elem):
     try:
         # <str:DataProvider> may be a reference, e.g. in <str:ConstraintAttachment>
@@ -838,7 +841,7 @@ def _item(reader, elem):
 
 @end(
     "str:AgencyScheme str:Codelist str:ConceptScheme str:CategoryScheme "
-    "str:DataProviderScheme",
+    "str:DataConsumerScheme str:DataProviderScheme",
 )
 def _itemscheme(reader, elem):
     cls = class_for_tag(elem.tag)
