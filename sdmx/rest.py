@@ -1,5 +1,4 @@
 """Information related to the SDMX-REST web service standard."""
-
 from enum import Enum
 
 #: Mapping from Resource value to class name.
@@ -100,3 +99,20 @@ class Resource(str, Enum):
     @classmethod
     def describe(cls):
         return "{" + " ".join(v.name for v in cls._member_map_.values()) + "}"
+
+
+#: Response codes defined by the SDMX-REST standard.
+RESPONSE_CODE = {
+    200: "OK",
+    304: "No changes",
+    400: "Bad syntax",
+    401: "Unauthorized",
+    403: "Semantic error",  # or "Forbidden"
+    404: "Not found",
+    406: "Not acceptable",
+    413: "Request entity too large",
+    414: "URI too long",
+    500: "Internal server error",
+    501: "Not implemented",
+    503: "Unavailable",
+}
