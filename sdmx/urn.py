@@ -24,8 +24,8 @@ def make(obj, maintainable_parent=None):
     If `obj` is not :class:`.MaintainableArtefact`, then `maintainable_parent`
     must be supplied in order to construct the URN.
     """
-    if maintainable_parent:
-        ma = maintainable_parent
+    if not isinstance(obj, MaintainableArtefact):
+        ma = maintainable_parent or obj.get_scheme()
         extra_id = f".{obj.id}"
     else:
         ma = obj
