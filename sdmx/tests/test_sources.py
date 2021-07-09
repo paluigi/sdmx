@@ -29,8 +29,16 @@ class DataSourceTest:
     # Must be one of the IDs in sources.json.
     source_id: str
 
-    # Mapping of endpoint → Exception subclass.
-    # Tests of these endpoints are expected to fail.
+    #: Failures affecting **all** data sources, internal to :mod:`sdmx`.
+    xfail_common = {
+        "contentconstraint": XMLParseError,  # KeyError
+        # <str:StructureSet> <str:HierarchicalCodelists> not implemented
+        "structure": XMLParseError,
+        "structureset": XMLParseError,  # <str:StructureSet> not implemented
+    }
+
+    #: Mapping of endpoint → Exception subclass. Tests of these endpoints are expected
+    #: to fail with the given kind of exception.
     xfail: Dict[str, Type[Exception]] = {}
 
     # True to xfail if a 503 Error is returned
