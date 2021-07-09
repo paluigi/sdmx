@@ -1,7 +1,10 @@
+import pickle
+
 import pydantic
 import pytest
 from pydantic import StrictStr
 
+import sdmx
 from sdmx.util import BaseModel, DictLike, only, validate_dictlike
 
 
@@ -102,6 +105,16 @@ class TestDictLike:
 
         assert not dl1.compare(dl2)
         assert "Not identical: ['a', 'b'] / ['a', 'c']" in caplog.messages
+
+    def test_pickle(self, specimen):
+        """Instances included in a Pydantic model can be pickled."""
+        with specimen("sg-xs.xml") as f:
+            msg1 = sdmx.read_sdmx(f)
+
+        value = pickle.dumps(msg1)
+        msg2 = pickle.loads(value)
+
+        assert msg1.compare(msg2)
 
 
 def test_only():
