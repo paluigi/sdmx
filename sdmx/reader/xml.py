@@ -21,7 +21,7 @@ from lxml.etree import QName
 import sdmx.urn
 from sdmx import message, model
 from sdmx.exceptions import XMLParseError  # noqa: F401
-from sdmx.format.xml import class_for_tag, qname
+from sdmx.format.xml import CONTENT_TYPES, class_for_tag, qname
 from sdmx.reader.base import BaseReader
 
 log = logging.getLogger(__name__)
@@ -197,13 +197,7 @@ class Reference:
 
 
 class Reader(BaseReader):
-    content_types = [
-        "application/xml",
-        "application/vnd.sdmx.genericdata+xml",
-        "application/vnd.sdmx.structure+xml",
-        "application/vnd.sdmx.structurespecificdata+xml",
-        "text/xml",
-    ]
+    content_types = CONTENT_TYPES
     suffixes = [".xml"]
 
     # One-way counter for use in stacks

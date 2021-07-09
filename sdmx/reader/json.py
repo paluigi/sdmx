@@ -3,6 +3,7 @@ import json
 import logging
 
 from sdmx import model
+from sdmx.format.json import CONTENT_TYPES
 from sdmx.message import DataMessage, Header
 from sdmx.model import (
     ActionType,
@@ -21,15 +22,9 @@ log = logging.getLogger(__name__)
 
 
 class Reader(BaseReader):
-    """Read SDMXJSON 2.1 and expose it as instances from :mod:`sdmx.model`."""
+    """Read SDMX-JSON and expose it as instances from :mod:`sdmx.model`."""
 
-    content_types = [
-        "application/vnd.sdmx.draft-sdmx-json+json",
-        # For e.g. OECD
-        "draft-sdmx-json",
-        "text/json",
-    ]
-
+    content_types = CONTENT_TYPES
     suffixes = [".json"]
 
     @classmethod
