@@ -27,6 +27,7 @@ from collections.abc import Iterable as IterableABC
 from copy import copy
 from datetime import date, datetime, timedelta
 from enum import Enum
+from functools import lru_cache
 from inspect import isclass
 from itertools import product
 from operator import attrgetter, itemgetter
@@ -54,6 +55,7 @@ from sdmx.util import (
     DictLike,
     compare,
     dictlike_field,
+    only,
     validate_dictlike,
     validator,
 )
@@ -2314,10 +2316,18 @@ for package, classes in _PACKAGE_CLASS.items():
 del cls
 
 
-def get_class(name: Union[str, Resource], package=None):
-    """Return a class for string `name` and `package` names."""
+@lru_cache
+def get_class(name: Union[str, Resource], package=None) -> Optional[Type]:
+    """Return a class for `name` and (optional) `package` names."""
     if isinstance(name, Resource):
-        name = Resource.class_name(name)
+        # Convert a Resource enumeration value to a string
+
+        # Expected class name in lower case; maybe just the enumeration value
+        match = Resource.class_name(name).lower()
+
+        # Match class names in lower case. If no match or >2, only() returns None, and
+        # KeyError occurs below
+        name = only(filter(lambda g: g.lower() == match, globals().keys()))
 
     name = {"Dataflow": "DataflowDefinition"}.get(name, name)
 
@@ -2325,11 +2335,11 @@ def get_class(name: Union[str, Resource], package=None):
         cls = globals()[name]
     except KeyError:
         return None
-    else:
-        if package and package != PACKAGE[cls]:
-            raise ValueError(f"Package {repr(package)} invalid for {name}")
 
-        return cls
+    if package and package != PACKAGE[cls]:
+        raise ValueError(f"Package {repr(package)} invalid for {name}")
+
+    return cls
 
 
 def parent_class(cls):
