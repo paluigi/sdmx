@@ -2,7 +2,7 @@ import logging
 import typing
 from collections.abc import Iterator
 from functools import lru_cache
-from typing import Any, Mapping, Tuple, TypeVar, Union
+from typing import Any, Dict, Mapping, Tuple, TypeVar, Union
 
 import pydantic
 from pydantic import Field, ValidationError, validator
@@ -201,6 +201,27 @@ def only(iterator: Iterator) -> Any:
         return None  # 0 or ≥2 matches
     else:
         return result
+
+
+def parse_content_type(value: str) -> Tuple[str, Dict[str, Any]]:
+    """Return content type and parameters from `value`.
+
+    Modified from :mod:`requests.util`.
+    """
+    tokens = value.split(";")
+    content_type, params_raw = tokens[0].strip(), tokens[1:]
+    params = {}
+    to_strip = "\"' "
+
+    for param in params_raw:
+        k, *v = param.strip().split("=")
+
+        if not k and not v:
+            continue
+
+        params[k.strip(to_strip).lower()] = v[0].strip(to_strip) if len(v) else True
+
+    return content_type, params
 
 
 @lru_cache()
