@@ -30,7 +30,12 @@ extensions = [
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.
-html_theme = "alabaster"
+html_theme = "sphinx_book_theme"
+
+html_theme_options = dict(
+    repository_url="https://github.com/khaeru/sdmx",
+    use_repository_button=True,
+)
 
 
 # -- Options for sphinx.ext.extlinks -----------------------------------------
