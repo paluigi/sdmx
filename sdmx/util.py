@@ -5,9 +5,18 @@ from functools import lru_cache
 from typing import Any, Dict, Mapping, Tuple, TypeVar, Union
 
 import pydantic
+import requests
 from pydantic import Field, ValidationError, validator
 from pydantic.class_validators import make_generic_validator
 from pydantic.typing import get_origin  # type: ignore [attr-defined]
+
+try:
+    import requests_cache
+except ImportError:  # pragma: no cover
+    HAS_REQUESTS_CACHE = False
+else:
+    HAS_REQUESTS_CACHE = True
+
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
@@ -32,6 +41,20 @@ class BaseModel(pydantic.BaseModel):
     class Config:
         copy_on_model_validation = False
         validate_assignment = True
+
+
+class MaybeCachedSession(type):
+    """Metaclass to inherit from :class:`requests_cache.CachedSession`, if available.
+
+    If :mod:`requests_cache` is not installed, returns :class:`requests.Session` as a
+    base class.
+    """
+
+    def __new__(cls, name, bases, dct):
+        base = (
+            requests.Session if not HAS_REQUESTS_CACHE else requests_cache.CachedSession
+        )
+        return super().__new__(cls, name, (base,), dct)
 
 
 class DictLike(dict, typing.MutableMapping[KT, VT]):
