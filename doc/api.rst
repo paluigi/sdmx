@@ -89,5 +89,5 @@ SDMX-ML
 -------------------
 .. automodule:: sdmx.util
    :members:
-   :exclude-members: BaseModel, summarize_dictlike
+   :exclude-members: BaseModel, summarize_dictlike, validator
    :show-inheritance:
