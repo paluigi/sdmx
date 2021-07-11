@@ -125,7 +125,7 @@ def generate_endpoint_tests(metafunc):
     source = sources[metafunc.cls.source_id]
 
     # Merge "common" and subclass-specific xfails
-    xfails = ChainMap(metafunc.cls.xfail_common, metafunc.cls.xfail)
+    xfails = ChainMap(metafunc.cls.xfail, metafunc.cls.xfail_common)
 
     # Iterate over all known endpoints
     for ep in Resource:

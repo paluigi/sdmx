@@ -6,7 +6,7 @@ To force the data to be retrieved over the Internet, delete this directory.
 # TODO add a pytest argument for clearing this cache in conftest.py
 import logging
 from pathlib import Path
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type
 
 import pytest
 import requests_mock
@@ -39,7 +39,7 @@ class DataSourceTest:
 
     #: Mapping of endpoint → Exception subclass. Tests of these endpoints are expected
     #: to fail with the given kind of exception.
-    xfail: Dict[str, Type[Exception]] = {}
+    xfail: Dict[str, Optional[Type[Exception]]] = {}
 
     #: True to xfail if a 503 Error is returned.
     tolerate_503 = False
