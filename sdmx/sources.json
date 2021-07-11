@@ -85,7 +85,9 @@
     "name": "Instituto Nacional de Estadística y Geografía (MX)",
     "supports": {
       "agencyscheme": false,
+      "contentconstraint": false,
       "provisionagreement": false,
+      "structureset": false,
       "structure-specific data": true
     }
   },

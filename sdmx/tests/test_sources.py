@@ -217,6 +217,7 @@ class TestILO(DataSourceTest):
     xfail = {
         "agencyscheme": HTTPError,  # 400
         "codelist": HTTPError,  # 413 Client Error: Client Entity Too Large
+        "contentconstraint": None,  # This actually passes; the message is empty.
         "organisationscheme": HTTPError,  # 400
         "structure": HTTPError,  # 400
         "structureset": NotImplementedError,  # 501
@@ -231,6 +232,13 @@ class TestILO(DataSourceTest):
 
 class TestINEGI(DataSourceTest):
     source_id = "INEGI"
+
+    xfail = {
+        "organisationscheme": HTTPError,  # 400
+        "structure": NotImplementedError,  # 501
+        "structureset": NotImplementedError,  # 501
+    }
+
     endpoint_args = dict(
         # 404 Not Found when the own source's ID ("INEGI") is used
         conceptscheme=dict(provider="ALL")
@@ -241,6 +249,7 @@ class TestINSEE(DataSourceTest):
     source_id = "INSEE"
 
     xfail = {
+        "agencyscheme": HTTPError,  # 400
         "contentconstraint": HTTPError,  # 400
         "organisationscheme": HTTPError,  # 400
         "structure": HTTPError,  # 400
@@ -326,6 +335,10 @@ class TestNB(DataSourceTest):
     """
 
     source_id = "NB"
+
+    xfail = {
+        "structure": None,  # This actually passes; contains already supported SDMX-ML
+    }
 
 
 class TestNBB(DataSourceTest):
