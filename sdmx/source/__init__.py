@@ -1,10 +1,11 @@
 import json
 from enum import Enum
 from importlib import import_module
-from io import TextIOWrapper
-from typing import Any, Dict, Optional, Union
+from io import IOBase, TextIOWrapper
+from typing import Any, Dict, Optional, Tuple, Union
 
 from pkg_resources import resource_stream
+from requests import Response
 
 from sdmx.model import DataStructureDefinition
 from sdmx.rest import Resource
@@ -96,7 +97,9 @@ class Source(BaseModel):
             )
 
     # Hooks
-    def handle_response(self, response, content):
+    def handle_response(
+        self, response: Response, content: IOBase
+    ) -> Tuple[Response, IOBase]:
         """Handle response content of unknown type.
 
         This hook is called by :meth:`.Client.get` *only* when the `content` cannot be
