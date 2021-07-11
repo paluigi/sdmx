@@ -49,6 +49,8 @@ In order to anticipate and handle these differences:
 2. :mod:`sdmx.source` includes adapters (subclasses of :class:`~.source.Source`) with hooks used when querying sources and interpreting their HTTP responses.
    These are documented below, e.g. ABS_, ESTAT_, and SGR_.
 
+.. _source-policy:
+
 Handling and testing limitations and (un)supported endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
