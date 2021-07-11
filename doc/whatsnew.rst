@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.6.0 (2021-07-11)
+===================
 
 - Expand documentation of :ref:`source-policy`; add a large number of expected test failures for limitations of specific web services (:pull:`84`).
 - Add information from the SDMX-REST standard (:pull:`84`):
