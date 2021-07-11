@@ -1,3 +1,5 @@
+import pytest
+
 from sdmx.source import add_source, list_sources, sources
 
 
@@ -38,3 +40,8 @@ def test_add_source():
         }"""
     add_source(profile2)
     assert not sources["BAR"].supports["datastructure"]
+
+    with pytest.raises(
+        ValueError, match="Data source 'ECB' already defined; use override=True"
+    ):
+        add_source(dict(id="ECB", name="Demo source", url="https://example.com/sdmx"))

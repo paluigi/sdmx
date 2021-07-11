@@ -5,7 +5,7 @@ import pytest
 from pydantic import StrictStr
 
 import sdmx
-from sdmx.util import BaseModel, DictLike, only, validate_dictlike
+from sdmx.util import BaseModel, DictLike, only, parse_content_type, validate_dictlike
 
 
 class TestDictLike:
@@ -120,3 +120,11 @@ class TestDictLike:
 def test_only():
     assert None is only(filter(lambda x: x == "foo", ["bar", "baz"]))
     assert None is only(filter(lambda x: x == "foo", ["foo", "bar", "foo"]))
+
+
+def test_parse_content_type():
+    """:func:`.parse_content_type` handles whitespace, quoting, and empty params."""
+    assert (
+        "application/foo",
+        dict(version="1.2", charset="UTF-8"),
+    ) == parse_content_type("application/foo; version = 1.2 ; ;charset='UTF-8'")
