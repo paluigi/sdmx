@@ -8,9 +8,7 @@ data sources.
 """
 import logging
 from datetime import datetime
-from typing import List, Optional, Text, Union
-
-from requests import Response
+from typing import Any, List, Optional, Text, Union
 
 from sdmx import model
 from sdmx.util import (
@@ -121,9 +119,9 @@ class Message(BaseModel):
     header: Header = Header()
     #: (optional) :class:`Footer` instance.
     footer: Optional[Footer] = None
-    #: :class:`requests.Response` instance for the response to the HTTP request
-    #: that returned the Message. This is not part of the SDMX standard.
-    response: Optional[Response] = None
+    #: :class:`requests.Response` instance for the response to the HTTP request that
+    #: returned the Message. This is not part of the SDMX standard.
+    response: Optional[Any] = None
 
     def __str__(self):
         return repr(self)
