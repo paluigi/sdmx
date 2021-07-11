@@ -26,17 +26,25 @@ class DataSourceTest:
 
     # TODO also test structure-specific data
 
-    # Must be one of the IDs in sources.json.
+    #: Must be one of the IDs in sources.json.
     source_id: str
 
-    # Mapping of endpoint → Exception subclass.
-    # Tests of these endpoints are expected to fail.
+    #: Failures affecting **all** data sources, internal to :mod:`sdmx`.
+    xfail_common = {
+        "contentconstraint": XMLParseError,  # KeyError
+        # <str:StructureSet> <str:HierarchicalCodelists> not implemented
+        "structure": XMLParseError,
+        "structureset": XMLParseError,  # <str:StructureSet> not implemented
+    }
+
+    #: Mapping of endpoint → Exception subclass. Tests of these endpoints are expected
+    #: to fail with the given kind of exception.
     xfail: Dict[str, Type[Exception]] = {}
 
-    # True to xfail if a 503 Error is returned
+    #: True to xfail if a 503 Error is returned.
     tolerate_503 = False
 
-    # Keyword arguments for particular endpoints
+    #: Keyword arguments for particular endpoints.
     endpoint_args: Dict[str, Dict[str, Any]] = {}
 
     @pytest.fixture
@@ -114,10 +122,6 @@ class TestBIS(DataSourceTest):
 
 class TestECB(DataSourceTest):
     source_id = "ECB"
-    xfail = {
-        # 404 Client Error: Not Found
-        "provisionagreement": HTTPError
-    }
 
 
 # Data for requests_mock; see TestESTAT.mock()
@@ -142,7 +146,12 @@ class TestESTAT(DataSourceTest):
         # 404 Client Error: Not Found
         # NOTE the ESTAT service does not give a general response that contains all
         #      datastructures; this is really more of a 501.
-        "datastructure": HTTPError
+        "datastructure": HTTPError,
+        "categorisation": NotImplementedError,  # 501
+        "contentconstraint": NotImplementedError,  # 501
+        "organisationscheme": NotImplementedError,  # 501
+        "structure": NotImplementedError,  # 501
+        "structureset": NotImplementedError,  # 501
     }
 
     @pytest.fixture
@@ -206,8 +215,11 @@ class TestIMF(DataSourceTest):
 class TestILO(DataSourceTest):
     source_id = "ILO"
     xfail = {
-        # 413 Client Error: Client Entity Too Large
-        "codelist": HTTPError
+        "agencyscheme": HTTPError,  # 400
+        "codelist": HTTPError,  # 413 Client Error: Client Entity Too Large
+        "organisationscheme": HTTPError,  # 400
+        "structure": HTTPError,  # 400
+        "structureset": NotImplementedError,  # 501
     }
 
     @pytest.mark.network
@@ -228,9 +240,20 @@ class TestINEGI(DataSourceTest):
 class TestINSEE(DataSourceTest):
     source_id = "INSEE"
 
+    xfail = {
+        "contentconstraint": HTTPError,  # 400
+        "organisationscheme": HTTPError,  # 400
+        "structure": HTTPError,  # 400
+        "structureset": HTTPError,  # 400
+    }
+
 
 class TestISTAT(DataSourceTest):
     source_id = "ISTAT"
+    xfail = {
+        "organisationscheme": HTTPError,  # 400
+        "structure": NotImplementedError,  # 501
+    }
 
     @pytest.mark.network
     def test_gh_75(self, client):
@@ -335,6 +358,10 @@ class TestSGR(DataSourceTest):
 
 class TestSPC(DataSourceTest):
     source_id = "SPC"
+    xfail = {
+        "organisationscheme": HTTPError,  # 400
+        "structure": HTTPError,  # 400
+    }
     endpoint_args = {
         "data": dict(
             resource_id="DF_CPI",
@@ -395,10 +422,20 @@ class TestUNICEF(DataSourceTest):
 
 class TestUNSD(DataSourceTest):
     source_id = "UNSD"
+    xfail = {
+        "organisationscheme": HTTPError,  # 400
+        "structure": NotImplementedError,  # 501
+    }
 
 
 class TestWB(DataSourceTest):
     source_id = "WB"
+    xfail = {
+        "contentconstraint": NotImplementedError,  # 501
+        "organisationscheme": HTTPError,  # 400
+        "structure": NotImplementedError,  # 501
+        "structureset": NotImplementedError,  # 501
+    }
 
     @pytest.mark.network
     def test_gh_78(self, client):
@@ -412,6 +449,15 @@ class TestWB(DataSourceTest):
 
 class TestWB_WDI(DataSourceTest):
     source_id = "WB_WDI"
+
+    xfail = {
+        "agencyscheme": ValueError,  # 404; response in HTML
+        "contentconstraint": ValueError,  # 404; response in HTML
+        "organisationscheme": HTTPError,  # 400
+        "structure": ValueError,  # 404; response in HTML
+        "structureset": ValueError,  # 404; response in HTML
+    }
+
     endpoint_args = {
         # Example from the documentation website
         "data": dict(

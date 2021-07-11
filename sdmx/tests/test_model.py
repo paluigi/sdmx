@@ -5,7 +5,7 @@ import pydantic
 import pytest
 from pytest import raises
 
-from sdmx import model
+from sdmx import Resource, model
 from sdmx.model import (
     DEFAULT_LOCALE,
     AttributeDescriptor,
@@ -687,6 +687,32 @@ class TestDataKeySet:
         assert 0 == len(dks)
 
 
-def test_get_class():
-    with pytest.raises(ValueError, match="Package 'codelist' invalid for Category"):
-        model.get_class(name="Category", package="codelist")
+@pytest.mark.parametrize(
+    "args,expected",
+    [
+        pytest.param(
+            dict(name="Category", package="codelist"),
+            None,
+            marks=pytest.mark.xfail(
+                raises=ValueError, reason="Package 'codelist' invalid for Category"
+            ),
+        ),
+        # Resource types appearing in StructureMessage
+        (dict(name=Resource.agencyscheme), model.AgencyScheme),
+        (dict(name=Resource.categorisation), model.Categorisation),
+        (dict(name=Resource.categoryscheme), model.CategoryScheme),
+        (dict(name=Resource.codelist), model.Codelist),
+        (dict(name=Resource.conceptscheme), model.ConceptScheme),
+        (dict(name=Resource.contentconstraint), model.ContentConstraint),
+        (dict(name=Resource.dataflow), model.DataflowDefinition),
+        (dict(name=Resource.organisationscheme), model.OrganisationScheme),
+        (dict(name=Resource.provisionagreement), model.ProvisionAgreement),
+        pytest.param(
+            dict(name=Resource.structure),
+            model.DataStructureDefinition,
+            marks=pytest.mark.skip(reason="Ambiguous value, not implemented"),
+        ),
+    ],
+)
+def test_get_class(args, expected):
+    assert expected is model.get_class(**args)

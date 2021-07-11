@@ -27,6 +27,7 @@ from collections.abc import Iterable as IterableABC
 from copy import copy
 from datetime import date, datetime, timedelta
 from enum import Enum
+from functools import lru_cache
 from inspect import isclass
 from itertools import product
 from operator import attrgetter, itemgetter
@@ -48,11 +49,13 @@ from typing import (
 )
 from warnings import warn
 
+from sdmx.rest import Resource
 from sdmx.util import (
     BaseModel,
     DictLike,
     compare,
     dictlike_field,
+    only,
     validate_dictlike,
     validator,
 )
@@ -1054,8 +1057,16 @@ class ConstrainableArtefact(BaseModel):
     """SDMX-IM ConstrainableArtefact."""
 
 
+class DataConsumer(Organisation, ConstrainableArtefact):
+    """SDMX-IM DataConsumer."""
+
+
 class DataProvider(Organisation, ConstrainableArtefact):
     """SDMX-IM DataProvider."""
+
+
+class DataConsumerScheme(ItemScheme[DataConsumer], OrganisationScheme):
+    _Item = DataConsumer
 
 
 class DataProviderScheme(ItemScheme[DataProvider], OrganisationScheme):
@@ -1164,6 +1175,9 @@ class MemberSelection(BaseModel):
     def __contains__(self, value):
         """Compare KeyValue to MemberValue."""
         return any(mv == value for mv in self.values) is self.included
+
+    def __len__(self):
+        return len(self.values)
 
     def __repr__(self):
         return (
@@ -1883,11 +1897,11 @@ class Key(BaseModel):
     """
 
     #:
-    attrib: DictLike[str, AttributeValue]
+    attrib: DictLike[str, AttributeValue] = dictlike_field()
     #:
-    described_by: Optional[DimensionDescriptor]
+    described_by: Optional[DimensionDescriptor] = None
     #: Individual KeyValues that describe the key.
-    values: DictLike[str, KeyValue]
+    values: DictLike[str, KeyValue] = dictlike_field()
 
     def __init__(self, arg: Union[Mapping, Sequence[KeyValue]] = None, **kwargs):
         # DimensionDescriptor
@@ -2144,6 +2158,8 @@ class DataSet(AnnotableArtefact):
     #:
     valid_from: Optional[str] = None
     #:
+    described_by: Optional[DataflowDefinition] = None
+    #:
     structured_by: Optional[DataStructureDefinition] = None
 
     #: All observations in the DataSet.
@@ -2300,19 +2316,30 @@ for package, classes in _PACKAGE_CLASS.items():
 del cls
 
 
-def get_class(name, package=None):
-    """Return a class object for string *cls* and *package* names."""
+@lru_cache()
+def get_class(name: Union[str, Resource], package=None) -> Optional[Type]:
+    """Return a class for `name` and (optional) `package` names."""
+    if isinstance(name, Resource):
+        # Convert a Resource enumeration value to a string
+
+        # Expected class name in lower case; maybe just the enumeration value
+        match = Resource.class_name(name).lower()
+
+        # Match class names in lower case. If no match or >2, only() returns None, and
+        # KeyError occurs below
+        name = only(filter(lambda g: g.lower() == match, globals().keys()))
+
     name = {"Dataflow": "DataflowDefinition"}.get(name, name)
 
     try:
         cls = globals()[name]
     except KeyError:
         return None
-    else:
-        if package and package != PACKAGE[cls]:
-            raise ValueError(f"Package {repr(package)} invalid for {name}")
 
-        return cls
+    if package and package != PACKAGE[cls]:
+        raise ValueError(f"Package {repr(package)} invalid for {name}")
+
+    return cls
 
 
 def parent_class(cls):

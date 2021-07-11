@@ -108,6 +108,11 @@ def test_obs(obs):
         XMLWriter.recurse(obs, struct_spec=True)
 
 
+def test_Footer(footer):
+    """:class:`.Footer` can be written."""
+    sdmx.to_xml(footer)
+
+
 def test_structuremessage(tmp_path, structuremessage):
     result = sdmx.to_xml(structuremessage, pretty_print=True)
 
@@ -127,6 +132,16 @@ def test_structuremessage(tmp_path, structuremessage):
     assert not msg.compare(structuremessage, strict=True)
     # Compares equal when allowing this difference
     assert msg.compare(structuremessage, strict=False)
+
+
+def test_DataMessage(datamessage):
+    """:class:`.DataMessage` can be written."""
+    sdmx.to_xml(datamessage)
+
+
+def test_ErrorMessage(errormessage):
+    """:class:`.ErrorMessage` can be written."""
+    sdmx.to_xml(errormessage)
 
 
 _xf_ref = pytest.mark.xfail(

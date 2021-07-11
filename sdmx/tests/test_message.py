@@ -55,6 +55,18 @@ class TestStructureMessage:
         # Attribute access works when added to the default, empty DictLike
         assert msg.structure.foo is dsd
 
+    def test_objects(self):
+        """:meth:`.objects` can be used to access a collection according to class."""
+        msg = message.StructureMessage()
+        cl = model.Codelist(id="foo")
+        msg.add(cl)
+
+        assert cl is msg.objects(model.Codelist)["foo"]
+
+        with pytest.raises(TypeError):
+            # TypeError is raised for classes not collected in this message
+            msg.objects(model.DataSet)
+
 
 EXPECTED = [
     # Structure messages

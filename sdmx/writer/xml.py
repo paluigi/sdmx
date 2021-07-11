@@ -135,6 +135,9 @@ def _dm(obj: message.DataMessage):
         # Add data
         elem.append(writer.recurse(ds))
 
+    if obj.footer:
+        elem.append(writer.recurse(obj.footer))
+
     return elem
 
 
@@ -169,6 +172,20 @@ def _sm(obj: message.StructureMessage):
         container.extend(writer.recurse(s) for s in getattr(obj, attr).values())
         structures.append(container)
 
+    if obj.footer:
+        elem.append(writer.recurse(obj.footer))
+
+    return elem
+
+
+@writer
+def _em(obj: message.ErrorMessage):
+    elem = Element("mes:Error")
+    elem.append(writer.recurse(obj.header))
+
+    if obj.footer:
+        elem.append(writer.recurse(obj.footer))
+
     return elem
 
 
@@ -186,6 +203,25 @@ def _header(obj: message.Header):
         elem.append(writer.recurse(obj.receiver, _tag="mes:Receiver"))
     if obj.source:
         elem.extend(i11lstring(obj.source, "mes:Source"))
+    return elem
+
+
+@writer
+def _footer(obj: message.Footer):
+    elem = Element("footer:Footer")
+
+    attrs = dict()
+    if obj.code:
+        attrs["code"] = str(obj.code)
+    if obj.severity:
+        attrs["severity"] = str(obj.severity)
+
+    mes = Element("footer:Message", **attrs)
+    elem.append(mes)
+
+    for text in obj.text:
+        mes.extend(i11lstring(text, "com:Text"))
+
     return elem
 
 
@@ -236,11 +272,19 @@ def annotable(obj, **kwargs):
 
 
 def identifiable(obj, **kwargs):
+    """Write :class:`.IdentifiableArtefact`.
+
+    Unless the keyword argument `_with_urn` is :data:`False`, a URN is generated for
+    objects lacking one, and forwarded to :func:`annotable`
+    """
     kwargs.setdefault("id", obj.id)
     try:
-        kwargs.setdefault(
-            "urn", obj.urn or sdmx.urn.make(obj, kwargs.pop("parent", None))
+        with_urn = kwargs.pop("_with_urn", True)
+        urn = obj.urn or (
+            sdmx.urn.make(obj, kwargs.pop("parent", None)) if with_urn else None
         )
+        if urn:
+            kwargs.setdefault("urn", urn)
     except (AttributeError, ValueError):
         pass
     return annotable(obj, **kwargs)
@@ -280,7 +324,10 @@ def _item(obj: model.Item, **kwargs):
 @writer
 def _is(obj: model.ItemScheme):
     elem = maintainable(obj)
-    elem.extend(writer.recurse(i) for i in obj.items.values())
+
+    # Pass _with_urn to identifiable(): don't generate URNs for Items in `obj` which do
+    # not already have them
+    elem.extend(writer.recurse(i, _with_urn=False) for i in obj.items.values())
     return elem
 
 

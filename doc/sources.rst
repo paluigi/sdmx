@@ -5,17 +5,15 @@ Data sources
 
 SDMX makes a distinction between data providers and sources:
 
-- a **data provider** is the original publisher of statistical information and
-  metadata.
-- a **data source** is a specific web service that provides access to
-  statistical information.
+- a **data provider** is the original publisher of statistical information and metadata.
+- a **data source** is a specific web service that provides access to statistical information.
 
 Each data *source* might aggregate and provide data or metadata from multiple data *providers*.
 Or, an agency might operate a data source that only contains information they provide themselves; in this case, the source and provider are identical.
 
 :mod:`sdmx` identifies each data source using a string such as ``'ABS'``, and has built-in support for a number of data sources.
 Use :meth:`list_sources` to list these.
-Read the following sections, or the file ``sources.json`` in the package source code, for more details.
+Read the following sections, or the file :file:`sources.json` in the package source code, for more details.
 
 :mod:`sdmx` also supports adding other data sources; see :meth:`add_source` and :class:`~.source.Source`.
 
@@ -28,13 +26,6 @@ Data source limitations
 -----------------------
 
 Each SDMX web service provides a subset of the full SDMX feature set, so the same request made to two different sources may yield different results, or an error message.
-
-A key difference is between sources offering SDMX-ML and SDMX-JSON APIs.
-SDMX-JSON APIs do not support metadata, or structure queries; only data queries.
-
-.. note:: For JSON APIs, start by browsing the source's website to retrieve the dataflow you're interested in. Then try to fine-tune a planned data request by providing a valid key (= selection of series from the dataset).
-   Because structure metadata is unavailable, :mod:`sdmx` cannot automatically validate keys.
-
 In order to anticipate and handle these differences:
 
 1. :meth:`add_source` accepts "data_content_type" and "supported" keys. For
@@ -49,15 +40,55 @@ In order to anticipate and handle these differences:
         },
         {
           "id": "UNESCO",
-          "unsupported": ["datastructure"]
+          "supported": {"datastructure": false}
         },
       ]
 
    :mod:`sdmx` will raise :class:`NotImplementedError` on an attempt to query the "datastructure" API endpoint of either of these data sources.
 
 2. :mod:`sdmx.source` includes adapters (subclasses of :class:`~.source.Source`) with hooks used when querying sources and interpreting their HTTP responses.
-   These are documented below: ABS_, ESTAT_, and SGR_.
+   These are documented below, e.g. ABS_, ESTAT_, and SGR_.
 
+.. _source-policy:
+
+Handling and testing limitations and (un)supported endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As of version 2.5.0, :mod:`sdmx` handles service limitations as follows:
+
+- :attr:`.source.Source.supports` lists endpoints/:class:`resources <.Resource>` that are not supported by *any* known web service.
+- :file:`sources.json` contains ``supports: {"[resource]": false}`` for any endpoint where the service returns an HTTP **404 Not found** response code.
+  This means that the service fails to even give a proper 501 response (see below).
+
+  :meth:`.Client.get` will refuse to query these sources at all, instead raising :class:`NotImplementedError`.
+  You can override this behaviour by giving the `force` argument to :meth:`~.Client.get`.
+
+- The test suite (:mod:`test_sources`) includes notation of all endpoints for which services return **400 Bad syntax** or **501 Not implemented** response codes.
+  :mod:`sdmx` will make an actual query to these endpoints, but raise built-in Python exceptions that can be caught and handled by user code:
+
+  - For a 501 response code, :class:`NotImplementedError` is raised.
+
+    This is behaviour *fully compliant with the SDMX standard*: the service accurately and honestly responds when a client makes a request that the server does not implement.
+
+  - For a 400 response code, :class:`HTTPError` is raised.
+
+    Some of these “bad syntax” responses are erroneous: the service actually has a *non-standard* URL scheme or handling, different from the SDMX-REST standard.
+    The :class:`.Client` is constructing a standards-compliant URL, but the service idiosyncratically rejects it.
+    Handling these idiosyncrasies is currently out-of-scope for :mod:`sdmx`.
+
+Finally, note that because of the large number of services and endpoints, the matrix of support is only periodically updated.
+Please `open an issue <https://github.com/khaeru/sdmx/issues/new>`__ if the supported endpoints or behaviour of a particular service appear to have changed.
+
+SDMX-JSON versus SDMX-ML services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A key difference is between sources offering SDMX-ML and SDMX-JSON content.
+Although the SDMX-JSON format includes structure messages, initial/draft versions of it, and so many web services that return SDMX-JSON still do not support structure queries; only data queries.
+As well, the SDMX-REST standard allows services to respond to the HTTP ``Accepts:`` header and return either SDMX-ML or SDMX-JSON, only a few services actually implement this feature.
+
+Where data structures are not available, :mod:`sdmx` cannot automatically validate keys.
+For such services, start by browsing the source's website to identify a dataflow of interest.
+Then identify the key format and construct a key for the desired data request.
 
 .. _ABS:
 
@@ -67,7 +98,7 @@ In order to anticipate and handle these differences:
 SDMX-JSON —
 `Website <http://www.abs.gov.au/>`__
 
-.. autoclass:: sdmx.source.abs.Source
+.. autoclass:: sdmx.source.abs.Source()
    :members:
 
 
@@ -87,7 +118,7 @@ Website `(en) <https://www.bundesbank.de/en/statistics/time-series-databases/-/h
   :mod:`sdmx` discards other values with a warning.
 - Some endpoints, including :data:`.codelist`, return malformed URNs and cannot be handled with :mod:`sdmx`.
 
-.. autoclass:: sdmx.source.bbk.Source
+.. autoclass:: sdmx.source.bbk.Source()
    :members:
 
 
@@ -117,7 +148,7 @@ SDMX-ML —
   Increase the timeout attribute to avoid timeout exceptions.
 - Does not return DSDs for dataflow requests with the ``references='all'`` query parameter.
 
-.. autoclass:: sdmx.source.estat.Source
+.. autoclass:: sdmx.source.estat.Source()
    :members:
 
 
@@ -148,7 +179,7 @@ SDMX-ML —
 
 - It is highly recommended to read the `API guide <http://www.ilo.org/ilostat/content/conn/ILOSTATContentServer/path/Contribution%20Folders/statistics/web_pages/static_pages/technical_page/ilostat_appl/SDMX_User_Guide.pdf>`_.
 
-.. autoclass:: sdmx.source.ilo.Source
+.. autoclass:: sdmx.source.ilo.Source()
    :members:
 
 
@@ -183,7 +214,7 @@ SDMX-ML —
 
 - French name: Institut national de la statistique et des études économiques.
 
-.. autoclass:: sdmx.source.insee.Source
+.. autoclass:: sdmx.source.insee.Source()
    :members:
 
 
@@ -253,7 +284,7 @@ SDMX-JSON —
 SDMX-ML —
 `Website <https://registry.sdmx.org/ws/rest>`__
 
-.. autoclass:: sdmx.source.sgr.Source
+.. autoclass:: sdmx.source.sgr.Source()
    :members:
 
 
@@ -374,3 +405,21 @@ SDMX-ML —
 
 - This web service also supports SDMX-JSON.
   To retrieve messages in this format, pass the HTTP ``Accept:`` header described on the service website.
+
+
+Source API
+----------
+
+.. currentmodule:: sdmx.source
+
+This module defines :class:`Source <sdmx.source.Source>` and some utility functions.
+For built-in subclasses of Source used to provide :mod:`sdmx`'s built-in support for certain data sources, see :doc:`sources`.
+
+.. autoclass:: sdmx.source.Source()
+   :members:
+
+   This class should not be instantiated directly.
+   Instead, use :func:`.add_source`, and then create a new :class:`.Client` with the corresponding source ID.
+
+.. automodule:: sdmx.source
+   :members: list_sources, load_package_sources

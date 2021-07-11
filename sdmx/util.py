@@ -1,13 +1,22 @@
 import logging
 import typing
-from enum import Enum
+from collections.abc import Iterator
 from functools import lru_cache
-from typing import Any, Mapping, Tuple, TypeVar, Union
+from typing import Any, Dict, Mapping, Tuple, TypeVar, Union
 
 import pydantic
+import requests
 from pydantic import Field, ValidationError, validator
 from pydantic.class_validators import make_generic_validator
 from pydantic.typing import get_origin  # type: ignore [attr-defined]
+
+try:
+    import requests_cache
+except ImportError:  # pragma: no cover
+    HAS_REQUESTS_CACHE = False
+else:
+    HAS_REQUESTS_CACHE = True
+
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
@@ -17,67 +26,13 @@ log = logging.getLogger(__name__)
 __all__ = [
     "BaseModel",
     "DictLike",
-    "Resource",
     "compare",
     "dictlike_field",
+    "only",
     "summarize_dictlike",
     "validate_dictlike",
     "validator",
 ]
-
-
-class Resource(str, Enum):
-    """Enumeration of SDMX REST API endpoints.
-
-    ====================== ================================================
-    :class:`Enum` member   :mod:`sdmx.model` class
-    ====================== ================================================
-    ``categoryscheme``     :class:`.CategoryScheme`
-    ``codelist``           :class:`.Codelist`
-    ``conceptscheme``      :class:`.ConceptScheme`
-    ``data``               :class:`.DataSet`
-    ``dataflow``           :class:`.DataflowDefinition`
-    ``datastructure``      :class:`.DataStructureDefinition`
-    ``provisionagreement`` :class:`.ProvisionAgreement`
-    ====================== ================================================
-    """
-
-    # agencyscheme = 'agencyscheme'
-    # attachementconstraint = 'attachementconstraint'
-    # categorisation = 'categorisation'
-    categoryscheme = "categoryscheme"
-    codelist = "codelist"
-    conceptscheme = "conceptscheme"
-    # contentconstraint = 'contentconstraint'
-    data = "data"
-    # dataconsumerscheme = 'dataconsumerscheme'
-    dataflow = "dataflow"
-    # dataproviderscheme = 'dataproviderscheme'
-    datastructure = "datastructure"
-    # hierarchicalcodelist = 'hierarchicalcodelist'
-    # metadata = 'metadata'
-    # metadataflow = 'metadataflow'
-    # metadatastructure = 'metadatastructure'
-    # organisationscheme = 'organisationscheme'
-    # organisationunitscheme = 'organisationunitscheme'
-    # process = 'process'
-    provisionagreement = "provisionagreement"
-    # reportingtaxonomy = 'reportingtaxonomy'
-    # schema = 'schema'
-    # structure = 'structure'
-    # structureset = 'structureset'
-
-    @classmethod
-    def from_obj(cls, obj):
-        """Return an enumeration value based on the class of *obj*."""
-        clsname = {"DataStructureDefinition": "datastructure"}.get(
-            obj.__class__.__name__, obj.__class__.__name__
-        )
-        return cls[clsname.lower()]
-
-    @classmethod
-    def describe(cls):
-        return "{" + " ".join(v.name for v in cls._member_map_.values()) + "}"
 
 
 class BaseModel(pydantic.BaseModel):
@@ -86,6 +41,20 @@ class BaseModel(pydantic.BaseModel):
     class Config:
         copy_on_model_validation = False
         validate_assignment = True
+
+
+class MaybeCachedSession(type):
+    """Metaclass to inherit from :class:`requests_cache.CachedSession`, if available.
+
+    If :mod:`requests_cache` is not installed, returns :class:`requests.Session` as a
+    base class.
+    """
+
+    def __new__(cls, name, bases, dct):
+        base = (
+            requests.Session if not HAS_REQUESTS_CACHE else requests_cache.CachedSession
+        )
+        return super().__new__(cls, name, (base,), dct)
 
 
 class DictLike(dict, typing.MutableMapping[KT, VT]):
@@ -112,6 +81,10 @@ class DictLike(dict, typing.MutableMapping[KT, VT]):
                 return list(self.values())[key]
             else:
                 raise
+
+    def __getstate__(self):
+        """Exclude ``__field`` from items to be pickled."""
+        return {"__dict__": self.__dict__}
 
     def __setitem__(self, key: KT, value: VT) -> None:
         """:meth:`dict.__setitem` with validation."""
@@ -241,6 +214,39 @@ def compare(attr, a, b, strict: bool) -> bool:
     # return result
 
 
+def only(iterator: Iterator) -> Any:
+    """Return the only element of `iterator`, or :obj:`None`."""
+    try:
+        result = next(iterator)
+        flag = object()
+        assert flag is next(iterator, flag)
+    except (StopIteration, AssertionError):
+        return None  # 0 or ≥2 matches
+    else:
+        return result
+
+
+def parse_content_type(value: str) -> Tuple[str, Dict[str, Any]]:
+    """Return content type and parameters from `value`.
+
+    Modified from :mod:`requests.util`.
+    """
+    tokens = value.split(";")
+    content_type, params_raw = tokens[0].strip(), tokens[1:]
+    params = {}
+    to_strip = "\"' "
+
+    for param in params_raw:
+        k, *v = param.strip().split("=")
+
+        if not k and not v:
+            continue
+
+        params[k.strip(to_strip).lower()] = v[0].strip(to_strip) if len(v) else True
+
+    return content_type, params
+
+
 @lru_cache()
 def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
     """Return the :mod:`pydantic` fields defined on `obj` or its class.
@@ -257,8 +263,7 @@ def direct_fields(cls) -> Mapping[str, pydantic.fields.ModelField]:
 
 try:
     from typing import get_args  # type: ignore [attr-defined]
-except ImportError:
-
+except ImportError:  # pragma: no cover
+    # For Python <3.8
     def get_args(tp) -> Tuple[Any, ...]:
-        """For Python <3.8."""
         return tp.__args__

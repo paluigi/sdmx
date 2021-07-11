@@ -1,15 +1,9 @@
 from io import BufferedIOBase, BytesIO
 from operator import itemgetter
 
-import requests
+from sdmx.util import HAS_REQUESTS_CACHE, MaybeCachedSession
 
-try:
-    from requests_cache import CachedSession as MaybeCachedSession
-except ImportError:  # pragma: no cover
-    from requests import Session as MaybeCachedSession
-
-
-# Known keyword arguments for requests_cache.CachedSession
+#: Known keyword arguments for requests_cache.CachedSession.
 CACHE_KW = [
     "allowable_codes",
     "allowable_methods",
@@ -23,10 +17,11 @@ CACHE_KW = [
 ]
 
 
-class Session(MaybeCachedSession):
+class Session(metaclass=MaybeCachedSession):
     """:class:`requests.Session` subclass with optional caching.
 
-    If :mod:`requests_cache` is installed, this class caches responses.
+    If :mod:`requests_cache` is installed, this class inherits from
+    :class:`~.requests_cache.CachedSession` and caches responses.
 
     Parameters
     ----------
@@ -54,7 +49,7 @@ class Session(MaybeCachedSession):
             filter(itemgetter(1), [(k, kwargs.pop(k, None)) for k in CACHE_KW])
         )
 
-        if MaybeCachedSession is not requests.Session:
+        if HAS_REQUESTS_CACHE:
             # Using requests_cache.CachedSession
 
             # No cache keyword arguments supplied = don't use the cache

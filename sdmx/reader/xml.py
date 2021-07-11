@@ -21,7 +21,7 @@ from lxml.etree import QName
 import sdmx.urn
 from sdmx import message, model
 from sdmx.exceptions import XMLParseError  # noqa: F401
-from sdmx.format.xml import class_for_tag, qname
+from sdmx.format.xml import CONTENT_TYPES, class_for_tag, qname
 from sdmx.reader.base import BaseReader
 
 log = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ SKIP = (
     "str:Categorisations str:CategorySchemes str:Codelists str:Concepts "
     "str:ConstraintAttachment str:Constraints str:Dataflows "
     "str:DataStructureComponents str:DataStructures str:None str:OrganisationSchemes "
-    "str:ProvisionAgreements "
+    "str:ProvisionAgreements str:StructureSets "
     # Contents of references
     ":Ref :URN"
 )
@@ -197,13 +197,7 @@ class Reference:
 
 
 class Reader(BaseReader):
-    content_types = [
-        "application/xml",
-        "application/vnd.sdmx.genericdata+xml",
-        "application/vnd.sdmx.structure+xml",
-        "application/vnd.sdmx.structurespecificdata+xml",
-        "text/xml",
-    ]
+    content_types = CONTENT_TYPES
     suffixes = [".xml"]
 
     # One-way counter for use in stacks
@@ -791,7 +785,10 @@ def _a(reader, elem):
 # §3.5: Item Scheme
 
 
-@start("str:Agency str:Code str:Category str:Concept str:DataProvider", only=False)
+@start(
+    "str:Agency str:Code str:Category str:Concept str:DataConsumer str:DataProvider",
+    only=False,
+)
 def _item_start(reader, elem):
     # Avoid stealing the name & description of the parent ItemScheme from the stack
     # TODO check this works for annotations
@@ -807,7 +804,7 @@ def _item_start(reader, elem):
     reader.stash("Name", "Description")
 
 
-@end("str:Agency str:Code str:Category str:DataProvider", only=False)
+@end("str:Agency str:Code str:Category str:DataConsumer str:DataProvider", only=False)
 def _item(reader, elem):
     try:
         # <str:DataProvider> may be a reference, e.g. in <str:ConstraintAttachment>
@@ -844,7 +841,7 @@ def _item(reader, elem):
 
 @end(
     "str:AgencyScheme str:Codelist str:ConceptScheme str:CategoryScheme "
-    "str:DataProviderScheme",
+    "str:DataConsumerScheme str:DataProviderScheme",
 )
 def _itemscheme(reader, elem):
     cls = class_for_tag(elem.tag)

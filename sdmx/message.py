@@ -8,9 +8,7 @@ data sources.
 """
 import logging
 from datetime import datetime
-from typing import List, Optional, Text, Union
-
-from requests import Response
+from typing import Any, List, Optional, Text, Union
 
 from sdmx import model
 from sdmx.util import (
@@ -121,9 +119,9 @@ class Message(BaseModel):
     header: Header = Header()
     #: (optional) :class:`Footer` instance.
     footer: Optional[Footer] = None
-    #: :class:`requests.Response` instance for the response to the HTTP request
-    #: that returned the Message. This is not part of the SDMX standard.
-    response: Optional[Response] = None
+    #: :class:`requests.Response` instance for the response to the HTTP request that
+    #: returned the Message. This is not part of the SDMX standard.
+    response: Optional[Any] = None
 
     def __str__(self):
         return repr(self)
@@ -251,6 +249,17 @@ class StructureMessage(Message):
             raise ValueError(f"ambiguous; {repr(obj_or_id)} matches {repr(candidates)}")
 
         return candidates[0] if len(candidates) == 1 else None
+
+    def objects(self, cls):
+        """Get a reference to the attribute for objects of type `cls`.
+
+        For example, if `cls` is the class :class:`DataStructureDefinition` (not an
+        instance), return a reference to :attr:`structure`.
+        """
+        for name, info in direct_fields(self.__class__).items():
+            if issubclass(cls, info.sub_fields[0].type_):
+                return getattr(self, name)
+        raise TypeError(cls)
 
     def __contains__(self, item):
         """Return :obj:`True` if `item` is in the StructureMessage."""

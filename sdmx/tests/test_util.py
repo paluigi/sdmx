@@ -1,8 +1,11 @@
+import pickle
+
 import pydantic
 import pytest
 from pydantic import StrictStr
 
-from sdmx.util import BaseModel, DictLike, validate_dictlike
+import sdmx
+from sdmx.util import BaseModel, DictLike, only, parse_content_type, validate_dictlike
 
 
 class TestDictLike:
@@ -95,3 +98,33 @@ class TestDictLike:
         @validate_dictlike
         class Bar(BaseModel):
             elems: DictLike[StrictStr, float] = DictLike()
+
+    def test_compare(self, caplog):
+        dl1 = DictLike(a="foo", b="bar")
+        dl2 = DictLike(c="baz", a="foo")
+
+        assert not dl1.compare(dl2)
+        assert "Not identical: ['a', 'b'] / ['a', 'c']" in caplog.messages
+
+    def test_pickle(self, specimen):
+        """Instances included in a Pydantic model can be pickled."""
+        with specimen("sg-xs.xml") as f:
+            msg1 = sdmx.read_sdmx(f)
+
+        value = pickle.dumps(msg1)
+        msg2 = pickle.loads(value)
+
+        assert msg1.compare(msg2)
+
+
+def test_only():
+    assert None is only(filter(lambda x: x == "foo", ["bar", "baz"]))
+    assert None is only(filter(lambda x: x == "foo", ["foo", "bar", "foo"]))
+
+
+def test_parse_content_type():
+    """:func:`.parse_content_type` handles whitespace, quoting, and empty params."""
+    assert (
+        "application/foo",
+        dict(version="1.2", charset="UTF-8"),
+    ) == parse_content_type("application/foo; version = 1.2 ; ;charset='UTF-8'")

@@ -8,9 +8,9 @@ import requests
 from sdmx.message import Message
 from sdmx.model import DataStructureDefinition, MaintainableArtefact
 from sdmx.reader import get_reader_for_content_type
+from sdmx.rest import Resource
 from sdmx.session import ResponseIO, Session
 from sdmx.source import NoSource, list_sources, sources
-from sdmx.util import Resource
 
 log = logging.getLogger(__name__)
 

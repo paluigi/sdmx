@@ -1,5 +1,6 @@
 import logging
 import os
+from collections import ChainMap
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Union
@@ -9,8 +10,8 @@ import pandas as pd
 import pytest
 
 from sdmx.exceptions import HTTPError
+from sdmx.rest import Resource
 from sdmx.source import DataContentType, add_source, sources
-from sdmx.util import Resource
 
 log = logging.getLogger(__name__)
 
@@ -123,6 +124,9 @@ def generate_endpoint_tests(metafunc):
     # Use the test class' source_id attr to look up the Source class
     source = sources[metafunc.cls.source_id]
 
+    # Merge "common" and subclass-specific xfails
+    xfails = ChainMap(metafunc.cls.xfail_common, metafunc.cls.xfail)
+
     # Iterate over all known endpoints
     for ep in Resource:
         # Accumulate multiple marks; first takes precedence
@@ -137,7 +141,7 @@ def generate_endpoint_tests(metafunc):
             marks.append(unsupported)
 
         # Check if the test function's class contains an expected failure for `endpoint`
-        exc_class = metafunc.cls.xfail.get(ep.name, None)
+        exc_class = xfails.get(ep.name, None)
         if exc_class:
             # Mark the test as expected to fail
             marks.append(pytest.mark.xfail(strict=True, raises=exc_class))
