@@ -373,7 +373,7 @@ class TestSPC(DataSourceTest):
     source_id = "SPC"
     xfail = {
         "organisationscheme": HTTPError,  # 400
-        "structure": HTTPError,  # 400
+        "structure": NotImplementedError,  # 501
     }
     endpoint_args = {
         "data": dict(
