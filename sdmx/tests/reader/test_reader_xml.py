@@ -98,10 +98,9 @@ ELEMENTS = [
         E(qname("mes:Extracted"), "2020-08-18T00:14:31.59849Z"),
         datetime(2020, 8, 18, 0, 14, 31, 598490, tzinfo=timezone.utc),
     ),
-    pytest.param(  # with 7 decimal places AND "Z"
+    (  # with 7 decimal places AND "Z"; a message is logged on DEBUG (not checked)
         E(qname("mes:Extracted"), "2020-08-18T01:02:03.4567891Z"),
         datetime(2020, 8, 18, 1, 2, 3, 456789, tzinfo=timezone.utc),
-        marks=pytest.mark.xfail(raises=XMLParseError),
     ),
     # xml._facet()
     (
