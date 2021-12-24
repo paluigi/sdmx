@@ -42,7 +42,7 @@ def to_pandas(obj, *args, **kwargs):
 def _list(obj: list, *args, **kwargs):
     """Convert a :class:`list` of SDMX objects."""
     if isinstance(obj[0], Observation):
-        return write_dataset(obj, *args, **kwargs)
+        return write_dataset(model.DataSet(obs=obj), *args, **kwargs)
     elif isinstance(obj[0], DataSet) and len(obj) == 1:
         return writer.recurse(obj[0], *args, **kwargs)
     elif isinstance(obj[0], SeriesKey):
@@ -289,7 +289,7 @@ def write_dataset(
 
     # Iterate on observations
     data = {}
-    for observation in getattr(obj, "obs", obj):
+    for observation in obj.obs:
         # Check that the Observation is within the constraint, if any
         key = observation.key.order()
         if constraint and key not in constraint:
@@ -304,7 +304,7 @@ def write_dataset(
             row.update(observation.attrib)
         if "d" in attributes:
             # Add the attributes of the data set
-            row.update(getattr(obj, "attrib", dict()))
+            row.update(obj.attrib)
 
         data[tuple(map(str, key.get_values()))] = row
 

@@ -262,6 +262,14 @@ def test_write_dataset_datetime(specimen):
         sdmx.to_pandas(ds, datetime=43)
 
 
+def test_write_list_of_obs(specimen):
+    """Bare list of observations can be written."""
+    with specimen("ng-ts.xml") as f:
+        msg = sdmx.read_sdmx(f)
+
+    sdmx.to_pandas(msg.data[0].obs)
+
+
 @pytest.mark.parametrize_specimens("path", kind="structure")
 def test_writer_structure(path):
     msg = sdmx.read_sdmx(path)
