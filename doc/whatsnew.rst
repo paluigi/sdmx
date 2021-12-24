@@ -8,8 +8,10 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Python 3.10 is fully supported (:pull:`89`).
 
 v2.6.1 (2021-07-27)
 ===================

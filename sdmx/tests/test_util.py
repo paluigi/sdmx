@@ -54,8 +54,9 @@ class TestDictLike:
 
     def test_validate_dictlike(self, Foo):
         """``@validate_dictlike()`` adds a validator to a pydantic model field."""
+        # At least 1 validator is added, with the name _validate_whole
         assert 1 <= len(Foo.__fields__["items"].post_validators)
-        assert "_validate_whole" == Foo.__fields__["items"].post_validators[0].func_name
+        assert "_validate_whole" == Foo.__fields__["items"].post_validators[0].__name__
 
         # ValidationError
         f = Foo()
