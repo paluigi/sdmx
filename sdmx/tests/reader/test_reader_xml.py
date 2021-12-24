@@ -80,10 +80,9 @@ def test_read_ss_xml(specimen):
 # Each entry is a tuple with 2 elements:
 # 1. an instance of lxml.etree.Element to be parsed.
 # 2. Either:
-#   - A sdmx.model object, in which case the parsed element must match the
-#     object.
-#   - A string, in which case parsing the element is expected to fail, raising
-#     an exception matching the string.
+#   - A sdmx.model object, in which case the parsed element must match the object.
+#   - A string, in which case parsing the element is expected to fail, raising an
+#     exception matching the string.
 ELEMENTS = [
     # xml._datetime()
     (  # with 5 decimal places
@@ -129,9 +128,8 @@ ELEMENTS = [
 def test_parse_elem(elem, expected):
     """Test individual XML elements.
 
-    This method allows unit-level testing of specific XML elements appearing in
-    SDMX-ML messages. Add elements by extending the list passed to the
-    parametrize() decorator.
+    This method allows unit-level testing of specific XML elements appearing in SDMX-ML
+    messages. Add elements by extending the list passed to the parametrize() decorator.
     """
     # Convert to a file-like object compatible with read_message()
     tmp = BytesIO(etree.tostring(elem))
