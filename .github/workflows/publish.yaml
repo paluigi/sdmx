@@ -15,11 +15,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
     - uses: actions/setup-python@v2
-      with:
-        # This should match the "Latest supported version" in pytest.yaml
-        python-version: "3.9"
 
     - name: Cache Python packages
       uses: actions/cache@v2
