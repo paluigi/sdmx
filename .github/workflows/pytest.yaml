@@ -114,7 +114,8 @@ jobs:
     - name: Install the Python package and dependencies
       run: pip install .[cache,docs,tests]
 
-    - name: Run pytest, including tests of specific web services
+    - name: Run tests of specific web services
+      continue-on-error: true
       env:
         SDMX_TEST_DATA: ./sdmx-test-data/
       run: pytest -m "network" -ra --color=yes --verbose
