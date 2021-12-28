@@ -1,3 +1,5 @@
+import os
+
 from jinja2 import Template
 
 TEMPLATE = Template(
@@ -42,12 +44,17 @@ tr.result > td.not-implemented {
   package includes built-in support for the following known SDMX REST web services.
 </p>
 <p>Notes:</p>
+{% set run_url=env["GITHUB_REPOSITORY"] + "/runs/" + env["GITHUB_RUN_ID"] %}
 <ol>
   <li>
     Services where only the <code>data</code> endpoint is tested are those supporting
     SDMX-JSON only. Also the SDMX-JSON standard does specify formats for JSON structure
     messages, <code>sdmx1</code>—and most existing SDMX-JSON-only web services—support
     only data queries.
+  </li>
+  <li>
+    If this run was triggered on GitHub Actions, a complete log may be <a
+    href="https://github.com/{{ run_url}}">here</a>.
   </li>
 </ol>
 <table>
@@ -156,5 +163,6 @@ class ServiceReporter:
                     data=self.data,
                     abbrev=ABBREV,
                     resources=sorted(self.resources),
+                    env=os.environ,
                 )
             )
