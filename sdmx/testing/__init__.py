@@ -12,6 +12,7 @@ import pytest
 from sdmx.exceptions import HTTPError
 from sdmx.rest import Resource
 from sdmx.source import DataContentType, add_source, sources
+from sdmx.testing.report import ServiceReporter
 
 log = logging.getLogger(__name__)
 
@@ -63,6 +64,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "parametrize_specimens: (for internal use by sdmx.testing)"
     )
+
+    # Register plugin for reporting service outputs
+    config._sdmx_reporter = ServiceReporter(config)
+    config.pluginmanager.register(config._sdmx_reporter)
 
     # Check the value can be converted to a path, and exists
     message = "Give --sdmx-test-data=… or set the SDMX_TEST_DATA environment variable"
