@@ -120,7 +120,10 @@ ABBREV = {
 
 class ServiceReporter:
     def __init__(self, config):
-        self.path = config.invocation_params.dir.joinpath("service-endpoints.html")
+        self.path = config.invocation_params.dir.joinpath(
+            "service-endpoints", "index.html"
+        )
+        self.path.parent.mkdir()
         self.data = {}
         self.resources = set()
 

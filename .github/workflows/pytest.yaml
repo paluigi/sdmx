@@ -120,7 +120,10 @@ jobs:
         SDMX_TEST_DATA: ./sdmx-test-data/
       run: pytest -m "network" -ra --color=yes --verbose
 
-    - name: Upload service-endpoints.html
-      uses: actions/upload-artifact@v2
+    - name: Deploy to GitHub Pages
+      if: success()
+      uses: crazy-max/ghaction-github-pages@v2
       with:
-        path: service-endpoints.html
+        build_dir: service-endpoints
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
