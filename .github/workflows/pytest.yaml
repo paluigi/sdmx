@@ -81,7 +81,7 @@ jobs:
       run: make --directory=doc html
 
   services:
-    # if: github.event_name == 'schedule' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'push'
 
     runs-on: ubuntu-latest
 
