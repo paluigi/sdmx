@@ -11,6 +11,7 @@ What's new?
 Next release
 ============
 
+- https://khaeru.github.io/sdmx/ now serves a dashboard summarizing automatic, daily tests of every SDMX 2.1 REST API endpoints for every :doc:`data source <sources>` built-in to :mod:`sdmx`. See :ref:`service-policy` (:pull:`90`).
 - Pydantic >= 1.9 is supported (:pull:`91`).
 - Python 3.10 is fully supported (:pull:`89`).
 

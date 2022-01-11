@@ -54,7 +54,8 @@ In order to anticipate and handle these differences:
 Handling and testing limitations and (un)supported endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As of version 2.5.0, :mod:`sdmx` handles service limitations as follows:
+As of version 2.5.0, :mod:`sdmx` handles service limitations as follows.
+Please `open an issue <https://github.com/khaeru/sdmx/issues/new>`__ if the supported endpoints or behaviour of a particular service appear to have changed.
 
 - :attr:`.source.Source.supports` lists endpoints/:class:`resources <.Resource>` that are not supported by *any* known web service.
 - :file:`sources.json` contains ``supports: {"[resource]": false}`` for any endpoint where the service returns an HTTP **404 Not found** response code.
@@ -76,8 +77,10 @@ As of version 2.5.0, :mod:`sdmx` handles service limitations as follows:
     The :class:`.Client` is constructing a standards-compliant URL, but the service idiosyncratically rejects it.
     Handling these idiosyncrasies is currently out-of-scope for :mod:`sdmx`.
 
-Finally, note that because of the large number of services and endpoints, the matrix of support is only periodically updated.
-Please `open an issue <https://github.com/khaeru/sdmx/issues/new>`__ if the supported endpoints or behaviour of a particular service appear to have changed.
+- Because of the large number of services and endpoints, the matrix of support is only periodically updated.
+  To mitigate: https://khaeru.github.io/sdmx/ displays a summary of every SDMX 2.1 REST API endpoint for every data source built-in to :mod:`sdmx`; this summary is updated daily by an automatic run of the test suite.
+  These include all endpoints known to return a non-404 reply, even if the reply is an error message of some sort.
+
 
 SDMX-JSON versus SDMX-ML services
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

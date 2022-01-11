@@ -19,6 +19,7 @@ doc/*.xml
 prof/
 htmlcov
 ref
+service-endpoints.html
 
 # Editors
 .vscode/settings.json

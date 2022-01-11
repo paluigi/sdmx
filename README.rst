@@ -10,6 +10,9 @@ sdmx: Statistical data and metadata exchange
    :alt: Documentation Status
 .. image:: https://img.shields.io/pypi/v/sdmx1.svg
    :target: https://pypi.org/project/sdmx1
+.. image:: https://img.shields.io/badge/services-status-informational
+   :target: https://khaeru.github.io/sdmx/
+   :alt: Status of supported service endpoints
 
 `Source code @ Github <https://github.com/khaeru/sdmx/>`_ —
 `Authors <https://github.com/khaeru/sdmx/graphs/contributors>`_
