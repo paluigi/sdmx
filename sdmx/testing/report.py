@@ -48,9 +48,9 @@ tr.result > td.not-implemented {
 <ol>
   <li>
     Services where only the <code>data</code> endpoint is tested are those supporting
-    SDMX-JSON only. Also the SDMX-JSON standard does specify formats for JSON structure
-    messages, <code>sdmx1</code>—and most existing SDMX-JSON-only web services—support
-    only data queries.
+    SDMX-JSON only. Although the SDMX-JSON standard <em>does</em> specify formats for
+    JSON structure messages, <code>sdmx1</code>—and most existing SDMX-JSON-only web
+    services—support only data queries.
   </li>
   <li>
     If this run was triggered on GitHub Actions, a complete log may be <a
