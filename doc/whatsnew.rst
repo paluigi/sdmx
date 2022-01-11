@@ -8,8 +8,13 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.6.2 (2022-01-11)
+===================
+
+This release contains mainly compatibility updates and testing changes.
 
 - https://khaeru.github.io/sdmx/ now serves a dashboard summarizing automatic, daily tests of every SDMX 2.1 REST API endpoints for every :doc:`data source <sources>` built-in to :mod:`sdmx`. See :ref:`service-policy` (:pull:`90`).
 - Pydantic >= 1.9 is supported (:pull:`91`).
