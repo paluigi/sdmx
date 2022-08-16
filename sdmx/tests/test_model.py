@@ -253,7 +253,7 @@ class TestDataStructureDefinition:
 
         keys0 = list(dsd.iter_keys())
         assert all(isinstance(k, model.Key) for k in keys0)
-        assert 2 ** 3 == len(keys0)
+        assert 2**3 == len(keys0)
 
         # Iterate over only some dimensions
         keys1 = list(dsd.iter_keys(dims=["foo"]))
@@ -265,7 +265,7 @@ class TestDataStructureDefinition:
 
         # Resulting Keys have only "1" for the "foo" dimension
         keys2 = list(dsd.iter_keys(constraint=cc0))
-        assert 1 * 2 ** 2 == len(keys2)
+        assert 1 * 2**2 == len(keys2)
 
         # Use make_constraint() to create & modify a different CubeRegion
         cc1 = dsd.make_constraint(dict(baz="6"))

@@ -39,7 +39,7 @@ class BaseModel(pydantic.BaseModel):
     """Common settings for :class:`pydantic.BaseModel` in :mod:`sdmx`."""
 
     class Config:
-        copy_on_model_validation = False
+        copy_on_model_validation = "none"
         validate_assignment = True
 
 
