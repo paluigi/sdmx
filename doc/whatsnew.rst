@@ -8,8 +8,10 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Bump minimum version of :mod:`pydantic` to 1.9.2 (:pull:`98`).
 
 v2.6.2 (2022-01-11)
 ===================
