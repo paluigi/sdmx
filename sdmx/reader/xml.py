@@ -330,7 +330,7 @@ class Reader(BaseReader):
         Calls to :meth:`.stash` and :meth:`.unstash` should be matched 1-to-1; if the
         latter outnumber the former, this will raise :class:`.KeyError`.
         """
-        for s, values in self.pop_single("_stash").items():
+        for s, values in (self.pop_single("_stash") or {}).items():
             self.stack[s].update(values)
 
     def get_single(
