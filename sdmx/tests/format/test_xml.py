@@ -3,7 +3,7 @@ from sdmx.format import xml
 
 
 def test_content_types():
-    assert 10 == len(xml.CONTENT_TYPES)
+    assert 11 == len(xml.CONTENT_TYPES)
 
 
 def test_tag_for_class():
