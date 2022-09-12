@@ -123,7 +123,7 @@ class ServiceReporter:
         self.path = config.invocation_params.dir.joinpath(
             "service-endpoints", "index.html"
         )
-        self.path.parent.mkdir()
+        self.path.parent.mkdir(exist_ok=True)
         self.data = {}
         self.resources = set()
 
@@ -166,6 +166,6 @@ class ServiceReporter:
                     data=self.data,
                     abbrev=ABBREV,
                     resources=sorted(self.resources),
-                    env=os.environ,
+                    env=dict(GITHUB_REPOSITORY="", GITHUB_RUN_ID="") | os.environ,
                 )
             )

@@ -19,7 +19,7 @@ doc/*.xml
 prof/
 htmlcov
 ref
-service-endpoints.html
+service-endpoints/
 
 # Editors
 .vscode/

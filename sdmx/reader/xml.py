@@ -330,7 +330,7 @@ class Reader(BaseReader):
         Calls to :meth:`.stash` and :meth:`.unstash` should be matched 1-to-1; if the
         latter outnumber the former, this will raise :class:`.KeyError`.
         """
-        for s, values in self.pop_single("_stash").items():
+        for s, values in (self.pop_single("_stash") or {}).items():
             self.stack[s].update(values)
 
     def get_single(
@@ -716,7 +716,17 @@ def _structures(reader, elem):
         ("structure", model.DataStructureDefinition),
     ):
         for obj in reader.pop_all(name, subclass=True):
-            getattr(msg, attr)[obj.id] = obj
+            target = getattr(msg, attr)
+            if obj.id not in target:
+                # Store using ID alone
+                target[obj.id] = obj
+            else:
+                # ID already exists; this occurs when two MaintainableArtefacts have the
+                # same ID, but different maintainers. Re-store using IDs that will be
+                # unique
+                existing = target.pop(obj.id)
+                target[f"{existing.maintainer.id}:{existing.id}"] = existing
+                target[f"{obj.maintainer.id}:{obj.id}"] = obj
 
 
 # Parsers for sdmx.model classes
@@ -808,9 +818,13 @@ def _item_start(reader, elem):
 def _item(reader, elem):
     try:
         # <str:DataProvider> may be a reference, e.g. in <str:ConstraintAttachment>
-        return Reference(elem)
+        item = Reference(elem)
     except NotReference:
         pass
+    else:
+        # Restore "Name" and "Description" that may have been stashed by _item_start
+        reader.unstash()
+        return item
 
     cls = class_for_tag(elem.tag)
     item = reader.nameable(cls, elem)

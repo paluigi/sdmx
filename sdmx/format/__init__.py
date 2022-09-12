@@ -21,6 +21,7 @@ Extra = IntFlag("Extra", "ss ts")
 #:   - ``ss``: for structure-specific (meta)data.
 #:   - ``ts``: for time-series data.
 FORMATS = [
+    Format("application/vnd.sdmx.generic+xml;version=2.1", "xml", True, False, 0),
     Format("application/vnd.sdmx.genericdata+xml;version=2.1", "xml", True, False, 0),
     Format(
         "application/vnd.sdmx.structurespecificdata+xml;version=2.1",
