@@ -12,13 +12,20 @@ Next release
 ============
 
 - Bump minimum version of :mod:`pydantic` to 1.9.2 (:pull:`98`).
+- Always return all objects parsed from a SDMX-ML :class:`.StructureMessage` (:pull:`99`).
+
+  If two or more :class:`.MaintainableArtefact` have the same ID (e.g. "CL_FOO"); :mod:`sdmx` would formerly store only the last one parsed.
+  Now, each is returned, with keys like ``{maintainer's id}:{object id}`` such as would appear in an SDMX URI; for example, "AGENCY_A:CL_FOO", "AGENCY_B:CL_FOO", etc.
+- Recognize the MIME type ``application/vnd.sdmx.generic+xml;version=2.1`` (:pull:`99`).
+- Catch some cases where :attr:`~.NameableArtefact.name` and :attr:`~.NameableArtefact.description` were discarded when parsing SDMX-ML (:pull:`99`).
 
 v2.6.2 (2022-01-11)
 ===================
 
 This release contains mainly compatibility updates and testing changes.
 
-- https://khaeru.github.io/sdmx/ now serves a dashboard summarizing automatic, daily tests of every SDMX 2.1 REST API endpoints for every :doc:`data source <sources>` built-in to :mod:`sdmx`. See :ref:`service-policy` (:pull:`90`).
+- https://khaeru.github.io/sdmx/ now serves a dashboard summarizing automatic, daily tests of every SDMX 2.1 REST API endpoints for every :doc:`data source <sources>` built-in to :mod:`sdmx`.
+  See :ref:`source-policy` (:pull:`90`).
 - Pydantic >= 1.9 is supported (:pull:`91`).
 - Python 3.10 is fully supported (:pull:`89`).
 
