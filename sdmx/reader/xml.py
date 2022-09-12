@@ -808,9 +808,13 @@ def _item_start(reader, elem):
 def _item(reader, elem):
     try:
         # <str:DataProvider> may be a reference, e.g. in <str:ConstraintAttachment>
-        return Reference(elem)
+        item = Reference(elem)
     except NotReference:
         pass
+    else:
+        # Restore "Name" and "Description" that may have been stashed by _item_start
+        reader.unstash()
+        return item
 
     cls = class_for_tag(elem.tag)
     item = reader.nameable(cls, elem)
