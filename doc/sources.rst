@@ -143,7 +143,7 @@ SDMX-ML —
 -------------------
 
 SDMX-ML —
-`Website <http://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
+`Website <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
 
 - Thousands of dataflows on a wide range of topics.
 - No categorisations available.

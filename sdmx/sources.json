@@ -49,8 +49,8 @@
   },
   {
     "id": "ESTAT",
-    "documentation": "http://data.un.org/Host.aspx?Content=API",
-    "url": "http://ec.europa.eu/eurostat/SDMX/diss-web/rest",
+    "documentation": "https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1",
+    "url": "https://ec.europa.eu/eurostat/SDMX/diss-web/rest",
     "name": "Eurostat",
     "supports": {
       "agencyscheme": false,
