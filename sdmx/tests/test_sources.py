@@ -229,6 +229,11 @@ class TestILO(DataSourceTest):
             "codelist", "CL_ECO", tofile=cache_path.with_suffix("." + "codelist-CL_ECO")
         )
 
+    @pytest.mark.network
+    def test_gh_96(self, caplog, cache_path, client):
+        client.get("codelist", "CL_ECO", params=dict(references="parentsandsiblings"))
+        assert "ILO does not support references = parentsandsiblings; discarded"
+
 
 class TestINEGI(DataSourceTest):
     source_id = "INEGI"

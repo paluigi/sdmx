@@ -143,7 +143,7 @@ SDMX-ML —
 -------------------
 
 SDMX-ML —
-`Website <http://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
+`Website <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
 
 - Thousands of dataflows on a wide range of topics.
 - No categorisations available.
@@ -170,17 +170,20 @@ SDMX-ML —
 ------------------------------------------
 
 SDMX-ML —
-`Website <www.ilo.org/ilostat/>`__
+`Website <https://ilostat.ilo.org/resources/sdmx-tools/>`__
 
-- :class:`sdmx.source.ilo.Source` handles some particularities of the ILO
-  web service. Others that are not handled:
+- :class:`sdmx.source.ilo.Source` handles some particularities of the ILO web service, including:
+
+  - The ``references=`` query parameter is not supported; any value is discarded with a warning.
+
+  Others that are not handled:
 
   - Data flow IDs take on the role of a filter.
     E.g., there are dataflows for individual countries, ages, sexes etc. rather than merely for different indicators.
   - The service returns 413 Payload Too Large errors for some queries, with messages like: "Too many results, please specify codelist ID".
     Test for :class:`sdmx.exceptions.HTTPError` (= :class:`requests.exceptions.HTTPError`) and/or specify a ``resource_id``.
 
-- It is highly recommended to read the `API guide <http://www.ilo.org/ilostat/content/conn/ILOSTATContentServer/path/Contribution%20Folders/statistics/web_pages/static_pages/technical_page/ilostat_appl/SDMX_User_Guide.pdf>`_.
+- It is highly recommended to read the “ILOSTAT SDMX User Guide” linked from the above webpage.
 
 .. autoclass:: sdmx.source.ilo.Source()
    :members:

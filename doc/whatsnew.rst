@@ -11,6 +11,8 @@ What's new?
 Next release
 ============
 
+- Update :ref:`ILO` web service URL and quirks handling (:pull:`97`).
+- Use HTTPS for :ref:`ESTAT` (:pull:`97`).
 - Bump minimum version of :mod:`pydantic` to 1.9.2 (:pull:`98`).
 - Always return all objects parsed from a SDMX-ML :class:`.StructureMessage` (:pull:`99`).
 
