@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.6.3 (2022-09-29)
+===================
 
 - Update :ref:`ILO` web service URL and quirks handling (:pull:`97`).
 - Use HTTPS for :ref:`ESTAT` (:pull:`97`).
