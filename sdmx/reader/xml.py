@@ -1122,7 +1122,7 @@ def _ms_agency_id(elem):
     """Return the MemberSelection → CubeRegion → ContentConstraint → agencyID."""
     try:
         return elem.getparent().getparent().attrib["agencyID"]
-    except Exception:
+    except Exception:  # pragma: no cover
         return None
 
 
@@ -1150,7 +1150,7 @@ def _ms(reader, elem):
                 "StructureMessage; see https://github.com/khaeru/sdmx/issues/102"
             )
             cl, values_for = _ms_component(reader, elem, kinds["Attribute"])
-        else:
+        else:  # pragma: no cover
             raise
 
     arg.update(values_for=values_for)
@@ -1162,7 +1162,7 @@ def _ms(reader, elem):
         arg["values"] = list(map(lambda v: model.MemberValue(value=v), mvs))
     elif trv:
         arg["values"] = trv
-    else:
+    else:  # pragma: no cover
         raise RuntimeError
 
     if values_for is None:
