@@ -1090,18 +1090,8 @@ def _tr(reader, elem):
     )
 
 
-@end("com:Attribute com:KeyValue")
-def _ms(reader, elem):
-    """MemberSelection."""
-    arg = dict(values_for=None)
-
-    # Identify the component
-    # Values are for either a Dimension or Attribute, based on tag name
-    kind = {
-        "KeyValue": ("dimensions", model.Dimension),
-        "Attribute": ("attributes", model.DataAttribute),
-    }.get(QName(elem).localname)
-
+def _ms_component(reader, elem, kind):
+    """Identify the Component for a ValueSelection."""
     try:
         # Navigate from the current ContentConstraint to a ConstrainableArtefact
         cc_content = reader.stack[Reference]
@@ -1120,14 +1110,50 @@ def _ms(reader, elem):
             cl = None
 
         # Get the Component
-        arg["values_for"] = cl.get(elem.attrib["id"])
+        return cl, cl.get(elem.attrib["id"])
     except AttributeError:
         # Failed because the ContentConstraint is attached to something, e.g.
         # DataProvider, that does not provide an association to a DSD. Try to get a
         # Component from the current scope with matching ID.
-        arg["values_for"] = reader.get_single(
-            kind[1], id=elem.attrib["id"], subclass=True
-        )
+        return None, reader.get_single(kind[1], id=elem.attrib["id"], subclass=True)
+
+
+def _ms_agency_id(elem):
+    """Return the MemberSelection → CubeRegion → ContentConstraint → agencyID."""
+    try:
+        return elem.getparent().getparent().attrib["agencyID"]
+    except Exception:  # pragma: no cover
+        return None
+
+
+@end("com:Attribute com:KeyValue")
+def _ms(reader, elem):
+    """MemberSelection."""
+    arg = dict()
+
+    # Identify the component
+    # Values are for either a Dimension or Attribute, based on tag name
+    kinds = {
+        "KeyValue": ("dimensions", model.Dimension),
+        "Attribute": ("attributes", model.DataAttribute),
+    }
+    kind = kinds.get(QName(elem).localname)
+
+    try:
+        cl, values_for = _ms_component(reader, elem, kind)
+    except KeyError:
+        # Maybe work around khaeru/sdmx#102
+        # TODO handle quirks via callbacks in data source modules .source.imf
+        if _ms_agency_id(elem) == "IMF" and kind[0] == "dimensions":
+            log.warning(
+                "Work around incorrect use of CubeRegion/KeyValue in IMF "
+                "StructureMessage; see https://github.com/khaeru/sdmx/issues/102"
+            )
+            cl, values_for = _ms_component(reader, elem, kinds["Attribute"])
+        else:  # pragma: no cover
+            raise
+
+    arg.update(values_for=values_for)
 
     # Convert to SelectionValue
     mvs = reader.pop_all("Value")
@@ -1136,10 +1162,10 @@ def _ms(reader, elem):
         arg["values"] = list(map(lambda v: model.MemberValue(value=v), mvs))
     elif trv:
         arg["values"] = trv
-    else:
+    else:  # pragma: no cover
         raise RuntimeError
 
-    if arg["values_for"] is None:
+    if values_for is None:
         log.warning(
             f"{cl} has no {kind[1].__name__} with ID {elem.attrib['id']}; XML element "
             "ignored and SelectionValues discarded"
@@ -1170,7 +1196,8 @@ def _cc(reader, elem):
         else:
             content.add(resolved)
 
-    return reader.nameable(
+    # return reader.nameable(
+    return reader.maintainable(
         model.ContentConstraint,
         elem,
         role=model.ConstraintRole(role=model.ConstraintRoleType[cr_str]),

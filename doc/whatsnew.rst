@@ -8,8 +8,10 @@ What's new?
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Work around :issue:`102`, an error in some :ref:`IMF` structure messages (:pull:`103`).
 
 v2.6.3 (2022-09-29)
 ===================
