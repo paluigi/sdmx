@@ -69,6 +69,8 @@ _CLS_TAG = [
     (model.GroupKey, qname("gen:GroupKey")),
     (model.Key, qname("gen:ObsKey")),
     (model.MeasureDescriptor, qname("str:MeasureList")),
+    (model.MetadataflowDefinition, qname("str:Metadataflow")),
+    (model.MetadataStructureDefinition, qname("str:MetadataStructure")),
     (model.SeriesKey, qname("gen:SeriesKey")),
     (model.StructureUsage, qname("com:StructureUsage")),
 ] + [

@@ -37,8 +37,8 @@ SKIP = (
     # Tags that are bare containers for other XML elements
     "str:Categorisations str:CategorySchemes str:Codelists str:Concepts "
     "str:ConstraintAttachment str:Constraints str:Dataflows "
-    "str:DataStructureComponents str:DataStructures str:None str:OrganisationSchemes "
-    "str:ProvisionAgreements str:StructureSets "
+    "str:DataStructureComponents str:DataStructures str:Metadataflows str:None "
+    "str:OrganisationSchemes str:ProvisionAgreements str:StructureSets "
     # Contents of references
     ":Ref :URN"
 )
@@ -1276,7 +1276,7 @@ def _dsd_end(reader, elem):
         add_localizations(dsd.description, reader.pop_all("Description"))
 
 
-@end("str:Dataflow")
+@end("str:Dataflow str:Metadataflow")
 def _dfd(reader, elem):
     try:
         # <str:Dataflow> may be a reference, e.g. in <str:ConstraintAttachment>
