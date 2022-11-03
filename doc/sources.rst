@@ -228,11 +228,17 @@ SDMX-ML —
 ---------------------------------------------------
 
 SDMX-ML —
-`Website <http://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
+Website `(en) <https://www.istat.it/en/methods-and-tools/sdmx-web-service>`__, `(it) <https://www.istat.it/it/metodi-e-strumenti/web-service-sdmx>`__
 
 - Italian name: Istituto Nazionale di Statistica.
 - Similar server platform to Eurostat, with similar capabilities.
+- Distinct API endpoints are available for:
 
+  - 2010 Agricultural census
+  - 2011 Population and housing census
+  - 2011 Industry and services census
+
+  …see the above URLs for details.
 
 .. _LSD:
 
