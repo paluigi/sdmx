@@ -7,10 +7,10 @@ class Source(BaseSource):
     def modify_request_args(self, kwargs):
         """Supply explicit provider agency ID for ISTAT.
 
-        As reported by @guglielmo, https://github.com/dr-leo/pandaSDMX/pull/75,
-        ISTAT requires a provider agency ID for structure endpoints. Values
-        'IT1' and 'all' are known to work; we use 'all' to (hopefully) be
-        inclusive of 'IT1' and any others.
+        As reported by @guglielmo, https://github.com/dr-leo/pandaSDMX/pull/75, ISTAT
+        requires a provider agency ID for structure endpoints. Values "IT1" and "all"
+        are known to work. Set "all" by default to (hopefully) be inclusive of "IT1" and
+        any others.
         """
         super().modify_request_args(kwargs)
 
