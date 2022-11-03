@@ -170,6 +170,8 @@ class StructureMessage(Message):
     constraint: DictLike[str, model.ContentConstraint] = dictlike_field()
     #: Collection of :class:`.DataflowDefinition`.
     dataflow: DictLike[str, model.DataflowDefinition] = dictlike_field()
+    #: Collection of :class:`.DataflowDefinition`.
+    metadataflow: DictLike[str, model.MetadataflowDefinition] = dictlike_field()
     #: Collection of :class:`.DataStructureDefinition`.
     structure: DictLike[str, model.DataStructureDefinition] = dictlike_field()
     #: Collection of :class:`.AgencyScheme`.

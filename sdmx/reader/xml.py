@@ -711,6 +711,7 @@ def _structures(reader, elem):
         ("concept_scheme", model.ConceptScheme),
         ("constraint", model.ContentConstraint),
         ("dataflow", model.DataflowDefinition),
+        ("metadataflow", model.MetadataflowDefinition),
         ("organisation_scheme", model.OrganisationScheme),
         ("provisionagreement", model.ProvisionAgreement),
         ("structure", model.DataStructureDefinition),
