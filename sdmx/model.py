@@ -2270,6 +2270,17 @@ class _AllDimensions:
 AllDimensions = _AllDimensions()
 
 
+# §7.3 Metadata Structure Definition
+
+
+class MetadataflowDefinition(StructureUsage, ConstrainableArtefact):
+    """SDMX-IM MetadataflowDefinition."""
+
+
+class MetadataStructureDefinition(Structure, ConstrainableArtefact):
+    """SDMX-IM MetadataStructureDefinition."""
+
+
 # §11: Data Provisioning
 
 
@@ -2307,6 +2318,7 @@ _PACKAGE_CLASS: Dict[str, set] = {
     "codelist": {Code, Codelist},
     "conceptscheme": {Concept, ConceptScheme},
     "datastructure": {DataflowDefinition, DataStructureDefinition, StructureUsage},
+    "metadatastructure": {MetadataflowDefinition, MetadataStructureDefinition},
     "registry": {ContentConstraint, ProvisionAgreement},
 }
 
@@ -2329,7 +2341,10 @@ def get_class(name: Union[str, Resource], package=None) -> Optional[Type]:
         # KeyError occurs below
         name = only(filter(lambda g: g.lower() == match, globals().keys()))
 
-    name = {"Dataflow": "DataflowDefinition"}.get(name, name)
+    name = {
+        "Dataflow": "DataflowDefinition",
+        "Metadataflow": "MetadataflowDefinition",
+    }.get(name, name)
 
     try:
         cls = globals()[name]
