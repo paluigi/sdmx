@@ -45,21 +45,11 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: "**/setup.cfg"
 
     - name: Upgrade pip, wheel
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip wheel
-        # Locate pip cache directory
-        echo "pip-cache-dir=$(pip cache dir)" >> $GITHUB_ENV
-
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.pip-cache-dir }}
-        key: ${{ matrix.os }}-py${{ matrix.python-version }}
-        restore-keys: |
-          ${{ matrix.version.os }}
+      run: python -m pip install --upgrade pip wheel
 
     - name: Install the Python package and dependencies
       run: pip install .[cache,docs,tests]
@@ -101,21 +91,13 @@ jobs:
         path: sdmx-test-data
 
     - uses: actions/setup-python@v4
-      id: py
+      with:
+        python-version: 3.x
+        cache: pip
+        cache-dependency-path: "**/setup.cfg"
 
     - name: Upgrade pip, wheel
-      run: |
-        python -m pip install --upgrade pip wheel
-        # Locate pip cache directory
-        echo "pip-cache-dir=$(pip cache dir)" >> $GITHUB_ENV
-
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.pip-cache-dir }}
-        key: ubuntu-latest-py${{ steps.py.outputs.python-version }}
-        restore-keys: |
-          ubuntu-latest
+      run: python -m pip install --upgrade pip wheel
 
     - name: Install the Python package and dependencies
       run: pip install .[cache,docs,tests]
