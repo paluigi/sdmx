@@ -166,6 +166,8 @@ SDMX-ML —
 - In general short response times.
 
 
+.. _ILO:
+
 ``ILO``: International Labour Organization
 ------------------------------------------
 
@@ -223,6 +225,8 @@ SDMX-ML —
 .. autoclass:: sdmx.source.insee.Source()
    :members:
 
+
+.. _ISTAT:
 
 ``ISTAT``: National Institute of Statistics (Italy)
 ---------------------------------------------------
