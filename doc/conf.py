@@ -41,9 +41,9 @@ html_theme_options = dict(
 # -- Options for sphinx.ext.extlinks -----------------------------------------
 
 extlinks = {
-    "issue": ("https://github.com/khaeru/sdmx/issues/%s", "#"),
-    "pull": ("https://github.com/khaeru/sdmx/pull/%s", "PR #"),
-    "gh-user": ("https://github.com/%s", "@"),
+    "issue": ("https://github.com/khaeru/sdmx/issues/%s", "#%s"),
+    "pull": ("https://github.com/khaeru/sdmx/pull/%s", "PR #%s"),
+    "gh-user": ("https://github.com/%s", "@%s"),
 }
 
 
