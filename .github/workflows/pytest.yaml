@@ -19,8 +19,7 @@ jobs:
         python-version:
         - "3.7"  # Earliest supported version; actually 3.7.2
         - "3.9"
-        - "3.10.6"  # Work around python/mypy#13627
-        # - "3.10.7"  # Latest supported version. mypy errors; see above.
+        - "3.10"  # Latest supported version
         # commented: only enable once next Python version enters RC
         # - "3.11.0-rc.1"  # Development version
 
@@ -31,7 +30,7 @@ jobs:
 
     steps:
     - name: Cancel previous runs that have not completed
-      uses: styfle/cancel-workflow-action@0.10.0
+      uses: styfle/cancel-workflow-action@0.11.0
       with:
         access_token: ${{ github.token }}
 
@@ -46,21 +45,11 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: "**/setup.cfg"
 
     - name: Upgrade pip, wheel
       run: python -m pip install --upgrade pip wheel
-
-    - name: Locate pip cache directory
-      id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
-
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ matrix.os }}-py${{ matrix.python-version }}
-        restore-keys: |
-          ${{ matrix.version.os }}
 
     - name: Install the Python package and dependencies
       run: pip install .[cache,docs,tests]
@@ -89,7 +78,7 @@ jobs:
 
     steps:
     - name: Cancel previous runs that have not completed
-      uses: styfle/cancel-workflow-action@0.10.0
+      uses: styfle/cancel-workflow-action@0.11.0
       with:
         access_token: ${{ github.token }}
 
@@ -102,22 +91,13 @@ jobs:
         path: sdmx-test-data
 
     - uses: actions/setup-python@v4
-      id: py
+      with:
+        python-version: 3.x
+        cache: pip
+        cache-dependency-path: "**/setup.cfg"
 
     - name: Upgrade pip, wheel
       run: python -m pip install --upgrade pip wheel
-
-    - name: Locate pip cache directory
-      id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
-
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: ubuntu-latest-py${{ steps.py.outputs.python-version }}
-        restore-keys: |
-          ubuntu-latest
 
     - name: Install the Python package and dependencies
       run: pip install .[cache,docs,tests]
@@ -133,7 +113,7 @@ jobs:
 
     - name: Deploy to GitHub Pages
       if: success()
-      uses: crazy-max/ghaction-github-pages@v3
+      uses: crazy-max/ghaction-github-pages@v3.1.0
       with:
         build_dir: service-endpoints
       env:

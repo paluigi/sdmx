@@ -273,9 +273,12 @@ class TestISTAT(DataSourceTest):
     def test_gh_75(self, client):
         """Test of https://github.com/dr-leo/pandaSDMX/pull/75.
 
-        As of the original report on 2019-06-02, the 4th dimension was ``TIPO_DATO``,
-        and the 5th ``TIPO_GESTIONE``. As of 2021-01-30, these are transposed, and the
-        4th dimension name is ``TIPO_GEST``.
+        - As of the original report on 2019-06-02, the 4th dimension was ``TIPO_DATO``,
+          and the 5th ``TIPO_GESTIONE``.
+        - As of 2021-01-30, these are transposed, and the 4th dimension name is
+          ``TIPO_GEST``.
+        - As of 2022-11-03, the dataflow uses yet another new DSD with the ID
+          IT1:DCIS_SERVSOCEDU1(1.0).
         """
 
         df_id = "47_850"
@@ -289,11 +292,11 @@ class TestISTAT(DataSourceTest):
         # dict() key for the query
         data_key = dict(
             FREQ=["A"],
-            ITTER107=["001001+001002"],
-            SETTITOLARE=["1"],
-            TIPO_GEST=["ALL"],
-            TIPO_DATO=["AUTP"],
-            TIPSERVSOC=["ALL"],
+            REF_AREA=["001001+001002"],
+            DATA_TYPE=["AUTP"],
+            TYPE_SOCIO_EDUC_SERVICE=["ALL"],
+            TYPE_MANAGEMENT=["ALL"],
+            HOLDER_SECTOR_PUBPRIV=["1"],
         )
 
         # Dimension components are in the correct order
@@ -304,7 +307,7 @@ class TestISTAT(DataSourceTest):
         # Reported data query works
         # NB the reported query key was "A.001001+001002.1.AUTP.ALL.ALL"; adjusted per
         #    the DSD change (above).
-        client.data(df_id, key="A.001001+001002.1.ALL.AUTP.ALL")
+        client.data(df_id, key="A.001001+001002.AUTP.ALL.ALL.1")
 
         # Use a dict() key to force Client to make a sub-query for the DSD
         client.data(df_id, key=data_key)

@@ -11,6 +11,8 @@ What's new?
 Next release
 ============
 
+- Update :ref:`ISTAT` web service URL (:pull:`105`).
+- Add :class:`MetadataflowDefinition`, :class:`MetadataStructureDefinition`, and handle references to these in :mod:`.reader.xml` (:pull:`105`).
 - Work around :issue:`102`, an error in some :ref:`IMF` structure messages (:pull:`103`).
 
 v2.6.3 (2022-09-29)
