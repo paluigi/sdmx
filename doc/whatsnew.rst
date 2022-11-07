@@ -24,6 +24,7 @@ Next release
 
   - Elements that normally contain text but appear without even a text node, e.g. ``<com:AnnotationURL/>``.
   - XML namespaces defined on the message element, e.g. ``<mes:StructureSpecificData xmlns:u="...">`` followed by ``<u:DataSet>`` instead of ``<mes:DataSet>``.
+- Use the user-supplied ``dsd=…`` argument to :meth:`.Client.get`, even if its ID does not match those used locally in an SDMX-ML :class:`.DataMessage` (:pull:`106`, :issue:`104`).
 - Expand the :ref:`source/endpoint test matrix <source-matrix>` (:pull:`109`).
   Every REST API endpoint is queried for every data source, even if it is known to be not implemented.
   This allows to spot when source implementations change.
