@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Type, Union, cast
 
 from dateutil.parser import isoparse
 from lxml import etree
-from lxml.etree import QName
+from lxml.etree import _Element, QName
 
 import sdmx.urn
 from sdmx import message, model
@@ -293,7 +293,7 @@ class Reader(BaseReader):
 
     def push(self, stack_or_obj, obj=None):
         """Push an object onto a stack."""
-        if stack_or_obj is None:
+        if stack_or_obj is None or (isinstance(stack_or_obj, _Element) and obj is None):
             return
         elif obj is None:
             # Add the object to a stack based on its class

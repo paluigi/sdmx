@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import requests
 
 from . import Source as BaseSource
-
+from sdmx.rest import Resource
 
 class Source(BaseSource):
     """Handle Eurostat's mechanism for large datasets.
@@ -28,6 +28,20 @@ class Source(BaseSource):
         super().modify_request_args(kwargs)
 
         kwargs.pop("get_footer_url", None)
+
+        resource_type = kwargs["resource_type"]
+        if resource_type != Resource.data:
+            parameters = kwargs.setdefault("params", {})
+
+            if resource_type == Resource.dataflow:
+                parameters["references"] = "none"
+
+                resource_id = kwargs["resource_id"]
+                if resource_id is None:
+                    kwargs["resource_id"] = "all"
+
+            elif resource_type == Resource.datastructure:
+                parameters["references"] = "descendants"
 
     def finish_message(self, message, request, get_footer_url=(30, 3), **kwargs):
         """Handle the initial response.
