@@ -30,18 +30,14 @@ class Source(BaseSource):
         kwargs.pop("get_footer_url", None)
 
         resource_type = kwargs["resource_type"]
-        if resource_type != Resource.data:
+        if resource_type != Resource.data or "resource" in kwargs:
             parameters = kwargs.setdefault("params", {})
+            parameters["references"] = "descendants"
 
-            if resource_type == Resource.dataflow:
-                parameters["references"] = "none"
-
-                resource_id = kwargs["resource_id"]
-                if resource_id is None:
-                    kwargs["resource_id"] = "all"
-
-            elif resource_type == Resource.datastructure:
-                parameters["references"] = "descendants"
+            # handle get all dataflows case
+            if resource_type == Resource.dataflow and kwargs["resource_id"] is None:
+                kwargs["resource_id"] = "all"
+                parameters["references"] = None
 
     def finish_message(self, message, request, get_footer_url=(30, 3), **kwargs):
         """Handle the initial response.
