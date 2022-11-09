@@ -145,8 +145,8 @@ def test_request_get_args():
 
     # Client._make_key accepts '+'-separated values
     args = dict(
-        resource_id="une_rt_a",
-        key={"GEO": "EL+ES+IE"},
+        resource_id="UNE_RT_A",
+        key={"geo": "EL+ES+IE"},
         params={"startPeriod": "2007"},
         dry_run=True,
         use_cache=True,
@@ -155,7 +155,7 @@ def test_request_get_args():
     url = ESTAT.data(**args).url
 
     # Using an iterable of key values gives the same URL
-    args["key"] = {"GEO": ["EL", "ES", "IE"]}
+    args["key"] = {"geo": ["EL", "ES", "IE"]}
     assert ESTAT.data(**args).url == url
 
     # Using a direct string for a key gives the same URL
@@ -165,8 +165,8 @@ def test_request_get_args():
     # Giving 'provider' is redundant for a data request, causes a warning
     with pytest.warns(UserWarning, match="'provider' argument is redundant"):
         ESTAT.data(
-            "une_rt_a",
-            key={"GEO": "EL+ES+IE"},
+            "UNE_RT_A",
+            key={"geo": "EL+ES+IE"},
             params={"startPeriod": "2007"},
             provider="ESTAT",
         )

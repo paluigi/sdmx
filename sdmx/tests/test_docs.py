@@ -23,23 +23,23 @@ def test_doc_example():
 
     estat = sdmx.Client("ESTAT")
 
-    metadata = estat.datastructure("DSD_une_rt_a")
+    metadata = estat.datastructure("UNE_RT_A")
 
-    for cl in "CL_AGE", "CL_UNIT":
+    for cl in "AGE", "UNIT":
         print(sdmx.to_pandas(metadata.codelist[cl]))
 
     resp = estat.data(
-        "une_rt_a", key={"GEO": "EL+ES+IE"}, params={"startPeriod": "2007"}
+        "UNE_RT_A", key={"geo": "EL+ES+IE"}, params={"startPeriod": "2007"}
     )
 
-    data = sdmx.to_pandas(resp).xs("Y15-74", level="AGE", drop_level=False)
+    data = sdmx.to_pandas(resp).xs("Y15-74", level="age", drop_level=False)
 
     data.loc[("A", "Y15-74", "PC_ACT", "T")]
 
     # Further checks per https://github.com/dr-leo/pandaSDMX/issues/157
 
     # DimensionDescriptor for the structure message
-    dd1 = metadata.structure.DSD_une_rt_a.dimensions
+    dd1 = metadata.structure.UNE_RT_A.dimensions
 
     # DimensionDescriptor retrieved whilst validating the data message
     dd2 = resp.data[0].structured_by.dimensions
@@ -58,41 +58,41 @@ def test_doc_example():
 def test_doc_index1():
     """First code example in index.rst."""
     estat = Client("ESTAT")
-    flow_response = estat.dataflow("une_rt_a")
+    flow_response = estat.dataflow("UNE_RT_A")
 
     with pytest.raises(TypeError):
         # This presumes the DataStructureDefinition instance can conduct a
         # network request for its own content
-        structure_response = flow_response.dataflow.une_rt_a.structure(
+        structure_response = flow_response.dataflow.UNE_RT_A.structure(
             request=True, target_only=False
         )
 
     # Same effect
     structure_response = estat.get(
-        "datastructure", flow_response.dataflow.une_rt_a.structure.id
+        "datastructure", flow_response.dataflow.UNE_RT_A.structure.id
     )
 
     # Even better: Client.get(…) should examine the class and ID of the object
-    # structure = estat.get(flow_response.dataflow.une_rt_a.structure)
+    # structure = estat.get(flow_response.dataflow.UNE_RT_A.structure)
 
     # Show some codelists
     s = sdmx.to_pandas(structure_response)
     expected = pd.Series(
         {
-            "AT": "Austria",
-            "BE": "Belgium",
-            "BG": "Bulgaria",
-            "CH": "Switzerland",
-            "CY": "Cyprus",
+            "ACP": "African, Caribbean and Pacific Group of States, signatories of the Partnership Agreement",
+            "ACP_AFR": "African ACP states",
+            "ACP_CRB": "Caribbean ACP states",
+            "ACP_PAC": "Pacific ACP states",
+            "AD": "Andorra",
         },
-        name="GEO",
-    ).rename_axis("CL_GEO")
+        name="Geopolitical entity (reporting)",
+    ).rename_axis("GEO")
 
     # Codelists are converted to a DictLike
     assert isinstance(s.codelist, DictLike)
 
     # Same effect
-    assert_pd_equal(s.codelist["CL_GEO"].sort_index().head(), expected)
+    assert_pd_equal(s.codelist["GEO"].sort_index().head(), expected)
 
 
 @pytest.mark.network
