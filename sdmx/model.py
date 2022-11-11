@@ -1492,7 +1492,7 @@ class DataStructureDefinition(Structure, ConstrainableArtefact):
 
     # Convenience methods
     def iter_keys(
-        self, constraint: Constraint = None, dims: List[str] = []
+        self, constraint: Optional[Constraint] = None, dims: List[str] = []
     ) -> Generator["Key", None, None]:
         """Iterate over keys.
 
@@ -1752,7 +1752,7 @@ class DataflowDefinition(StructureUsage, ConstrainableArtefact):
     structure: DataStructureDefinition = DataStructureDefinition()
 
     def iter_keys(
-        self, constraint: Constraint = None, dims: List[str] = []
+        self, constraint: Optional[Constraint] = None, dims: List[str] = []
     ) -> Generator["Key", None, None]:
         """Iterate over keys.
 
@@ -1903,7 +1903,7 @@ class Key(BaseModel):
     #: Individual KeyValues that describe the key.
     values: DictLike[str, KeyValue] = dictlike_field()
 
-    def __init__(self, arg: Union[Mapping, Sequence[KeyValue]] = None, **kwargs):
+    def __init__(self, arg: Union[Mapping, Sequence[KeyValue], None] = None, **kwargs):
         # DimensionDescriptor
         dd = kwargs.pop("described_by", None)
 
@@ -2056,7 +2056,7 @@ class GroupKey(Key):
     #:
     described_by: Optional[GroupDimensionDescriptor] = None
 
-    def __init__(self, arg: Mapping = None, **kwargs):
+    def __init__(self, arg: Optional[Mapping] = None, **kwargs):
         # Remove the 'id' keyword argument
         id = kwargs.pop("id", None)
         super().__init__(arg, **kwargs)

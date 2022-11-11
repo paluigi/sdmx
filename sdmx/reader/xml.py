@@ -212,7 +212,7 @@ class Reader(BaseReader):
         return content.startswith(b"<")
 
     def read_message(
-        self, source, dsd: model.DataStructureDefinition = None
+        self, source, dsd: Optional[model.DataStructureDefinition] = None
     ) -> message.Message:
         # Initialize stacks
         self.stack: Dict[Union[Type, str], Dict[Union[str, int], Any]] = defaultdict(
@@ -334,7 +334,10 @@ class Reader(BaseReader):
             self.stack[s].update(values)
 
     def get_single(
-        self, cls_or_name: Union[Type, str], id: str = None, subclass: bool = False
+        self,
+        cls_or_name: Union[Type, str],
+        id: Optional[str] = None,
+        subclass: bool = False,
     ) -> Optional[Any]:
         """Return a reference to an object while leaving it in its stack.
 
