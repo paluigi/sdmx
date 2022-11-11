@@ -1,4 +1,5 @@
 import pickle
+from typing import Generator, Type
 
 import pydantic
 import pytest
@@ -10,7 +11,7 @@ from sdmx.util import BaseModel, DictLike, only, parse_content_type, validate_di
 
 class TestDictLike:
     @pytest.fixture
-    def Foo(self):
+    def Foo(self) -> Generator[Type, None, None]:
         # Example class
         @validate_dictlike
         class Foo(BaseModel):
@@ -63,7 +64,7 @@ class TestDictLike:
         with pytest.raises(pydantic.ValidationError, match="not a valid dict"):
             f.items = {"bar", "baz"}
 
-    def test_validation(self, Foo):
+    def test_validation(self, Foo) -> None:
         f = Foo()
         assert type(f.items) is DictLike
 
