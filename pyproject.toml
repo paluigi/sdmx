@@ -1,5 +1,6 @@
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 [tool.coverage.run]
 omit = [
@@ -35,3 +36,6 @@ markers = [
     "network: tests requiring a network connection",
     "source: slower, network tests of individual SDMX web services",
 ]
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
