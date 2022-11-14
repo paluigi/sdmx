@@ -81,27 +81,30 @@ tr.result > td.not-implemented {
 <table>
 <tr class="result">
   <td class="pass">✔</td>
-  <td style="text-align: left">Pass</td>
+  <td style="text-align: left">Pass.</td>
 </tr>
 <tr class="result">
   <td class="fail">✘</td>
-  <td style="text-align: left">Fail</td>
+  <td style="text-align: left">Unexpected failure.</td>
 </tr>
 <tr class="result">
   <td class="xfail">✔</td>
   <td style="text-align: left">
-    Known/expected failure; see GitHub for related issue(s).
+    <p>Known/expected failure. See GitHub for any related issue(s).</p>
+    <p>Includes the case where the service is known to not implement this endpoint, but
+    replies with a 4XX (error) HTTP status code instead of 501.</p>
   </td>
 </tr>
 <tr class="result">
   <td class="not-implemented"></td>
   <td style="text-align: left">
-    Web service does not implement this endpoint; not queried.
+    Web service does not implement this endpoint and replies correctly to queries with
+    a 501 HTTP status code and/or message.
   </td>
 </tr>
 <tr class="result">
   <td>—</td>
-  <td style="text-align: left">No test for this endpoint</td>
+  <td style="text-align: left">No test for this service and endpoint.</td>
 </tr>
 </table>
 </body>
@@ -137,18 +140,19 @@ class ServiceReporter:
 
         self.data.setdefault(source_id, dict())
 
-        xfail_classes = list(
-            map(
-                lambda m: m.kwargs["raises"],
-                filter(lambda m: m.name == "xfail", item.own_markers),
-            )
-        )
+        # Compile a list of exception classes associated with xfail marks
+        xfail_classes = []
+        for m in filter(lambda m: m.name == "xfail", item.own_markers):
+            try:
+                xfail_classes.extend(m.kwargs["raises"])  # Sequence of classes
+            except TypeError:
+                xfail_classes.append(m.kwargs["raises"])  # Single exception class
 
         try:
             if call.excinfo.type is NotImplementedError:
                 result = "not-implemented"
             elif xfail_classes:
-                result = "xfail" if xfail_classes[0] is call.excinfo.type else "fail"
+                result = "xfail" if call.excinfo.type in xfail_classes else "fail"
             else:
                 result = str(call.excinfo.type)
         except AttributeError:
