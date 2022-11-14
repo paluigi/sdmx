@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Type, Union, cast
 
 from dateutil.parser import isoparse
 from lxml import etree
-from lxml.etree import QName, _Element
+from lxml.etree import QName
 
 import sdmx.urn
 from sdmx import message, model
@@ -107,10 +107,19 @@ PARSE.update({k: None for k in product(to_tags(SKIP), ["start", "end"])})
 
 
 class NotReference(Exception):
+    """Raised when the `elem` passed to :class:`.Reference` is not a reference."""
+
+
+# Sentinel value for a missing Agency
+_NO_AGENCY = model.Agency()
+
+
+class _NoText:
     pass
 
 
-_NO_AGENCY = model.Agency()
+# Sentinel value for XML elements with no text; used to distinguish from "" and None
+NoText = _NoText()
 
 
 class Reference:
@@ -294,7 +303,7 @@ class Reader(BaseReader):
 
     def push(self, stack_or_obj, obj=None):
         """Push an object onto a stack."""
-        if stack_or_obj is None or (isinstance(stack_or_obj, _Element) and obj is None):
+        if stack_or_obj is None:
             return
         elif obj is None:
             # Add the object to a stack based on its class
@@ -754,7 +763,8 @@ def _structures(reader, elem):
     "str:Email str:Telephone str:URI"
 )
 def _text(reader, elem):
-    reader.push(elem, elem.text)
+    # If elem.text is None, push a sentinel value
+    reader.push(elem, elem.text or NoText)
 
 
 @end("mes:Extracted mes:Prepared mes:ReportingBegin mes:ReportingEnd")
@@ -792,10 +802,11 @@ def _ref(reader, elem):
 
 @end("com:Annotation")
 def _a(reader, elem):
+    url = reader.pop_single("AnnotationURL")
     args = dict(
         title=reader.pop_single("AnnotationTitle"),
         type=reader.pop_single("AnnotationType"),
-        url=reader.pop_single("AnnotationURL"),
+        url=None if url is NoText else url,
     )
 
     # Optional 'id' attribute
