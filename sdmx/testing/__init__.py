@@ -105,21 +105,40 @@ def parametrize_specimens(metafunc):
     )
 
 
-#: This exception is raised by client.Client._request_from_args
-#:
-#: .. todo:: parametrize force=True to query these endpoints anyway; then XPASS will
-#:    reveal when data sources change their support for endpoints
-unsupported = pytest.mark.xfail(
-    strict=True, reason="Known non-supported endpoint.", raises=NotImplementedError
-)
-
-_503 = pytest.mark.xfail(
-    raises=HTTPError, reason="503 Server Error: Service Unavailable"
-)
+#: Marks for use below.
+XFAIL = {
+    # Exceptions resulting from querying an endpoint not supported by a service
+    "unsupported": pytest.mark.xfail(
+        strict=True,
+        reason="Not implemented by service",
+        raises=(
+            HTTPError,  # 401, 404, 405, etc.
+            NotImplementedError,  # 501, converted automatically
+            ValueError,  # e.g. WB_WDI, returns invalid content type
+        ),
+    ),
+    # Returned by servers that may be temporarily unavailable at the time of test
+    503: pytest.mark.xfail(
+        raises=HTTPError, reason="503 Server Error: Service Unavailable"
+    ),
+}
 
 
 def generate_endpoint_tests(metafunc):
-    """pytest hook for parametrizing tests that need an "endpoint" fixture."""
+    """pytest hook for parametrizing tests that need an "endpoint" fixture.
+
+    This function relies on the :class:`.DataSourceTest` base class defined in
+    :mod:`.test_sources`. It:
+
+    - Generates one parametrization for every :class:`.Resource` (= REST API endpoint).
+    - Applies pytest "xfail" (expected failure) marks according to:
+
+      1. :attr:`.Source.supports`, i.e. if the particular source is marked as not
+         supporting certain endpoints, the test is expected to fail.
+      2. :attr:`.DataSourceTest.xfail`, any other failures defined on the source test
+         class (e.g. :class:`.DataSourceTest` subclass).
+      3. :attr:`.DataSourceTest.xfail_common`, common failures.
+    """
     if "endpoint" not in metafunc.fixturenames:
         return  # Don't need to parametrize this metafunc
 
@@ -127,15 +146,22 @@ def generate_endpoint_tests(metafunc):
     params = []
 
     # Use the test class' source_id attr to look up the Source class
-    source = sources[metafunc.cls.source_id]
+    cls = metafunc.cls
+    source = sources[cls.source_id]
 
-    # Merge "common" and subclass-specific xfails
-    xfails = ChainMap(metafunc.cls.xfail, metafunc.cls.xfail_common)
+    # Merge subclass-specific and "common" xfail marks, preferring the former
+    xfails = ChainMap(cls.xfail, cls.xfail_common)
 
     # Iterate over all known endpoints
     for ep in Resource:
         # Accumulate multiple marks; first takes precedence
         marks = []
+
+        # Get any keyword arguments for this endpoint
+        args = cls.endpoint_args.get(ep.name, dict())
+        if ep is Resource.data and not len(args):
+            # args must be specified for a data query; no args → no test
+            continue
 
         # Check if the associated source supports the endpoint
         supported = source.supports[ep]
@@ -143,37 +169,36 @@ def generate_endpoint_tests(metafunc):
             # SDMX-JSON sources only support data queries
             continue
         elif not supported:
-            marks.append(unsupported)
+            args["force"] = True
+            marks.append(XFAIL["unsupported"])
 
         # Check if the test function's class contains an expected failure for `endpoint`
-        exc_class = xfails.get(ep.name, None)
-        if exc_class:
+        xfail = xfails.get(ep.name, None)
+        if not marks and xfail:
             # Mark the test as expected to fail
-            marks.append(pytest.mark.xfail(strict=True, raises=exc_class))
+            try:  # Unpack a tuple
+                mark = pytest.mark.xfail(raises=xfail[0], reason=xfail[1])
+            except TypeError:
+                mark = pytest.mark.xfail(raises=xfail)
+            marks.append(mark)
 
-            if not supported:  # pragma: no cover
+            if not supported:  # pragma: no cover; for identifying extraneous entries
                 log.info(
-                    f"tests for {repr(metafunc.cls.source_id)} mention unsupported "
-                    f"endpoint {repr(ep.name)}"
+                    f"tests for {source.id!r} mention unsupported endpoint {ep.name!r}"
                 )
 
         # Tolerate 503 errors
-        if metafunc.cls.tolerate_503:
-            marks.append(_503)
-
-        # Get any keyword arguments for this endpoint
-        args = metafunc.cls.endpoint_args.get(ep.name, dict())
-        if ep is Resource.data and not len(args):
-            # args must be specified for a data query; no args → no test
-            continue
+        if cls.tolerate_503:
+            marks.append(XFAIL[503])
 
         params.append(pytest.param(ep, args, id=ep.name, marks=marks))
 
     if len(params):
         # Run the test function once for each endpoint
         metafunc.parametrize("endpoint, args", params)
-    else:
-        pytest.skip("No endpoints to be tested")
+    # commented: for debugging
+    # else:
+    #     pytest.skip("No endpoints to be tested")
 
 
 class MessageTest:
