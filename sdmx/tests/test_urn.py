@@ -43,6 +43,14 @@ def test_make():
 
 
 def test_match():
+    # Value containing a "." in the ID
+    urn = (
+        "urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=LSD:"
+        "TSTT1201R001_MIT1938_1_1._1(1.0)"
+    )
+    assert "TSTT1201R001_MIT1938_1_1._1" == match(urn)["id"]
+
+    # Invalid value (only the "package" component, no "class")
     urn = "urn:sdmx:org.sdmx.infomodel.codelist=BBK:CLA_BBK_COLLECTION(1.0)"
     with pytest.raises(ValueError, match=re.escape(f"not a valid SDMX URN: {urn}")):
         match(urn)

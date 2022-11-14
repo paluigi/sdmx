@@ -8,7 +8,7 @@ URN = re.compile(
     r"urn:sdmx:org\.sdmx\.infomodel"
     r"\.(?P<package>[^\.]*)"
     r"\.(?P<class>[^=]*)=((?P<agency>[^:]*):)?"
-    r"(?P<id>[^\(\.]*)(\((?P<version>[\d\.]*)\))?"
+    r"(?P<id>[^\(]*)(\((?P<version>[\d\.]*)\))?"
     r"(\.(?P<item_id>.*))?"
 )
 
