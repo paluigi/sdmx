@@ -6,7 +6,7 @@ To force the data to be retrieved over the Internet, delete this directory.
 # TODO add a pytest argument for clearing this cache in conftest.py
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Tuple, Type, Union
 
 import pytest
 import requests_mock
@@ -21,6 +21,9 @@ pytestmark = pytest.mark.source
 log = logging.getLogger(__name__)
 
 
+NI = "Not implemented in sdmx1"
+
+
 class DataSourceTest:
     """Base class for data source tests."""
 
@@ -31,15 +34,18 @@ class DataSourceTest:
 
     #: Failures affecting **all** data sources, internal to :mod:`sdmx`.
     xfail_common = {
-        "contentconstraint": XMLParseError,  # KeyError
-        # <str:StructureSet> <str:HierarchicalCodelists> not implemented
-        "structure": XMLParseError,
-        "structureset": XMLParseError,  # <str:StructureSet> not implemented
+        "actualconstraint": (XMLParseError, NI),  # KeyError
+        "allowedconstraint": (XMLParseError, NI),  # KeyError
+        "contentconstraint": (XMLParseError, NI),  # KeyError
+        "hierarchicalcodelist": (XMLParseError, NI),  # <str:HierarchicalCodelist>
+        "metadatastructure": (XMLParseError, NI),  # <str:MetadataStructure> not parsed
+        "structure": (XMLParseError, NI),  # <str:StructureSet> not parsed
+        "structureset": (XMLParseError, NI),  # <str:StructureSet> not implemented
     }
 
     #: Mapping of endpoint → Exception subclass. Tests of these endpoints are expected
     #: to fail with the given kind of exception.
-    xfail: Dict[str, Optional[Type[Exception]]] = {}
+    xfail: Dict[str, Union[Type[Exception], Tuple[Type[Exception], str]]] = {}
 
     #: True to xfail if a 503 Error is returned.
     tolerate_503 = False
@@ -74,7 +80,12 @@ class DataSourceTest:
     def test_endpoint(self, cache_path, client, endpoint, args):
         # See sdmx.testing._generate_endpoint_tests() for values of `endpoint`
         cache = cache_path.with_suffix(f".{endpoint}.xml")
-        result = client.get(endpoint, tofile=cache, **args)
+
+        try:
+            result = client.get(endpoint, tofile=cache, **args)
+        except HTTPError as e:  # For debugging/test development
+            print(e)
+            raise
 
         # For debugging
         # print(cache, cache.read_text(), result, sep='\n\n')
