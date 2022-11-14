@@ -318,8 +318,13 @@ class TestISTAT(DataSourceTest):
         client.data(df_id, key=data_key)
 
     @pytest.mark.network
-    def test_gh_102(self, client):
-        """Test of https://github.com/khaeru/sdmx/issues/104."""
+    def test_gh_104(self, client):
+        """Test of https://github.com/khaeru/sdmx/issues/104.
+
+        See also
+        --------
+        .test_reader_xml.test_gh_104
+        """
         df_id = "22_289"
 
         dsd = (
