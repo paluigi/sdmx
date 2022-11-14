@@ -79,7 +79,8 @@ def test_doc_index1():
     s = sdmx.to_pandas(structure_response)
     expected = pd.Series(
         {
-            "ACP": "African, Caribbean and Pacific Group of States, signatories of the Partnership Agreement",
+            "ACP": "African, Caribbean and Pacific Group of States, signatories of the "
+            "Partnership Agreement",
             "ACP_AFR": "African ACP states",
             "ACP_CRB": "Caribbean ACP states",
             "ACP_PAC": "Pacific ACP states",
@@ -113,7 +114,7 @@ def test_doc_usage_structure():
     msg1 = ecb.categoryscheme(provider="all")
 
     assert msg1.response.url == (
-        "https://sdw-wsrest.ecb.europa.eu/service/categoryscheme/all/latest"
+        "https://sdw-wsrest.ecb.europa.eu/service/categoryscheme/all/all/latest"
         "?references=parentsandsiblings"
     )
 

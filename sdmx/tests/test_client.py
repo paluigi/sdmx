@@ -172,7 +172,7 @@ def test_request_get_args():
         )
 
     # Using an unknown endpoint is an exception
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         ESTAT.get("badendpoint", "id")
 
     # TODO test Client.get(obj) with IdentifiableArtefact subclasses
