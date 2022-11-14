@@ -85,6 +85,12 @@ SDMX-ML
 .. autoclass:: sdmx.session.ResponseIO
 
 
+``urn``: Uniform Resource Names (URNs) for SDMX objects
+-------------------------------------------------------
+.. automodule:: sdmx.urn
+   :members:
+
+
 ``util``: Utilities
 -------------------
 .. automodule:: sdmx.util

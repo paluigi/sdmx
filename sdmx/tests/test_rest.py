@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from sdmx import Resource
@@ -16,3 +18,8 @@ class TestResource:
     )
     def test_class_name(self, value, expected):
         assert expected == Resource.class_name(value)
+
+    def test_describe(self):
+        assert re.fullmatch(
+            "{actualconstraint .* vtlmappingscheme}", Resource.describe()
+        )

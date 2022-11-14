@@ -1,6 +1,7 @@
 import pytest
 
-from sdmx.source import add_source, list_sources, sources
+from sdmx import model
+from sdmx.source import Source, add_source, list_sources, sources
 
 
 def test_list_sources():
@@ -17,7 +18,7 @@ def test_source_support():
     assert sources["ILO"].supports["categoryscheme"]
 
     # Specifically unsupported endpoint
-    assert not sources["ESTAT"].supports["categoryscheme"]
+    assert not sources["ESTAT"].supports["contentconstraint"]
 
     # Explicitly supported structure-specific data
     assert sources["INEGI"].supports["structure-specific data"]
@@ -45,3 +46,16 @@ def test_add_source():
         ValueError, match="Data source 'ECB' already defined; use override=True"
     ):
         add_source(dict(id="ECB", name="Demo source", url="https://example.com/sdmx"))
+
+
+class TestSource:
+    @pytest.fixture
+    def s(self):
+        """An instance of the class."""
+        yield Source(id="FOO", name="Test source", url="https://example.com")
+
+    def test_modify_request_args(self, s):
+        kwargs = dict(dsd=model.DataStructureDefinition())
+
+        s.modify_request_args(kwargs)
+        assert "structurespecificdata" in kwargs["headers"]["Accept"]

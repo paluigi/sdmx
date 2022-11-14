@@ -118,6 +118,19 @@ class TestClient:
             client.notanendpoint()
 
     def test_request_from_args(self, caplog, client):
+        # Raises for invalid resource type
+        kwargs = dict(resource_type="foo")
+        with pytest.raises(ValueError, match=r"resource_type \('foo'\) must be in"):
+            client._request_from_args(kwargs)
+
+        # Raises for not implemented endpoint
+        with pytest.raises(NotImplementedError, match="OECD does not implement"):
+            sdmx.Client("OECD").get("datastructure")
+
+        # Raises for invalid key type
+        with pytest.raises(TypeError, match="must be str or dict; got int"):
+            client.get("data", key=12345)
+
         # Warns for deprecated argument
         with pytest.warns(
             DeprecationWarning, match="validate= keyword argument to Client.get"
@@ -145,8 +158,8 @@ def test_request_get_args():
 
     # Client._make_key accepts '+'-separated values
     args = dict(
-        resource_id="une_rt_a",
-        key={"GEO": "EL+ES+IE"},
+        resource_id="UNE_RT_A",
+        key={"geo": "EL+ES+IE"},
         params={"startPeriod": "2007"},
         dry_run=True,
         use_cache=True,
@@ -155,7 +168,7 @@ def test_request_get_args():
     url = ESTAT.data(**args).url
 
     # Using an iterable of key values gives the same URL
-    args["key"] = {"GEO": ["EL", "ES", "IE"]}
+    args["key"] = {"geo": ["EL", "ES", "IE"]}
     assert ESTAT.data(**args).url == url
 
     # Using a direct string for a key gives the same URL
@@ -165,14 +178,14 @@ def test_request_get_args():
     # Giving 'provider' is redundant for a data request, causes a warning
     with pytest.warns(UserWarning, match="'provider' argument is redundant"):
         ESTAT.data(
-            "une_rt_a",
-            key={"GEO": "EL+ES+IE"},
+            "UNE_RT_A",
+            key={"geo": "EL+ES+IE"},
             params={"startPeriod": "2007"},
             provider="ESTAT",
         )
 
     # Using an unknown endpoint is an exception
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         ESTAT.get("badendpoint", "id")
 
     # TODO test Client.get(obj) with IdentifiableArtefact subclasses

@@ -8,7 +8,7 @@ import requests
 from sdmx.message import Message
 from sdmx.model import DataStructureDefinition, MaintainableArtefact
 from sdmx.reader import get_reader_for_content_type
-from sdmx.rest import Resource
+from sdmx.rest import URL, Resource
 from sdmx.session import ResponseIO, Session
 from sdmx.source import NoSource, list_sources, sources
 
@@ -80,15 +80,14 @@ class Client:
     def __getattr__(self, name):
         """Convenience methods."""
         try:
-            # Provide resource_type as a positional argument, so that the
-            # first positional argument to the convenience method is treated as
-            # resource_id
+            # Provide resource_type as a positional argument, so that the first
+            # positional argument to the convenience method is treated as resource_id
             func = partial(self.get, Resource[name])
         except KeyError:
             raise AttributeError
         else:
-            # Modify the docstring to explain the argument fixed by the
-            # convenience method
+            # Modify the docstring to explain the argument fixed by the convenience
+            # method
             func.__doc__ = self.get.__doc__.replace(
                 ".\n", f" with resource_type={repr(name)}.\n", 1
             )
@@ -156,8 +155,8 @@ class Client:
             )
 
             if dsd.is_external_reference:
-                # DataStructureDefinition was not retrieved with the Dataflow
-                # query; retrieve it explicitly
+                # DataStructureDefinition was not retrieved with the Dataflow query;
+                # retrieve it explicitly
                 dsd = self.get(resource=dsd, use_cache=True).structure[dsd.id]
         else:
             # Construct a DSD from the keys
@@ -173,9 +172,6 @@ class Client:
         parameters = kwargs.pop("params", {})
         headers = kwargs.pop("headers", {})
 
-        # Base URL
-        url_parts = [self.source.url]
-
         # Resource arguments
         resource = kwargs.pop("resource", None)
         resource_type = kwargs.pop("resource_type", None)
@@ -186,8 +182,8 @@ class Client:
                 resource_type = Resource[resource_type]
         except KeyError:
             raise ValueError(
-                f"resource_type ({resource_type!r}) must be in " + Resource.describe()
-            )
+                f"resource_type ({resource_type!r}) must be in {Resource.describe()}"
+            ) from None
 
         if resource:
             # Resource object is given
@@ -209,27 +205,18 @@ class Client:
         force = kwargs.pop("force", False)
         if not (force or self.source.supports[resource_type]):
             raise NotImplementedError(
-                f"{self.source.id} does not support the {repr(resource_type)} API "
-                "endpoint. Use force=True to override"
+                f"{self.source.id} does not implement or support the {resource_type!r} "
+                "API endpoint. Use force=True to override"
             )
 
-        url_parts.append(resource_type.name)
-
-        # Data provider ID to use in the URL
-        provider = kwargs.pop("provider", None)
-        if resource_type == Resource.data:
-            # Requests for data do not specific an agency in the URL
-            if provider is not None:
-                warn(f"'provider' argument is redundant for {resource_type!r}")
-            provider_id = None
-        else:
-            provider_id = provider if provider else getattr(self.source, "id", None)
-
-        url_parts.extend([provider_id, resource_id])
-
-        version = kwargs.pop("version", None)
-        if version is None and resource_type != Resource.data:
-            url_parts.append("latest")
+        # Construct the URL
+        url = URL(
+            source=self.source,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            provider=kwargs.pop("provider", None),
+            version=kwargs.pop("version", None),
+        )
 
         key = kwargs.pop("key", None)
         dsd = kwargs.pop("dsd", None)
@@ -246,12 +233,9 @@ class Client:
             key, dsd = self._make_key(resource_type, resource_id, key, dsd)
             kwargs["dsd"] = dsd
         elif not (key is None or isinstance(key, str)):
-            raise TypeError(f"key must be str or dict; got {type(key)}")
+            raise TypeError(f"key must be str or dict; got {key.__class__.__name__}")
 
-        url_parts.append(key)
-
-        # Assemble final URL
-        url = "/".join(filter(None, url_parts))
+        url.key = key
 
         # Parameters: set 'references' to sensible defaults
         if "references" not in parameters:
@@ -267,7 +251,8 @@ class Client:
         if not headers and self.source and resource_type:
             headers = self.source.headers.get(resource_type.name, {})
 
-        return requests.Request("get", url, params=parameters, headers=headers)
+        # Assemble final URL, perform the request
+        return requests.Request("get", url.join(), params=parameters, headers=headers)
 
     def _request_from_url(self, kwargs):
         url = kwargs.pop("url")
@@ -282,9 +267,14 @@ class Client:
         return requests.Request("get", url, params=parameters, headers=headers)
 
     def _handle_get_kwargs(self, kwargs):
-        # Allow sources to modify request args
-        # TODO this should occur after most processing, defaults, checking etc.
-        #      are performed, so that core code does most of the work.
+        # Ensure a member of the Enum
+        resource_type = kwargs.get("resource_type")
+        if resource_type is not None:
+            kwargs["resource_type"] = Resource[resource_type]
+
+        # Allow Source class to modify request args
+        # TODO this should occur after most processing, defaults, checking etc. are
+        #      performed, so that core code does most of the work.
         if self.source:
             self.source.modify_request_args(kwargs)
 
@@ -466,7 +456,7 @@ class Client:
             # Convert a 501 response to a Python NotImplementedError
             if e.response.status_code == 501:
                 raise NotImplementedError(
-                    "{!r} endpoint at {}".format(resource_type, e.request.url)
+                    f"{resource_type!r} endpoint at {e.request.url}"
                 )
             else:
                 raise
@@ -485,9 +475,8 @@ class Client:
             Reader = get_reader_for_content_type(content_type)
         except ValueError:
             raise ValueError(
-                "can't determine a SDMX reader for response content type "
-                + repr(content_type)
-            )
+                f"can't determine a reader for response content type {content_type!r}"
+            ) from None
 
         # Instantiate reader
         reader = Reader()

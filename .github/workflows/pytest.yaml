@@ -19,9 +19,13 @@ jobs:
         python-version:
         - "3.7"  # Earliest supported version; actually 3.7.2
         - "3.9"
-        - "3.10"  # Latest supported version
+        - "3.10"
+        - "3.11"  # Latest supported version
         # commented: only enable once next Python version enters RC
-        # - "3.11.0-rc.1"  # Development version
+        # - "3.12.0-rc.1"  # Development version
+
+        exclude:
+        - { os: windows-latest, python-version: "3.11" }  # no wheels for lxml
 
       fail-fast: false
 
@@ -61,11 +65,6 @@ jobs:
 
     - name: Upload test coverage to Codecov.io
       uses: codecov/codecov-action@v3
-
-    - name: Check typing with mypy
-      run: |
-        pip install mypy types-pkg_resources types-python-dateutil types-requests
-        mypy --show-error-codes ./sdmx
 
     - name: Test documentation build using Sphinx
       if: contains(matrix.os, 'ubuntu')

@@ -6,19 +6,22 @@ To force the data to be retrieved over the Internet, delete this directory.
 # TODO add a pytest argument for clearing this cache in conftest.py
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Tuple, Type, Union
 
 import pytest
 import requests_mock
 
 import sdmx
 from sdmx import Client
-from sdmx.exceptions import HTTPError, XMLParseError
+from sdmx.exceptions import HTTPError, SSLError, XMLParseError
 
 # Mark the whole file so the tests can be excluded/included
 pytestmark = pytest.mark.source
 
 log = logging.getLogger(__name__)
+
+
+NI = "Not implemented in sdmx1"
 
 
 class DataSourceTest:
@@ -31,15 +34,18 @@ class DataSourceTest:
 
     #: Failures affecting **all** data sources, internal to :mod:`sdmx`.
     xfail_common = {
-        "contentconstraint": XMLParseError,  # KeyError
-        # <str:StructureSet> <str:HierarchicalCodelists> not implemented
-        "structure": XMLParseError,
-        "structureset": XMLParseError,  # <str:StructureSet> not implemented
+        "actualconstraint": (XMLParseError, NI),  # KeyError
+        "allowedconstraint": (XMLParseError, NI),  # KeyError
+        "contentconstraint": (XMLParseError, NI),  # KeyError
+        "hierarchicalcodelist": (XMLParseError, NI),  # <str:HierarchicalCodelist>
+        "metadatastructure": (XMLParseError, NI),  # <str:MetadataStructure> not parsed
+        "structure": (XMLParseError, NI),  # <str:StructureSet> not parsed
+        "structureset": (XMLParseError, NI),  # <str:StructureSet> not implemented
     }
 
     #: Mapping of endpoint → Exception subclass. Tests of these endpoints are expected
     #: to fail with the given kind of exception.
-    xfail: Dict[str, Optional[Type[Exception]]] = {}
+    xfail: Dict[str, Union[Type[Exception], Tuple[Type[Exception], str]]] = {}
 
     #: True to xfail if a 503 Error is returned.
     tolerate_503 = False
@@ -74,7 +80,12 @@ class DataSourceTest:
     def test_endpoint(self, cache_path, client, endpoint, args):
         # See sdmx.testing._generate_endpoint_tests() for values of `endpoint`
         cache = cache_path.with_suffix(f".{endpoint}.xml")
-        result = client.get(endpoint, tofile=cache, **args)
+
+        try:
+            result = client.get(endpoint, tofile=cache, **args)
+        except HTTPError as e:  # For debugging/test development
+            print(e)
+            raise
 
         # For debugging
         # print(cache, cache.read_text(), result, sep='\n\n')
@@ -142,17 +153,6 @@ estat_mock = {
 
 class TestESTAT(DataSourceTest):
     source_id = "ESTAT"
-    xfail = {
-        # 404 Client Error: Not Found
-        # NOTE the ESTAT service does not give a general response that contains all
-        #      datastructures; this is really more of a 501.
-        "datastructure": HTTPError,
-        "categorisation": NotImplementedError,  # 501
-        "contentconstraint": NotImplementedError,  # 501
-        "organisationscheme": NotImplementedError,  # 501
-        "structure": NotImplementedError,  # 501
-        "structureset": NotImplementedError,  # 501
-    }
 
     @pytest.fixture
     def mock(self, test_data_path):
@@ -181,14 +181,14 @@ class TestESTAT(DataSourceTest):
         Examples from:
         https://ec.europa.eu/eurostat/web/sdmx-web-services/example-queries
         """
-        df_id = "nama_10_gdp"
+        df_id = "NAMA_10_GDP"
         args = dict(resource_id=df_id)
 
         # Query for the DSD
         dsd = client.dataflow(**args).dataflow[df_id].structure
 
-        # Even with ?references=all, ESTAT returns a short message with the
-        # DSD as an external reference. Query again to get its actual contents.
+        # Even with ?references=all, ESTAT returns a short message with the DSD as an
+        # external reference. Query again to get its actual contents.
         if dsd.is_external_reference:
             dsd = client.get(resource=dsd).structure[0]
             log.info(repr(dsd))
@@ -198,26 +198,24 @@ class TestESTAT(DataSourceTest):
         # Example query, using the DSD already retrieved
         args.update(
             dict(
-                key=dict(UNIT=["CP_MEUR"], NA_ITEM=["B1GQ"], GEO=["LU"]),
+                key=dict(unit=["CP_MEUR"], na_item=["B1GQ"], geo=["LU"]),
                 params={"startPeriod": "2012", "endPeriod": "2015"},
                 dsd=dsd,
                 # commented: for debugging
-                # tofile='temp.xml',
+                # tofile="temp.xml",
             )
         )
         client.data(**args)
-
-
-class TestIMF(DataSourceTest):
-    source_id = "IMF"
 
 
 class TestILO(DataSourceTest):
     source_id = "ILO"
     xfail = {
         "agencyscheme": HTTPError,  # 400
-        "codelist": HTTPError,  # 413 Client Error: Client Entity Too Large
-        "contentconstraint": None,  # This actually passes; the message is empty.
+        # TODO provide endpoint_args for the following 3 to select 1 or a few objects
+        "codelist": HTTPError,  # 413 Client Error: Payload Too Large
+        "contentconstraint": HTTPError,  # 413 Client Error: Payload Too Large
+        "datastructure": HTTPError,  # 413 Client Error: Payload Too Large
         "organisationscheme": HTTPError,  # 400
         "structure": HTTPError,  # 400
         "structureset": NotImplementedError,  # 501
@@ -232,7 +230,14 @@ class TestILO(DataSourceTest):
     @pytest.mark.network
     def test_gh_96(self, caplog, cache_path, client):
         client.get("codelist", "CL_ECO", params=dict(references="parentsandsiblings"))
-        assert "ILO does not support references = parentsandsiblings; discarded"
+        assert (
+            "ILO does not support references='parentsandsiblings'; discarded"
+            in caplog.messages
+        )
+
+
+class TestIMF(DataSourceTest):
+    source_id = "IMF"
 
 
 class TestINEGI(DataSourceTest):
@@ -344,10 +349,6 @@ class TestNB(DataSourceTest):
 
     source_id = "NB"
 
-    xfail = {
-        "structure": None,  # This actually passes; contains already supported SDMX-ML
-    }
-
 
 class TestNBB(DataSourceTest):
     source_id = "NBB"
@@ -362,6 +363,11 @@ class TestNBB(DataSourceTest):
 
 class TestOECD(DataSourceTest):
     source_id = "OECD"
+
+    xfail = {
+        "data": (SSLError, "SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED"),
+    }
+
     endpoint_args = {
         "data": dict(
             resource_id="ITF_GOODS_TRANSPORT",
@@ -470,14 +476,6 @@ class TestWB(DataSourceTest):
 
 class TestWB_WDI(DataSourceTest):
     source_id = "WB_WDI"
-
-    xfail = {
-        "agencyscheme": ValueError,  # 404; response in HTML
-        "contentconstraint": ValueError,  # 404; response in HTML
-        "organisationscheme": HTTPError,  # 400
-        "structure": ValueError,  # 404; response in HTML
-        "structureset": ValueError,  # 404; response in HTML
-    }
 
     endpoint_args = {
         # Example from the documentation website

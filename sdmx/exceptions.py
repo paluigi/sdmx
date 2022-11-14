@@ -1,4 +1,12 @@
-from requests import HTTPError  # noqa: F401
+from requests import HTTPError
+from requests.exceptions import SSLError
+
+__all__ = [
+    "HTTPError",
+    "ParseError",
+    "SSLError",
+    "XMLParseError",
+]
 
 
 class ParseError(Exception):

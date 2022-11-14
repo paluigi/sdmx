@@ -119,6 +119,12 @@ ELEMENTS = [
         E(qname("str:TextFormat"), invalidFacetTypeAttr="foo"),
         re.compile("ValidationError: .* extra fields not permitted", flags=re.DOTALL),
     ),
+    # xml._dk
+    (E(qname("str:Key")), None),
+    # xml._dks
+    (E(qname("str:DataKeySet"), isIncluded="true"), None),
+    # xml._pa
+    (E(qname("str:ProvisionAgreement")), None),
 ]
 
 

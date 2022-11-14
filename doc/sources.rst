@@ -77,6 +77,8 @@ Please `open an issue <https://github.com/khaeru/sdmx/issues/new>`__ if the supp
     The :class:`.Client` is constructing a standards-compliant URL, but the service idiosyncratically rejects it.
     Handling these idiosyncrasies is currently out-of-scope for :mod:`sdmx`.
 
+.. _source-matrix:
+
 - Because of the large number of services and endpoints, the matrix of support is only periodically updated.
   To mitigate: https://khaeru.github.io/sdmx/ displays a summary of every SDMX 2.1 REST API endpoint for every data source built-in to :mod:`sdmx`; this summary is updated daily by an automatic run of the test suite.
   These include all endpoints known to return a non-404 reply, even if the reply is an error message of some sort.
@@ -137,23 +139,7 @@ SDMX-ML —
 .. versionadded:: 2.5.0
 
 
-.. _ESTAT:
-
-``ESTAT``: Eurostat
--------------------
-
-SDMX-ML —
-`Website <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
-
-- Thousands of dataflows on a wide range of topics.
-- No categorisations available.
-- Long response times are reported.
-  Increase the timeout attribute to avoid timeout exceptions.
-- Does not return DSDs for dataflow requests with the ``references='all'`` query parameter.
-
-.. autoclass:: sdmx.source.estat.Source()
-   :members:
-
+.. _ECB:
 
 ``ECB``: European Central Bank
 ------------------------------
@@ -164,6 +150,21 @@ SDMX-ML —
 - Supports categorisations of data-flows.
 - Supports preview_data and series-key based key validation.
 - In general short response times.
+
+
+.. _ESTAT:
+
+``ESTAT``: Eurostat
+-------------------
+
+SDMX-ML —
+Website `1 <https://wikis.ec.europa.eu/pages/viewpage.action?pageId=44165555>`__, `2 <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
+
+- In some cases, the service can have a long response time, so :mod:`sdmx` will time out.
+  Increase the timeout attribute if necessary.
+
+.. autoclass:: sdmx.source.estat.Source()
+   :members:
 
 
 .. _ILO:
@@ -202,6 +203,8 @@ SDMX-ML —
 - Subset of the data available on http://data.imf.org.
 - Supports series-key-only and hence dataset-based key validation and construction.
 
+
+.. _INEGI:
 
 ``INEGI``: National Institute of Statistics and Geography (Mexico)
 ------------------------------------------------------------------
@@ -244,6 +247,7 @@ Website `(en) <https://www.istat.it/en/methods-and-tools/sdmx-web-service>`__, `
 
   …see the above URLs for details.
 
+
 .. _LSD:
 
 ``LSD``: National Institute of Statistics (Lithuania)
@@ -255,6 +259,8 @@ SDMX-ML —
 - Lithuanian name: Lietuvos statistikos.
 - This web service returns the non-standard HTTP content-type "application/force-download"; :mod:`sdmx` replaces it with "application/xml".
 
+
+.. _NB:
 
 ``NB``: Norges Bank (Norway)
 ----------------------------
@@ -330,14 +336,7 @@ API documentation `(en) <https://www.stat.ee/sites/default/files/2020-09/API-ins
   Since :mod:`sdmx` does not support SDMX-ML 2.0, the package is configured to use the JSON endpoint.
 
 
-``UNSD``: United Nations Statistics Division
---------------------------------------------
-
-SDMX-ML —
-`Website <https://unstats.un.org/home/>`__
-
-- Supports preview_data and series-key based key validation.
-
+.. _UNESCO:
 
 ``UNESCO``: UN Educational, Scientific and Cultural Organization
 ----------------------------------------------------------------
@@ -403,6 +402,19 @@ SDMX-ML or SDMX-JSON —
   The resulting object `dsd` can be passed as an argument to a :meth:`.Client.get` data query.
   See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/main/sdmx/tests/test_sources.py>`_ for an example.
 
+
+.. _UNSD:
+
+``UNSD``: United Nations Statistics Division
+--------------------------------------------
+
+SDMX-ML —
+`Website <https://unstats.un.org/home/>`__
+
+- Supports preview_data and series-key based key validation.
+
+
+.. _WB:
 
 ``WB``: World Bank Group “World Integrated Trade Solution”
 ----------------------------------------------------------

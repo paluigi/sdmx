@@ -1,3 +1,4 @@
+import logging
 from tempfile import NamedTemporaryFile
 from time import sleep
 from urllib.parse import urlparse
@@ -5,29 +6,64 @@ from zipfile import ZipFile
 
 import requests
 
-from . import Source as BaseSource
+from sdmx.rest import Resource
+from sdmx.source import Source as BaseSource
+
+log = logging.getLogger(__name__)
 
 
 class Source(BaseSource):
-    """Handle Eurostat's mechanism for large datasets.
+    """Handle Eurostat's mechanism for large datasets and other quirks.
 
-    For some requests, ESTAT returns a DataMessage that has no content except
-    for a ``<footer:Footer>`` element containing a URL where the data will be
-    made available as a ZIP file.
+    For some requests, ESTAT returns a DataMessage that has no content except for a
+    ``<footer:Footer>`` element containing a URL where the data will be made available
+    as a ZIP file.
 
     To configure :meth:`finish_message`, pass its `get_footer_url` argument to
     :meth:`.Client.get`.
 
     .. versionadded:: 0.2.1
 
+    See also
+    --------
+    :meth:`modify_request_args`
     """
 
     _id = "ESTAT"
 
     def modify_request_args(self, kwargs):
+        """Modify arguments used to build query URL.
+
+        For the "references" query parameter, ESTAT (as of 2022-11-13) only supports the
+        values "children", "descendants", or "none". Other values—including the "all" or
+        "parentsandsiblings" used as defaults by :class:`.Client` cause errors. Replace
+        unsupported values with "none", and use "descendants" as default.
+
+        See also
+        --------
+        :pull:`107`, :pull:`108`
+        """
         super().modify_request_args(kwargs)
 
         kwargs.pop("get_footer_url", None)
+
+        resource_type = kwargs.get("resource_type")
+
+        # Handle the ?references= query parameter
+        params = kwargs.setdefault("params", {})
+        references = params.get("references")
+        if references is None:
+            # Client._request_from_args() sets "all" or "parentsandsiblings" by default.
+            # Neither of these values is supported by ESTAT; use "descendants" instead.
+            if (
+                resource_type
+                in (Resource.categoryscheme, Resource.dataflow, Resource.datastructure)
+                and kwargs.get("resource_id")
+            ) or kwargs.get("resource"):
+                params["references"] = "descendants"
+        elif references not in ("children", "descendants", "none"):
+            log.info(f"Replace unsupported references={references!r} with 'none'")
+            params["references"] = "none"
 
     def finish_message(self, message, request, get_footer_url=(30, 3), **kwargs):
         """Handle the initial response.
@@ -77,7 +113,6 @@ class Source(BaseSource):
         The request for the indicated ZIP file URL returns an octet-stream;
         this handler saves it, opens it, and returns the content of the single
         contained XML file.
-
         """
 
         if response.headers["content-type"] != "application/octet-stream":

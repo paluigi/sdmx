@@ -21,7 +21,7 @@ from lxml.etree import QName
 import sdmx.urn
 from sdmx import message, model
 from sdmx.exceptions import XMLParseError  # noqa: F401
-from sdmx.format.xml import CONTENT_TYPES, class_for_tag, qname
+from sdmx.format.xml import CONTENT_TYPES, NS, class_for_tag, qname
 from sdmx.reader.base import BaseReader
 
 log = logging.getLogger(__name__)
@@ -37,8 +37,9 @@ SKIP = (
     # Tags that are bare containers for other XML elements
     "str:Categorisations str:CategorySchemes str:Codelists str:Concepts "
     "str:ConstraintAttachment str:Constraints str:Dataflows "
-    "str:DataStructureComponents str:DataStructures str:Metadataflows str:None "
-    "str:OrganisationSchemes str:ProvisionAgreements str:StructureSets "
+    "str:DataStructureComponents str:DataStructures str:HierarchicalCodelists "
+    "str:Metadataflows str:MetadataStructures str:None str:OrganisationSchemes "
+    "str:ProvisionAgreements str:StructureSets "
     # Contents of references
     ":Ref :URN"
 )
@@ -106,10 +107,19 @@ PARSE.update({k: None for k in product(to_tags(SKIP), ["start", "end"])})
 
 
 class NotReference(Exception):
+    """Raised when the `elem` passed to :class:`.Reference` is not a reference."""
+
+
+# Sentinel value for a missing Agency
+_NO_AGENCY = model.Agency()
+
+
+class _NoText:
     pass
 
 
-_NO_AGENCY = model.Agency()
+# Sentinel value for XML elements with no text; used to distinguish from "" and None
+NoText = _NoText()
 
 
 class Reference:
@@ -229,7 +239,9 @@ class Reader(BaseReader):
 
         try:
             # Use the etree event-driven parser
-            for event, element in etree.iterparse(source, events=("start", "end")):
+            for event, element in etree.iterparse(  # type: ignore [attr-defined]
+                source, events=("start", "end")
+            ):
                 try:
                     # Retrieve the parsing function for this element & event
                     func = PARSE[element.tag, event]
@@ -469,7 +481,7 @@ class Reader(BaseReader):
     def maintainable(self, cls, elem, **kwargs):
         """Create or retrieve a MaintainableArtefact of `cls` from `elem` and `kwargs`.
 
-        Following the SDMX-IM class hierachy, :meth:`maintainable` calls
+        Following the SDMX-IM class hierarchy, :meth:`maintainable` calls
         :meth:`nameable`, which in turn calls :meth:`identifiable`, etc. (Since no
         concrete class is versionable but not maintainable, no separate method is
         created, for better performance). For all of these methods:
@@ -569,6 +581,16 @@ def _message(reader, elem):
     if "Data" in elem.tag:
         reader.push("DataSetClass", model.get_class(f"{QName(elem).localname}Set"))
 
+    # Handle namespaces mapped on `elem` but not part of the standard set
+    for key, value in filter(
+        lambda kv: kv[1] not in set(NS.values()), elem.nsmap.items()
+    ):
+        # Register the namespace
+        NS[key] = value
+        # Use _ds_start() and _ds_end() to handle <{key}:DataSet> elements
+        start(f"{key}:DataSet", only=False)(_ds_start)
+        end(f"{key}:DataSet", only=False)(_ds_end)
+
     # Instantiate the message object
     cls = class_for_tag(elem.tag)
     return cls()
@@ -595,7 +617,7 @@ def _header(reader, elem):
     # Appearing in data messages from WB_WDI and the footer.xml specimen
     reader.pop_all("DataSetAction")
     reader.pop_all("DataSetID")
-    # Apparing in the footer.xml specimen
+    # Appearing in the footer.xml specimen
     reader.pop_all("Timezone")
 
 
@@ -690,7 +712,7 @@ def _header_structure(reader, elem):
 
 @end("footer:Footer")
 def _footer(reader, elem):
-    # Get attributes from the child <footer:Messsage>
+    # Get attributes from the child <footer:Message>
     args = dict()
     setdefault_attrib(args, elem[0], "code", "severity")
     if "code" in args:
@@ -743,7 +765,8 @@ def _structures(reader, elem):
     "str:Email str:Telephone str:URI"
 )
 def _text(reader, elem):
-    reader.push(elem, elem.text)
+    # If elem.text is None, push a sentinel value
+    reader.push(elem, elem.text or NoText)
 
 
 @end("mes:Extracted mes:Prepared mes:ReportingBegin mes:ReportingEnd")
@@ -781,10 +804,11 @@ def _ref(reader, elem):
 
 @end("com:Annotation")
 def _a(reader, elem):
+    url = reader.pop_single("AnnotationURL")
     args = dict(
         title=reader.pop_single("AnnotationTitle"),
         type=reader.pop_single("AnnotationType"),
-        url=reader.pop_single("AnnotationURL"),
+        url=None if url is NoText else url,
     )
 
     # Optional 'id' attribute
