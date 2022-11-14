@@ -21,7 +21,7 @@ from lxml.etree import QName, _Element
 import sdmx.urn
 from sdmx import message, model
 from sdmx.exceptions import XMLParseError  # noqa: F401
-from sdmx.format.xml import CONTENT_TYPES, class_for_tag, qname
+from sdmx.format.xml import CONTENT_TYPES, NS, class_for_tag, qname
 from sdmx.reader.base import BaseReader
 
 log = logging.getLogger(__name__)
@@ -568,6 +568,16 @@ def _message(reader, elem):
     reader.push("SS without DSD", ss_without_dsd)
     if "Data" in elem.tag:
         reader.push("DataSetClass", model.get_class(f"{QName(elem).localname}Set"))
+
+    # Handle namespaces mapped on `elem` but not part of the standard set
+    for key, value in filter(
+        lambda kv: kv[1] not in set(NS.values()), elem.nsmap.items()
+    ):
+        # Register the namespace
+        NS[key] = value
+        # Use _ds_start() and _ds_end() to handle <{key}:DataSet> elements
+        start(f"{key}:DataSet", only=False)(_ds_start)
+        end(f"{key}:DataSet", only=False)(_ds_end)
 
     # Instantiate the message object
     cls = class_for_tag(elem.tag)
