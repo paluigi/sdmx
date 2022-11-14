@@ -1477,14 +1477,26 @@ def _ds_start(reader, elem):
     # Create an instance of a DataSet subclass
     ds = reader.peek("DataSetClass")()
 
-    # Store a reference to the DSD that structures the data set
+    # Retrieve the (message-local) ID referencing a data structure definition
     id = elem.attrib.get("structureRef", None) or elem.attrib.get(
         qname("data:structureRef"), None
     )
-    ds.structured_by = reader.get_single(id)
 
-    if not ds.structured_by:  # pragma: no cover
-        raise RuntimeError("No DSD when creating DataSet")
+    # Get a reference to the DSD that structures the data set
+    # Provided in the <mes:Header> / <mes:Structure>
+    dsd = reader.get_single(id)
+    if not dsd:
+        # Fall back to a DSD provided as an argument to read_message()
+        dsd = reader.get_single(model.DataStructureDefinition)
+
+        if not dsd:  # pragma: no cover
+            raise RuntimeError("No DSD when creating DataSet")
+
+        log.debug(
+            f'Use provided {dsd!r} for structureRef="{id}" not defined in message'
+        )
+
+    ds.structured_by = dsd
 
     reader.push("DataSet", ds)
 

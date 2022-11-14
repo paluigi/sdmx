@@ -227,11 +227,12 @@ class SpecimenCollection:
         specimens = []
 
         # XML data files for the ECB exchange rate data flow
-        for path in (base_path / "ECB_EXR").rglob("*.xml"):
-            kind = "data"
-            if "structure" in path.name or "common" in path.name:
-                kind = "structure"
-            specimens.append((path, "xml", kind))
+        for source_id in ("ECB_EXR",):
+            for path in base_path.joinpath(source_id).rglob("*.xml"):
+                kind = "data"
+                if "structure" in path.name or "common" in path.name:
+                    kind = "structure"
+                specimens.append((path, "xml", kind))
 
         # JSON data files for ECB and OECD data flows
         for source_id in ("ECB_EXR", "OECD"):
@@ -264,6 +265,7 @@ class SpecimenCollection:
                 ("INSEE", "CNA-2010-CONSO-SI-A17-structure.xml"),
                 ("INSEE", "dataflow.xml"),
                 ("INSEE", "IPI-2010-A21-structure.xml"),
+                ("ISTAT", "22_289-structure.xml"),
                 ("ISTAT", "47_850-structure.xml"),
                 ("UNSD", "codelist_partial.xml"),
                 ("SGR", "common-structure.xml"),

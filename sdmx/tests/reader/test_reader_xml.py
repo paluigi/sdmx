@@ -56,7 +56,6 @@ def test_read_ss_xml(specimen):
     assert ds.structured_by is dsd
 
     # Structures referenced in the dataset are from the dsd
-
     s0_key = list(ds.series.keys())[0]
 
     # AttributeValue.value_for
@@ -75,6 +74,31 @@ def test_read_ss_xml(specimen):
     # navigating object relationships
     TIME_FORMAT = s0_key.attrib["TIME_FORMAT"].value_for
     assert len(TIME_FORMAT.related_to.dimensions) == 5
+
+
+def test_gh_104(caplog, specimen):
+    """Test of https://github.com/khaeru/sdmx/issues/104.
+
+    See also
+    --------
+    .test_sources.TestISTAT.test_gh_104
+    """
+    # Read a DSD
+    with specimen("22_289-structure.xml", opened=False) as f:
+        dsd_path = f
+        msg_path = f.parent / "22_289.xml"
+
+    # Read the DSD, change its ID
+    dsd = sdmx.read_sdmx(dsd_path).structure["DCIS_POPRES1"]
+    dsd.id = "FOO"
+
+    # Read a data message; use is logged
+    sdmx.read_sdmx(msg_path, dsd=dsd)
+    assert re.match(
+        r"Use provided <DataStructureDefinition IT1:FOO\(1\.0\): .* for "
+        'structureRef="IT1_DCIS_POPRES1_1_0" not defined in message',
+        caplog.messages[-1],
+    )
 
 
 # Each entry is a tuple with 2 elements:

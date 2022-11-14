@@ -317,6 +317,32 @@ class TestISTAT(DataSourceTest):
         # Use a dict() key to force Client to make a sub-query for the DSD
         client.data(df_id, key=data_key)
 
+    @pytest.mark.network
+    def test_gh_104(self, client):
+        """Test of https://github.com/khaeru/sdmx/issues/104.
+
+        See also
+        --------
+        .test_reader_xml.test_gh_104
+        """
+        df_id = "22_289"
+
+        dsd = (
+            client.dataflow(df_id, params={"references": "datastructure"})
+            .dataflow[df_id]
+            .structure
+        )
+
+        # Data message is successfully parsed
+        message = client.data(
+            df_id,
+            key=dict(AGE="TOTAL", SEX=["1", "2"], MARITAL_STATUS="99", REF_AREA="IT"),
+            dsd=dsd,
+            # tofile="debug.xml",
+        )
+        # Provided DSD is used to structure the data set(s) in the message
+        assert dsd is message.data[0].structured_by
+
 
 class TestLSD(DataSourceTest):
     source_id = "LSD"
