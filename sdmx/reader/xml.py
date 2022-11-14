@@ -37,8 +37,9 @@ SKIP = (
     # Tags that are bare containers for other XML elements
     "str:Categorisations str:CategorySchemes str:Codelists str:Concepts "
     "str:ConstraintAttachment str:Constraints str:Dataflows "
-    "str:DataStructureComponents str:DataStructures str:Metadataflows str:None "
-    "str:OrganisationSchemes str:ProvisionAgreements str:StructureSets "
+    "str:DataStructureComponents str:DataStructures str:HierarchicalCodelists "
+    "str:Metadataflows str:MetadataStructures str:None str:OrganisationSchemes "
+    "str:ProvisionAgreements str:StructureSets "
     # Contents of references
     ":Ref :URN"
 )
