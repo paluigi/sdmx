@@ -8,7 +8,7 @@ import requests
 from sdmx.message import Message
 from sdmx.model import DataStructureDefinition, MaintainableArtefact
 from sdmx.reader import get_reader_for_content_type
-from sdmx.rest import Resource
+from sdmx.rest import URL, Resource
 from sdmx.session import ResponseIO, Session
 from sdmx.source import NoSource, list_sources, sources
 
@@ -173,9 +173,6 @@ class Client:
         parameters = kwargs.pop("params", {})
         headers = kwargs.pop("headers", {})
 
-        # Base URL
-        url_parts = [self.source.url]
-
         # Resource arguments
         resource = kwargs.pop("resource", None)
         resource_type = kwargs.pop("resource_type", None)
@@ -213,23 +210,14 @@ class Client:
                 "endpoint. Use force=True to override"
             )
 
-        url_parts.append(resource_type.name)
-
-        # Data provider ID to use in the URL
-        provider = kwargs.pop("provider", None)
-        if resource_type == Resource.data:
-            # Requests for data do not specific an agency in the URL
-            if provider is not None:
-                warn(f"'provider' argument is redundant for {resource_type!r}")
-            provider_id = None
-        else:
-            provider_id = provider if provider else getattr(self.source, "id", None)
-
-        url_parts.extend([provider_id, resource_id])
-
-        version = kwargs.pop("version", None)
-        if version is None and resource_type != Resource.data:
-            url_parts.append("latest")
+        # Construct the URL
+        url = URL(
+            source=self.source,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            provider=kwargs.pop("provider", None),
+            version=kwargs.pop("version", None),
+        )
 
         key = kwargs.pop("key", None)
         dsd = kwargs.pop("dsd", None)
@@ -248,10 +236,7 @@ class Client:
         elif not (key is None or isinstance(key, str)):
             raise TypeError(f"key must be str or dict; got {type(key)}")
 
-        url_parts.append(key)
-
-        # Assemble final URL
-        url = "/".join(filter(None, url_parts))
+        url.key = key
 
         # Parameters: set 'references' to sensible defaults
         if "references" not in parameters:
@@ -267,7 +252,8 @@ class Client:
         if not headers and self.source and resource_type:
             headers = self.source.headers.get(resource_type.name, {})
 
-        return requests.Request("get", url, params=parameters, headers=headers)
+        # Assemble final URL, perform the request
+        return requests.Request("get", url.join(), params=parameters, headers=headers)
 
     def _request_from_url(self, kwargs):
         url = kwargs.pop("url")
@@ -282,9 +268,14 @@ class Client:
         return requests.Request("get", url, params=parameters, headers=headers)
 
     def _handle_get_kwargs(self, kwargs):
-        # Allow sources to modify request args
-        # TODO this should occur after most processing, defaults, checking etc.
-        #      are performed, so that core code does most of the work.
+        # Ensure a member of the Enum
+        resource_type = kwargs.get("resource_type")
+        if resource_type is not None:
+            kwargs["resource_type"] = Resource[resource_type]
+
+        # Allow Source class to modify request args
+        # TODO this should occur after most processing, defaults, checking etc. are
+        #      performed, so that core code does most of the work.
         if self.source:
             self.source.modify_request_args(kwargs)
 
