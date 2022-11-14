@@ -32,7 +32,7 @@ Next release
 v2.6.3 (2022-09-29)
 ===================
 
-- Update :ref:`ILO` web service URL and quirks handling (:pull:`97`).
+- Update :ref:`ILO` web service URL and quirks handling (:pull:`97`, thanks :gh-user:`ethangelbach`).
 - Use HTTPS for :ref:`ESTAT` (:pull:`97`).
 - Bump minimum version of :mod:`pydantic` to 1.9.2 (:pull:`98`).
 - Always return all objects parsed from a SDMX-ML :class:`.StructureMessage` (:pull:`99`).
@@ -94,7 +94,6 @@ v2.6.0 (2021-07-11)
   - Improve typing.
   - Expand test coverage.
 
-
 v2.5.0 (2021-06-27)
 ===================
 
@@ -106,7 +105,7 @@ v2.5.0 (2021-06-27)
 - Tolerate malformed SDMX-JSON from :ref:`OECD <OECD>` (:issue:`64`, :pull:`81`).
 - Reduce noise when :mod:`requests_cache` is not installed (:issue:`75`, :pull:`80`).
   An exception is still raised if (a) the package is not installed and (b) cache-related arguments are passed to :class:`Client`.
-- Bugfix: `verify` = :obj:`False` was not passed to the preliminary request used to validate a :class:`dict` key for a data request (:issue:`77`, :pull:`80`).
+- Bugfix: `verify` = :obj:`False` was not passed to the preliminary request used to validate a :class:`dict` key for a data request (:pull:`80`; thanks :gh-user:`albertame` for :issue:`77`).
 - Handle ``<mes:Department>`` and ``<mes:Role>>`` in SDMX-ML headers (:issue:`78`, :pull:`79`).
 
 v2.4.1 (2021-04-12)
@@ -162,7 +161,6 @@ v2.1.0 (2021-02-22)
 - New convenience method :meth:`.StructureMessage.get` to retrieve objects by ID across the multiple collections in StructureMessage (:pull:`58`).
 - New convenience method :meth:`.AnnotableArtefact.pop_annotation` to locate, remove, and return a Annotation, e.g. by its ID (:pull:`58`).
 - :func:`len` of a :class:`.DataKeySet` gives the length of :attr:`.DataKeySet.keys` (:pull:`58`).
-
 
 v2.0.1 (2021-01-31)
 ===================
