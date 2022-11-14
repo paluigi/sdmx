@@ -181,14 +181,14 @@ class TestESTAT(DataSourceTest):
         Examples from:
         https://ec.europa.eu/eurostat/web/sdmx-web-services/example-queries
         """
-        df_id = "nama_10_gdp"
+        df_id = "NAMA_10_GDP"
         args = dict(resource_id=df_id)
 
         # Query for the DSD
         dsd = client.dataflow(**args).dataflow[df_id].structure
 
-        # Even with ?references=all, ESTAT returns a short message with the
-        # DSD as an external reference. Query again to get its actual contents.
+        # Even with ?references=all, ESTAT returns a short message with the DSD as an
+        # external reference. Query again to get its actual contents.
         if dsd.is_external_reference:
             dsd = client.get(resource=dsd).structure[0]
             log.info(repr(dsd))
@@ -198,11 +198,11 @@ class TestESTAT(DataSourceTest):
         # Example query, using the DSD already retrieved
         args.update(
             dict(
-                key=dict(UNIT=["CP_MEUR"], NA_ITEM=["B1GQ"], GEO=["LU"]),
+                key=dict(unit=["CP_MEUR"], na_item=["B1GQ"], geo=["LU"]),
                 params={"startPeriod": "2012", "endPeriod": "2015"},
                 dsd=dsd,
                 # commented: for debugging
-                # tofile='temp.xml',
+                # tofile="temp.xml",
             )
         )
         client.data(**args)
