@@ -11,10 +11,17 @@
     "documentation": "https://www.bundesbank.de/en/statistics/time-series-databases/-/help-for-sdmx-web-service-855900",
     "name": "German Federal Bank",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
       "categorisation": false,
       "categoryscheme": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "organisationscheme": false,
       "provisionagreement": false,
       "structure": false,
@@ -29,6 +36,13 @@
     "documentation": "https://www.bis.org/statistics/sdmx_techspec.htm",
     "supports": {
       "agencyscheme": false,
+      "allowedconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "metadataflow": false,
+      "metadatastructure": false,
+      "organisationscheme": false,
+      "provisionagreement": false,
       "structureset": false,
       "preview": true
     }
@@ -43,6 +57,13 @@
     "url": "https://sdw-wsrest.ecb.europa.eu/service",
     "name": "European Central Bank",
     "supports": {
+      "actualconstraint": false,
+      "allowedconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "preview": true,
       "provisionagreement": false
     }
@@ -53,11 +74,19 @@
     "url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1",
     "name": "Eurostat",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
-      "categoryscheme": false,
-      "codelist": false,
-      "conceptscheme": false,
-      "provisionagreement": false
+      "allowedconstraint": false,
+      "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
+      "organisationscheme": false,
+      "provisionagreement": false,
+      "structure": false,
+      "structureset": false
     }
   },
   {
@@ -68,7 +97,14 @@
         "accept": "application/vnd.sdmx.structurespecificdata+xml;version=2.1"
     },
     "supports": {
-      "provisionagreement": false
+      "actualconstraint": false,
+      "allowedconstraint": false,
+      "dataconsumerscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
+      "provisionagreement": false,
+      "structure": false
     }
   },
   {
@@ -76,6 +112,11 @@
     "url": "https://sdmxcentral.imf.org/ws/public/sdmxapi/rest",
     "name": "International Monetary Fund",
     "supports": {
+      "actualconstraint": false,
+      "allowedconstraint": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "provisionagreement": false
     }
   },
@@ -84,8 +125,15 @@
     "url": "http://sdmx.snieg.mx/service/rest",
     "name": "Instituto Nacional de Estadística y Geografía (MX)",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "provisionagreement": false,
       "structureset": false,
       "structure-specific data": true
@@ -100,7 +148,16 @@
             "Accept": "application/vnd.sdmx.genericdata+xml;version=2.1"
         }
     },
-    "supports": {"provisionagreement": false}
+    "supports": {
+      "actualconstraint": false,
+      "allowedconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
+      "provisionagreement": false
+    }
   },
   {
     "id": "ISTAT",
@@ -108,6 +165,9 @@
     "url": "https://esploradati.istat.it/SDMXWS/rest",
     "supports": {
       "agencyscheme": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
       "provisionagreement": false,
       "structureset": false,
       "structure-specific data": true
@@ -119,12 +179,19 @@
     "url": "https://osp-rs.stat.gov.lt/rest_xml",
     "name": "Statistics Lithuania",
     "supports": {
+      "actualconstraint": false,
+      "allowedconstraint": false,
       "agencyscheme": false,
       "categorisation": false,
       "categoryscheme": false,
       "codelist": false,
       "conceptscheme": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "organisationscheme": false,
       "provisionagreement": false,
       "structure": false,
@@ -149,10 +216,16 @@
     "name": "Norges Bank (NO)",
     "url": "https://data.norges-bank.no/api",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
       "categorisation": false,
       "categoryscheme": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "structureset": false,
       "structure-specific data": true
     },
@@ -165,7 +238,12 @@
   {
     "id": "SGR",
     "url": "https://registry.sdmx.org/ws/rest",
-    "name": "SDMX Global Registry"
+    "name": "SDMX Global Registry",
+    "supports": {
+      "actualconstraint": false,
+      "allowedconstraint": false,
+      "metadataflow": false
+    }
   },
   {
     "id": "SPC",
@@ -173,6 +251,10 @@
     "url": "https://stats-nsi-stable.pacificdata.org/rest",
     "documentation": "https://docs.pacificdata.org/dotstat",
     "supports": {
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
       "provisionagreement": false,
       "structureset": false
     }
@@ -192,10 +274,17 @@
         "accept": "application/vnd.sdmx.structure+xml;version=2.1"
     },
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
       "categorisation": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
       "datastructure": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "organisationscheme": false,
       "structure": false,
       "structureset": false
@@ -206,7 +295,11 @@
     "name": "UN Children's Fund",
     "url": "https://sdmx.data.unicef.org/ws/public/sdmxapi/rest",
     "supports": {
+      "actualconstraint": false,
       "categorisation": false,
+      "dataconsumerscheme": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "structureset": false,
       "structure-specific data": true
     }
@@ -216,8 +309,15 @@
     "name": "United Nations Statistics Division",
     "url": "http://data.un.org/WS/rest",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "provisionagreement": false,
       "structureset": false,
       "preview": true
@@ -228,7 +328,14 @@
     "name": "World Bank World Integrated Trade Solution",
     "url": "http://wits.worldbank.org/API/V1/SDMX/V21/rest",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
+      "dataconsumerscheme": false,
+      "dataproviderscheme": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
       "provisionagreement": false
     }
   },
@@ -237,13 +344,26 @@
     "name": "World Bank World Development Indicators",
     "url": "http://api.worldbank.org/v2/sdmx/rest",
     "supports": {
+      "actualconstraint": false,
       "agencyscheme": false,
+      "allowedconstraint": false,
       "categorisation": false,
+      "categoryscheme": false,
+      "codelist": false,
+      "conceptscheme": false,
       "contentconstraint": false,
+      "dataconsumerscheme": false,
+      "dataflow": false,
+      "dataproviderscheme": false,
+      "datastructure": false,
+      "hierarchicalcodelist": false,
+      "metadataflow": false,
+      "metadatastructure": false,
+      "organisationscheme": false,
       "provisionagreement": false,
+      "structure-specific data": true,
       "structure": false,
-      "structureset": false,
-      "structure-specific data": true
+      "structureset": false
     }
   }
 ]
