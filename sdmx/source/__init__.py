@@ -57,16 +57,9 @@ class Source(BaseModel):
     #:   specific data messages.
     supports: Dict[Union[str, Resource], bool] = {
         Resource.data: True,
-        Resource.actualconstraint: False,
-        Resource.allowedconstraint: False,
         Resource.attachementconstraint: False,
         Resource.customtypescheme: False,
-        Resource.dataconsumerscheme: False,
-        Resource.dataproviderscheme: False,
-        Resource.hierarchicalcodelist: False,
         Resource.metadata: False,
-        Resource.metadataflow: False,
-        Resource.metadatastructure: False,
         Resource.namepersonalisationscheme: False,
         Resource.organisationunitscheme: False,
         Resource.process: False,
