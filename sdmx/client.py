@@ -183,7 +183,7 @@ class Client:
         except KeyError:
             raise ValueError(
                 f"resource_type ({resource_type!r}) must be in {Resource.describe()}"
-            )
+            ) from None
 
         if resource:
             # Resource object is given
@@ -205,8 +205,8 @@ class Client:
         force = kwargs.pop("force", False)
         if not (force or self.source.supports[resource_type]):
             raise NotImplementedError(
-                f"{self.source.id} does not support the {resource_type!r} API "
-                "endpoint. Use force=True to override"
+                f"{self.source.id} does not implement or support the {resource_type!r} "
+                "API endpoint. Use force=True to override"
             )
 
         # Construct the URL
@@ -233,7 +233,7 @@ class Client:
             key, dsd = self._make_key(resource_type, resource_id, key, dsd)
             kwargs["dsd"] = dsd
         elif not (key is None or isinstance(key, str)):
-            raise TypeError(f"key must be str or dict; got {type(key)}")
+            raise TypeError(f"key must be str or dict; got {key.__class__.__name__}")
 
         url.key = key
 

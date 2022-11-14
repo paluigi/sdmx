@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Optional
 from warnings import warn
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     import sdmx.source
 
 # Mapping from Resource value to class name.
