@@ -50,9 +50,9 @@
   {
     "id": "ECB",
     "resources": {
-        "data": {
-            "headers": {}
-        }
+      "data": {
+        "headers": {}
+      }
     },
     "url": "https://sdw-wsrest.ecb.europa.eu/service",
     "name": "European Central Bank",
@@ -94,7 +94,7 @@
     "name": "International Labor Organization",
     "url": "http://www.ilo.org/sdmx/rest",
     "headers": {
-        "accept": "application/vnd.sdmx.structurespecificdata+xml;version=2.1"
+      "accept": "application/vnd.sdmx.structurespecificdata+xml;version=2.1"
     },
     "supports": {
       "actualconstraint": false,
@@ -144,9 +144,9 @@
     "name": "Institut national de la statistique et des études économiques (FR)",
     "url": "https://www.bdm.insee.fr/series/sdmx",
     "headers": {
-        "data": {
-            "Accept": "application/vnd.sdmx.genericdata+xml;version=2.1"
-        }
+      "data": {
+        "Accept": "application/vnd.sdmx.genericdata+xml;version=2.1"
+      }
     },
     "supports": {
       "actualconstraint": false,
@@ -199,19 +199,6 @@
     }
   },
   {
-    "id": "NBB",
-    "data_content_type": "JSON",
-    "documentation": "https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_stat-technical-manual.pdf",
-    "url": "https://stat.nbb.be/sdmx-json",
-    "name": "National Bank of Belgium"
-  },
-  {
-    "id": "OECD",
-    "data_content_type": "JSON",
-    "url": "https://stats.oecd.org/SDMX-JSON",
-    "name": "Organisation for Economic Co-operation and Development"
-  },
-  {
     "id": "NB",
     "name": "Norges Bank (NO)",
     "url": "https://data.norges-bank.no/api",
@@ -230,10 +217,23 @@
       "structure-specific data": true
     },
     "headers": {
-        "data": {
-            "accept": "application/vnd.sdmx.genericdata+xml;version=2.1"
-        }
+      "data": {
+        "accept": "application/vnd.sdmx.genericdata+xml;version=2.1"
+      }
     }
+  },
+  {
+    "id": "NBB",
+    "data_content_type": "JSON",
+    "documentation": "https://www.nbb.be/doc/dq/migratie_belgostat/en/nbb_stat-technical-manual.pdf",
+    "url": "https://stat.nbb.be/sdmx-json",
+    "name": "National Bank of Belgium"
+  },
+  {
+    "id": "OECD",
+    "data_content_type": "JSON",
+    "url": "https://stats.oecd.org/SDMX-JSON",
+    "name": "Organisation for Economic Co-operation and Development"
   },
   {
     "id": "SGR",
@@ -271,7 +271,7 @@
     "name": "UN Educational, Scientific and Cultural Organization",
     "url": "http://api.uis.unesco.org/sdmx",
     "headers": {
-        "accept": "application/vnd.sdmx.structure+xml;version=2.1"
+      "accept": "application/vnd.sdmx.structure+xml;version=2.1"
     },
     "supports": {
       "actualconstraint": false,

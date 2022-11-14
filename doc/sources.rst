@@ -137,6 +137,19 @@ SDMX-ML —
 .. versionadded:: 2.5.0
 
 
+.. _ECB:
+
+``ECB``: European Central Bank
+------------------------------
+
+SDMX-ML —
+`Website <http://www.ecb.europa.eu/stats/ecb_statistics/co-operation_and_standards/sdmx/html/index.en.html>`__
+
+- Supports categorisations of data-flows.
+- Supports preview_data and series-key based key validation.
+- In general short response times.
+
+
 .. _ESTAT:
 
 ``ESTAT``: Eurostat
@@ -153,17 +166,6 @@ SDMX-ML —
 
 .. autoclass:: sdmx.source.estat.Source()
    :members:
-
-
-``ECB``: European Central Bank
-------------------------------
-
-SDMX-ML —
-`Website <http://www.ecb.europa.eu/stats/ecb_statistics/co-operation_and_standards/sdmx/html/index.en.html>`__
-
-- Supports categorisations of data-flows.
-- Supports preview_data and series-key based key validation.
-- In general short response times.
 
 
 .. _ILO:
@@ -202,6 +204,8 @@ SDMX-ML —
 - Subset of the data available on http://data.imf.org.
 - Supports series-key-only and hence dataset-based key validation and construction.
 
+
+.. _INEGI:
 
 ``INEGI``: National Institute of Statistics and Geography (Mexico)
 ------------------------------------------------------------------
@@ -244,6 +248,7 @@ Website `(en) <https://www.istat.it/en/methods-and-tools/sdmx-web-service>`__, `
 
   …see the above URLs for details.
 
+
 .. _LSD:
 
 ``LSD``: National Institute of Statistics (Lithuania)
@@ -255,6 +260,8 @@ SDMX-ML —
 - Lithuanian name: Lietuvos statistikos.
 - This web service returns the non-standard HTTP content-type "application/force-download"; :mod:`sdmx` replaces it with "application/xml".
 
+
+.. _NB:
 
 ``NB``: Norges Bank (Norway)
 ----------------------------
@@ -330,14 +337,7 @@ API documentation `(en) <https://www.stat.ee/sites/default/files/2020-09/API-ins
   Since :mod:`sdmx` does not support SDMX-ML 2.0, the package is configured to use the JSON endpoint.
 
 
-``UNSD``: United Nations Statistics Division
---------------------------------------------
-
-SDMX-ML —
-`Website <https://unstats.un.org/home/>`__
-
-- Supports preview_data and series-key based key validation.
-
+.. _UNESCO:
 
 ``UNESCO``: UN Educational, Scientific and Cultural Organization
 ----------------------------------------------------------------
@@ -403,6 +403,19 @@ SDMX-ML or SDMX-JSON —
   The resulting object `dsd` can be passed as an argument to a :meth:`.Client.get` data query.
   See the `sdmx test suite <https://github.com/khaeru/sdmx/blob/main/sdmx/tests/test_sources.py>`_ for an example.
 
+
+.. _UNSD:
+
+``UNSD``: United Nations Statistics Division
+--------------------------------------------
+
+SDMX-ML —
+`Website <https://unstats.un.org/home/>`__
+
+- Supports preview_data and series-key based key validation.
+
+
+.. _WB:
 
 ``WB``: World Bank Group “World Integrated Trade Solution”
 ----------------------------------------------------------

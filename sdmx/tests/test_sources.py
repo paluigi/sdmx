@@ -208,10 +208,6 @@ class TestESTAT(DataSourceTest):
         client.data(**args)
 
 
-class TestIMF(DataSourceTest):
-    source_id = "IMF"
-
-
 class TestILO(DataSourceTest):
     source_id = "ILO"
     xfail = {
@@ -238,6 +234,10 @@ class TestILO(DataSourceTest):
             "ILO does not support references='parentsandsiblings'; discarded"
             in caplog.messages
         )
+
+
+class TestIMF(DataSourceTest):
+    source_id = "IMF"
 
 
 class TestINEGI(DataSourceTest):
