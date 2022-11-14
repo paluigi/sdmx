@@ -239,7 +239,9 @@ class Reader(BaseReader):
 
         try:
             # Use the etree event-driven parser
-            for event, element in etree.iterparse(source, events=("start", "end")):
+            for event, element in etree.iterparse(  # type: ignore [attr-defined]
+                source, events=("start", "end")
+            ):
                 try:
                     # Retrieve the parsing function for this element & event
                     func = PARSE[element.tag, event]

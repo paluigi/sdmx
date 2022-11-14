@@ -1,9 +1,9 @@
 from itertools import chain
-from typing import Set, Union, cast
+from typing import Any, Dict, Hashable, Set, Union, cast
 
 import numpy as np
 import pandas as pd
-from pandas.core.indexes.datetimes import prefix_mapping
+from pandas.core.indexes.datetimes import prefix_mapping  # type: ignore [attr-defined]
 
 from sdmx import message, model
 from sdmx.model import (
@@ -288,7 +288,7 @@ def write_dataset(
         raise ValueError(f"attributes must be in 'osgd'; got {attributes}")
 
     # Iterate on observations
-    data = {}
+    data: Dict[Hashable, Dict[str, Any]] = {}
     for observation in obj.obs:
         # Check that the Observation is within the constraint, if any
         key = observation.key.order()
@@ -308,8 +308,9 @@ def write_dataset(
 
         data[tuple(map(str, key.get_values()))] = row
 
+    # NB mypy errors here on CI, but not locally
     result: Union[pd.Series, pd.DataFrame] = pd.DataFrame.from_dict(
-        data, orient="index"
+        data, orient="index"  # type: ignore [arg-type]
     )
 
     if len(result):
@@ -499,7 +500,7 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
 
     Returns
     -------
-    pandas.Series
+    pandas.Series or pandas.DataFrame
     """
     items = {}
     seen: Set[Item] = set()
@@ -527,9 +528,11 @@ def write_itemscheme(obj: model.ItemScheme, locale=DEFAULT_LOCALE):
         add_item(item)
 
     # Convert to DataFrame
-    result = pd.DataFrame.from_dict(items, orient="index", dtype=object).rename_axis(
-        obj.id, axis="index"
-    )
+    result: Union[pd.DataFrame, pd.Series] = pd.DataFrame.from_dict(
+        items,
+        orient="index",
+        dtype=object,  # type: ignore [arg-type]
+    ).rename_axis(obj.id, axis="index")
 
     if len(result) and not result["parent"].str.len().any():
         # 'parent' column is empty; convert to pd.Series and rename
