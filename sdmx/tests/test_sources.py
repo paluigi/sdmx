@@ -13,7 +13,7 @@ import requests_mock
 
 import sdmx
 from sdmx import Client
-from sdmx.exceptions import HTTPError, XMLParseError
+from sdmx.exceptions import HTTPError, SSLError, XMLParseError
 
 # Mark the whole file so the tests can be excluded/included
 pytestmark = pytest.mark.source
@@ -153,17 +153,6 @@ estat_mock = {
 
 class TestESTAT(DataSourceTest):
     source_id = "ESTAT"
-    xfail = {
-        # 404 Client Error: Not Found
-        # NOTE the ESTAT service does not give a general response that contains all
-        #      datastructures; this is really more of a 501.
-        "datastructure": HTTPError,
-        "categorisation": NotImplementedError,  # 501
-        "contentconstraint": NotImplementedError,  # 501
-        "organisationscheme": NotImplementedError,  # 501
-        "structure": NotImplementedError,  # 501
-        "structureset": NotImplementedError,  # 501
-    }
 
     @pytest.fixture
     def mock(self, test_data_path):
@@ -227,8 +216,10 @@ class TestILO(DataSourceTest):
     source_id = "ILO"
     xfail = {
         "agencyscheme": HTTPError,  # 400
-        "codelist": HTTPError,  # 413 Client Error: Client Entity Too Large
-        "contentconstraint": None,  # This actually passes; the message is empty.
+        # TODO provide endpoint_args for the following 3 to select 1 or a few objects
+        "codelist": HTTPError,  # 413 Client Error: Payload Too Large
+        "contentconstraint": HTTPError,  # 413 Client Error: Payload Too Large
+        "datastructure": HTTPError,  # 413 Client Error: Payload Too Large
         "organisationscheme": HTTPError,  # 400
         "structure": HTTPError,  # 400
         "structureset": NotImplementedError,  # 501
@@ -355,10 +346,6 @@ class TestNB(DataSourceTest):
 
     source_id = "NB"
 
-    xfail = {
-        "structure": None,  # This actually passes; contains already supported SDMX-ML
-    }
-
 
 class TestNBB(DataSourceTest):
     source_id = "NBB"
@@ -373,6 +360,11 @@ class TestNBB(DataSourceTest):
 
 class TestOECD(DataSourceTest):
     source_id = "OECD"
+
+    xfail = {
+        "data": (SSLError, "SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED"),
+    }
+
     endpoint_args = {
         "data": dict(
             resource_id="ITF_GOODS_TRANSPORT",
@@ -481,14 +473,6 @@ class TestWB(DataSourceTest):
 
 class TestWB_WDI(DataSourceTest):
     source_id = "WB_WDI"
-
-    xfail = {
-        "agencyscheme": ValueError,  # 404; response in HTML
-        "contentconstraint": ValueError,  # 404; response in HTML
-        "organisationscheme": HTTPError,  # 400
-        "structure": ValueError,  # 404; response in HTML
-        "structureset": ValueError,  # 404; response in HTML
-    }
 
     endpoint_args = {
         # Example from the documentation website
