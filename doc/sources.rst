@@ -160,11 +160,8 @@ SDMX-ML —
 SDMX-ML —
 Website `1 <https://wikis.ec.europa.eu/pages/viewpage.action?pageId=44165555>`__, `2 <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
 
-- Thousands of dataflows on a wide range of topics.
-- No categorisations available.
-- Long response times are reported.
-  Increase the timeout attribute to avoid timeout exceptions.
-- Does not return DSDs for dataflow requests with the ``references='all'`` query parameter.
+- In some cases, the service can have a long response time, so :mod:`sdmx` will time out.
+  Increase the timeout attribute if necessary.
 
 .. autoclass:: sdmx.source.estat.Source()
    :members:
