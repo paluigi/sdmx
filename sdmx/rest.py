@@ -53,6 +53,8 @@ class Resource(str, Enum):
     ``dataconsumerscheme``        :class:`.DataConsumerScheme`
     ``dataproviderscheme``        :class:`.DataProviderScheme`
     ``datastructure``             :class:`.DataStructureDefinition`
+    ``metadataflow``              :class:`.MetadataflowDefinition`
+    ``metadatastructure``         :class:`.MetadataStructureDefinition`
     ``organisationscheme``        :class:`.OrganisationScheme`
     ``provisionagreement``        :class:`.ProvisionAgreement`
     ``structure``                 Mixed.
@@ -60,8 +62,6 @@ class Resource(str, Enum):
     ``customtypescheme``          Not implemented.
     ``hierarchicalcodelist``      Not implemented.
     ``metadata``                  Not implemented.
-    ``metadataflow``              Not implemented.
-    ``metadatastructure``         Not implemented.
     ``namepersonalisationscheme`` Not implemented.
     ``organisationunitscheme``    Not implemented.
     ``process``                   Not implemented.
