@@ -8,8 +8,11 @@ What's new?
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v2.7.0 (2022-11-14)
+===================
 
 - Python 3.11 is fully supported (:pull:`109`).
 - Changes for specific data sources:
