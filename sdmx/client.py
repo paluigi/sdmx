@@ -80,15 +80,14 @@ class Client:
     def __getattr__(self, name):
         """Convenience methods."""
         try:
-            # Provide resource_type as a positional argument, so that the
-            # first positional argument to the convenience method is treated as
-            # resource_id
+            # Provide resource_type as a positional argument, so that the first
+            # positional argument to the convenience method is treated as resource_id
             func = partial(self.get, Resource[name])
         except KeyError:
             raise AttributeError
         else:
-            # Modify the docstring to explain the argument fixed by the
-            # convenience method
+            # Modify the docstring to explain the argument fixed by the convenience
+            # method
             func.__doc__ = self.get.__doc__.replace(
                 ".\n", f" with resource_type={repr(name)}.\n", 1
             )
@@ -156,8 +155,8 @@ class Client:
             )
 
             if dsd.is_external_reference:
-                # DataStructureDefinition was not retrieved with the Dataflow
-                # query; retrieve it explicitly
+                # DataStructureDefinition was not retrieved with the Dataflow query;
+                # retrieve it explicitly
                 dsd = self.get(resource=dsd, use_cache=True).structure[dsd.id]
         else:
             # Construct a DSD from the keys
@@ -183,7 +182,7 @@ class Client:
                 resource_type = Resource[resource_type]
         except KeyError:
             raise ValueError(
-                f"resource_type ({resource_type!r}) must be in " + Resource.describe()
+                f"resource_type ({resource_type!r}) must be in {Resource.describe()}"
             )
 
         if resource:
@@ -206,7 +205,7 @@ class Client:
         force = kwargs.pop("force", False)
         if not (force or self.source.supports[resource_type]):
             raise NotImplementedError(
-                f"{self.source.id} does not support the {repr(resource_type)} API "
+                f"{self.source.id} does not support the {resource_type!r} API "
                 "endpoint. Use force=True to override"
             )
 
@@ -457,7 +456,7 @@ class Client:
             # Convert a 501 response to a Python NotImplementedError
             if e.response.status_code == 501:
                 raise NotImplementedError(
-                    "{!r} endpoint at {}".format(resource_type, e.request.url)
+                    f"{resource_type!r} endpoint at {e.request.url}"
                 )
             else:
                 raise
@@ -476,9 +475,8 @@ class Client:
             Reader = get_reader_for_content_type(content_type)
         except ValueError:
             raise ValueError(
-                "can't determine a SDMX reader for response content type "
-                + repr(content_type)
-            )
+                f"can't determine a reader for response content type {content_type!r}"
+            ) from None
 
         # Instantiate reader
         reader = Reader()

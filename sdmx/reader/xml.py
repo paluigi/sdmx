@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Type, Union, cast
 
 from dateutil.parser import isoparse
 from lxml import etree
-from lxml.etree import _Element, QName
+from lxml.etree import QName, _Element
 
 import sdmx.urn
 from sdmx import message, model
@@ -469,7 +469,7 @@ class Reader(BaseReader):
     def maintainable(self, cls, elem, **kwargs):
         """Create or retrieve a MaintainableArtefact of `cls` from `elem` and `kwargs`.
 
-        Following the SDMX-IM class hierachy, :meth:`maintainable` calls
+        Following the SDMX-IM class hierarchy, :meth:`maintainable` calls
         :meth:`nameable`, which in turn calls :meth:`identifiable`, etc. (Since no
         concrete class is versionable but not maintainable, no separate method is
         created, for better performance). For all of these methods:
@@ -595,7 +595,7 @@ def _header(reader, elem):
     # Appearing in data messages from WB_WDI and the footer.xml specimen
     reader.pop_all("DataSetAction")
     reader.pop_all("DataSetID")
-    # Apparing in the footer.xml specimen
+    # Appearing in the footer.xml specimen
     reader.pop_all("Timezone")
 
 
@@ -690,7 +690,7 @@ def _header_structure(reader, elem):
 
 @end("footer:Footer")
 def _footer(reader, elem):
-    # Get attributes from the child <footer:Messsage>
+    # Get attributes from the child <footer:Message>
     args = dict()
     setdefault_attrib(args, elem[0], "code", "severity")
     if "code" in args:

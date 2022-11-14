@@ -5,15 +5,16 @@ from zipfile import ZipFile
 
 import requests
 
-from . import Source as BaseSource
 from sdmx.rest import Resource
+from sdmx.source import Source as BaseSource
+
 
 class Source(BaseSource):
     """Handle Eurostat's mechanism for large datasets.
 
-    For some requests, ESTAT returns a DataMessage that has no content except
-    for a ``<footer:Footer>`` element containing a URL where the data will be
-    made available as a ZIP file.
+    For some requests, ESTAT returns a DataMessage that has no content except for a
+    ``<footer:Footer>`` element containing a URL where the data will be made available
+    as a ZIP file.
 
     To configure :meth:`finish_message`, pass its `get_footer_url` argument to
     :meth:`.Client.get`.
@@ -87,7 +88,6 @@ class Source(BaseSource):
         The request for the indicated ZIP file URL returns an octet-stream;
         this handler saves it, opens it, and returns the content of the single
         contained XML file.
-
         """
 
         if response.headers["content-type"] != "application/octet-stream":
