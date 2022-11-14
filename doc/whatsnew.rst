@@ -11,9 +11,23 @@ What's new?
 Next release
 ============
 
-- Update :ref:`ISTAT` web service URL (:pull:`105`).
-- Add :class:`MetadataflowDefinition`, :class:`MetadataStructureDefinition`, and handle references to these in :mod:`.reader.xml` (:pull:`105`).
-- Work around :issue:`102`, an error in some :ref:`IMF` structure messages (:pull:`103`).
+- Python 3.11 is fully supported (:pull:`109`).
+- Changes for specific data sources:
+
+  - :ref:`ESTAT`: update web service URL, quirks handling (:class:`.estat.Source`), tests, and usage throughout documentation (:pull:`107`, :pull:`109`, thanks :gh-user:`zymon`).
+  - :ref:`IMF`: work around :issue:`102` (thanks :gh-user:`zymon`), an error in some structure messages (:pull:`103`).
+  - :ref:`ISTAT`: update web service URL (:pull:`105`; thanks :gh-user:`miccoli` for :issue:`104`).
+
+- Add :class:`.MetadataflowDefinition`, :class:`.MetadataStructureDefinition`, and handle references to these in :mod:`.reader.xml` (:pull:`105`).
+- Correctly parse "." in item IDs in URNs (:data:`~sdmx.urn.URN`, :pull:`109`).
+- Handle SDMX-ML observed in the wild (:pull:`109`):
+
+  - Elements that normally contain text but appear without even a text node, e.g. ``<com:AnnotationURL/>``.
+  - XML namespaces defined on the message element, e.g. ``<mes:StructureSpecificData xmlns:u="...">`` followed by ``<u:DataSet>`` instead of ``<mes:DataSet>``.
+- Expand the :ref:`source/endpoint test matrix <source-matrix>` (:pull:`109`).
+  Every REST API endpoint is queried for every data source, even if it is known to be not implemented.
+  This allows to spot when source implementations change.
+- Sort entries in :file:`sources.json` (:pull:`109`).
 
 v2.6.3 (2022-09-29)
 ===================

@@ -3,7 +3,7 @@ from typing import Dict
 
 from sdmx.model import PACKAGE, MaintainableArtefact
 
-# Regular expression for URNs
+#: Regular expression for URNs.
 URN = re.compile(
     r"urn:sdmx:org\.sdmx\.infomodel"
     r"\.(?P<package>[^\.]*)"
@@ -46,6 +46,7 @@ def make(obj, maintainable_parent=None, strict=False):
 
 
 def match(value: str) -> Dict[str, str]:
+    """Match :data:`URN` in `value`, returning a :class:`dict` with the match groups."""
     try:
         match = URN.match(value)
         assert match is not None

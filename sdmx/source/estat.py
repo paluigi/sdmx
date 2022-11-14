@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class Source(BaseSource):
-    """Handle Eurostat's mechanism for large datasets.
+    """Handle Eurostat's mechanism for large datasets and other quirks.
 
     For some requests, ESTAT returns a DataMessage that has no content except for a
     ``<footer:Footer>`` element containing a URL where the data will be made available
@@ -23,6 +23,10 @@ class Source(BaseSource):
     :meth:`.Client.get`.
 
     .. versionadded:: 0.2.1
+
+    See also
+    --------
+    :meth:`modify_request_args`
     """
 
     _id = "ESTAT"
@@ -34,6 +38,10 @@ class Source(BaseSource):
         values "children", "descendants", or "none". Other values—including the "all" or
         "parentsandsiblings" used as defaults by :class:`.Client` cause errors. Replace
         unsupported values with "none", and use "descendants" as default.
+
+        See also
+        --------
+        :pull:`107`, :pull:`108`
         """
         super().modify_request_args(kwargs)
 

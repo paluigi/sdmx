@@ -77,6 +77,8 @@ Please `open an issue <https://github.com/khaeru/sdmx/issues/new>`__ if the supp
     The :class:`.Client` is constructing a standards-compliant URL, but the service idiosyncratically rejects it.
     Handling these idiosyncrasies is currently out-of-scope for :mod:`sdmx`.
 
+.. _source-matrix:
+
 - Because of the large number of services and endpoints, the matrix of support is only periodically updated.
   To mitigate: https://khaeru.github.io/sdmx/ displays a summary of every SDMX 2.1 REST API endpoint for every data source built-in to :mod:`sdmx`; this summary is updated daily by an automatic run of the test suite.
   These include all endpoints known to return a non-404 reply, even if the reply is an error message of some sort.
@@ -156,7 +158,7 @@ SDMX-ML —
 -------------------
 
 SDMX-ML —
-`Website <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
+Website `1 <https://wikis.ec.europa.eu/pages/viewpage.action?pageId=44165555>`__, `2 <https://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`__
 
 - Thousands of dataflows on a wide range of topics.
 - No categorisations available.
