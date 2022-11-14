@@ -234,7 +234,10 @@ class TestILO(DataSourceTest):
     @pytest.mark.network
     def test_gh_96(self, caplog, cache_path, client):
         client.get("codelist", "CL_ECO", params=dict(references="parentsandsiblings"))
-        assert "ILO does not support references = parentsandsiblings; discarded"
+        assert (
+            "ILO does not support references='parentsandsiblings'; discarded"
+            in caplog.messages
+        )
 
 
 class TestINEGI(DataSourceTest):
