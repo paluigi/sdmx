@@ -199,10 +199,7 @@ class SpecimenCollection:
     def __init__(self, base_path):
         self.base_path = base_path
 
-        specimens = [
-            (base_path / "INSEE" / "CNA-2010-CONSO-SI-A17.xml", "xml", "data"),
-            (base_path / "INSEE" / "IPI-2010-A21.xml", "xml", "data"),
-        ]
+        specimens = []
 
         # XML data files for the ECB exchange rate data flow
         for path in (base_path / "ECB_EXR").rglob("*.xml"):
@@ -211,14 +208,23 @@ class SpecimenCollection:
                 kind = "structure"
             specimens.append((path, "xml", kind))
 
-        # JSON data files for the ECB exchange rate data flow
-        for fp in (base_path / "ECB_EXR").rglob("*.json"):
-            specimens.append((fp, "json", "data"))
-        for fp in (base_path / "OECD").rglob("*.json"):
-            specimens.append((fp, "json", "data"))
+        # JSON data files for ECB and OECD data flows
+        for source_id in ("ECB_EXR", "OECD"):
+            specimens.extend(
+                (fp, "json", "data")
+                for fp in base_path.joinpath(source_id).rglob("*.json")
+            )
 
         # Miscellaneous XML data files
-        specimens.append((base_path / "ESTAT" / "footer.xml", "xml", "data"))
+        specimens.extend(
+            (base_path.joinpath(*parts), "xml", "data")
+            for parts in [
+                ("INSEE", "CNA-2010-CONSO-SI-A17.xml"),
+                ("INSEE", "IPI-2010-A21.xml"),
+                ("ESTAT", "footer.xml"),
+                ("ESTAT", "NAMA_10_GDP-ss.xml"),
+            ]
+        )
 
         # Miscellaneous XML structure files
         specimens.extend(
