@@ -45,8 +45,8 @@ Instructions
 
    To also install optional dependencies, use commands like::
 
-    $ pip install sdmx1[cache]             # just requests-cache
-    $ pip install sdmx1[cache,docs,tests]  # all extras
+    $ pip install 'sdmx1[cache]'             # just requests-cache
+    $ pip install 'sdmx1[cache,docs,tests]'  # all extras
 
 From source
 -----------
